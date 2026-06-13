@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Wealth Matrix CRM">
+<title>Wealth Matrix CRM</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{--bg:#0C1420;--s1:#142031;--s2:#1A2B40;--s3:#223350;--border:#2A3F58;--border2:#344d68;--gold:#F0B429;--gold2:rgba(240,180,41,.12);--text:#F0F6FF;--t2:#8BA4BF;--t3:#4A6480;--green:#22C55E;--gdim:rgba(34,197,94,.12);--blue:#3B82F6;--bdim:rgba(59,130,246,.12);--orange:#F97316;--odim:rgba(249,115,22,.12);--red:#EF4444;--rdim:rgba(239,68,68,.12);--r:12px;--r2:8px}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;overscroll-behavior:none;-webkit-font-smoothing:antialiased}
+#app{display:flex;flex-direction:column;height:100dvh;height:100vh;max-width:520px;margin:0 auto;position:relative;overflow:hidden}
+#content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:68px}
+#nav{position:absolute;bottom:0;left:0;right:0;background:rgba(12,20,32,.97);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--border);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom,0px)}
+.nb{flex:1;padding:7px 2px 5px;display:flex;flex-direction:column;align-items:center;gap:2px;border:none;background:none;color:var(--t3);cursor:pointer;font-size:9px;font-weight:600;letter-spacing:.3px;text-transform:uppercase;transition:color .15s;min-width:0}
+.nb.active{color:var(--gold)}
+.nb svg{width:19px;height:19px;flex-shrink:0}
+.page{display:none}
+.page.active{display:block}
+.ph{padding:14px 14px 8px;display:flex;align-items:center;justify-content:space-between}
+.ph h1{font-size:20px;font-weight:900;letter-spacing:-.5px}
+.ph .sub{font-size:10px;color:var(--t2);margin-top:1px}
+.sec{padding:0 12px;margin-bottom:14px}
+.lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--t3);margin-bottom:7px}
+.card{background:var(--s1);border-radius:var(--r);border:1px solid var(--border);overflow:hidden}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:10px 16px;border-radius:var(--r2);border:none;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .12s,transform .08s;text-decoration:none;white-space:nowrap}
+.btn:active{transform:scale(.97)}
+.btn-gold{background:var(--gold);color:#0C1420}
+.btn-ghost{background:var(--s2);color:var(--text);border:1px solid var(--border)}
+.btn-wa{background:#25D366;color:#fff}
+.btn-red{background:var(--rdim);color:var(--red);border:1px solid rgba(239,68,68,.2)}
+.btn-blue{background:var(--bdim);color:var(--blue);border:1px solid rgba(59,130,246,.2)}
+.btn-full{width:100%;display:flex}
+.pill{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700}
+.pill-prospect{background:rgba(148,163,184,.15);color:#94A3B8}
+.pill-contacted{background:var(--bdim);color:var(--blue)}
+.pill-inprogress{background:var(--odim);color:var(--orange)}
+.pill-converted{background:var(--gdim);color:var(--green)}
+.sbox{width:100%;background:var(--s1);border:1px solid var(--border);border-radius:var(--r2);padding:9px 12px;color:var(--text);font-family:inherit;font-size:14px;outline:none;-webkit-appearance:none}
+.sbox:focus{border-color:var(--gold)}
+.chips{display:flex;gap:6px;padding:0 12px 9px;overflow-x:auto;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex-shrink:0;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;border:1px solid var(--border);background:var(--s1);color:var(--t2);cursor:pointer;white-space:nowrap}
+.chip.active{background:var(--gold);color:#0C1420;border-color:var(--gold)}
+.li{padding:11px 12px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:10px;cursor:pointer;transition:background .1s}
+.li:active{background:var(--s1)}
+.av{width:36px;height:36px;min-width:36px;border-radius:50%;background:var(--s2);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:var(--gold)}
+.li-info{flex:1;min-width:0}
+.li-name{font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.li-meta{font-size:11px;color:var(--t2);margin-top:1px}
+.li-prod{font-size:10px;color:var(--blue);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.li-right{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0}
+.days{font-size:10px;color:var(--t3);font-weight:600}
+.days.hot{color:var(--red)}
+.ns-wrap{overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.ns-wrap::-webkit-scrollbar{display:none}
+.ns-table{border-collapse:collapse;width:100%;min-width:390px}
+.ns-table th{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--t3);padding:7px 8px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap}
+.ns-table th:first-child{text-align:left;position:sticky;left:0;background:var(--s1);z-index:2;min-width:90px}
+.ns-table td{padding:9px 8px;text-align:right;border-bottom:1px solid var(--border);font-size:13px;font-weight:700;white-space:nowrap}
+.ns-table td:first-child{text-align:left;font-weight:600;font-size:11px;color:var(--t2);position:sticky;left:0;background:var(--s1);z-index:2}
+.ns-table tr:last-child td{border-bottom:none}
+.ns-num.zero{color:var(--t3);font-weight:400}
+.row-total td{color:var(--gold)}
+.row-contacted td:first-child{color:var(--blue)}
+.row-inprogress td:first-child{color:var(--orange)}
+.row-converted td:first-child{color:var(--green)}
+.fn-row{display:flex;align-items:center;gap:7px;margin-bottom:7px}
+.fn-lbl{font-size:11px;color:var(--t2);width:72px;flex-shrink:0}
+.fn-track{flex:1;height:6px;background:var(--s3);border-radius:3px;overflow:hidden}
+.fn-bar{height:100%;border-radius:3px;min-width:3px;transition:width .5s ease}
+.fn-n{font-size:12px;font-weight:800;width:24px;text-align:right;flex-shrink:0}
+.fn-pct{font-size:10px;color:var(--t3);margin:-5px 0 5px 79px}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:500;display:none;align-items:flex-end;justify-content:center}
+.ov.open{display:flex}
+.sh{background:var(--s1);border-radius:16px 16px 0 0;width:100%;max-width:520px;max-height:92dvh;max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:env(safe-area-inset-bottom,16px)}
+.sh::-webkit-scrollbar{display:none}
+.sh-handle{width:32px;height:4px;background:var(--border2);border-radius:2px;margin:9px auto 5px}
+.sh-hdr{padding:8px 12px 0;display:flex;align-items:center;justify-content:space-between}
+.sh-title{font-size:16px;font-weight:800}
+.sh-x{width:26px;height:26px;background:var(--s3);border-radius:50%;border:none;color:var(--t2);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sh-body{padding:12px}
+.fg{margin-bottom:10px}
+.fl{font-size:10px;font-weight:700;color:var(--t2);margin-bottom:3px;display:block;text-transform:uppercase;letter-spacing:.4px}
+.fi{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--r2);padding:9px 11px;color:var(--text);font-family:inherit;font-size:14px;outline:none;-webkit-appearance:none;appearance:none}
+.fi:focus{border-color:var(--gold)}
+.fi-sel{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%234A6480' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:26px}
+.fi-ta{min-height:58px;resize:none;line-height:1.5}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ptoggle-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.pt{background:var(--bg);border:1px solid var(--border);border-radius:var(--r2);padding:7px 8px;font-size:11px;font-weight:600;color:var(--t2);cursor:pointer;text-align:center;-webkit-user-select:none;user-select:none;transition:all .1s}
+.pt.on{background:var(--bdim);border-color:var(--blue);color:var(--blue)}
+.dt-hdr{padding:12px;display:flex;gap:10px;align-items:flex-start}
+.dt-av{width:44px;height:44px;min-width:44px;border-radius:50%;background:var(--s3);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;color:var(--gold)}
+.dt-name{font-size:17px;font-weight:800}
+.dt-sub{font-size:11px;color:var(--t2);margin-top:2px}
+.dr{display:flex;justify-content:space-between;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--border)}
+.dr:last-child{border-bottom:none}
+.dk{font-size:11px;color:var(--t2)}
+.dv{font-size:11px;font-weight:600;text-align:right;max-width:58%;word-break:break-word}
+.act-row{display:flex;gap:7px;padding:0 12px 9px}
+.alert{background:var(--odim);border:1px solid rgba(249,115,22,.25);border-radius:var(--r);padding:11px 12px;margin-bottom:9px;display:flex;gap:9px;align-items:flex-start;cursor:pointer}
+.syc{background:var(--s1);border-radius:var(--r);border:1px solid var(--border);padding:14px;margin:0 12px 10px}
+.sy-t{font-size:14px;font-weight:700;margin-bottom:3px}
+.sy-d{font-size:11px;color:var(--t2);margin-bottom:10px;line-height:1.5}
+.sm{margin:0 12px 9px;padding:10px 12px;border-radius:var(--r2);font-size:12px;font-weight:600}
+.sm-ok{background:var(--gdim);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.sm-err{background:var(--rdim);color:var(--red);border:1px solid rgba(239,68,68,.2)}
+.sm-info{background:var(--bdim);color:var(--blue);border:1px solid rgba(59,130,246,.2)}
+.sg{background:var(--s1);border-radius:var(--r);border:1px solid var(--border);margin:0 12px 10px;overflow:hidden}
+.si{display:flex;align-items:center;justify-content:space-between;padding:11px 12px;border-bottom:1px solid var(--border)}
+.si:last-child{border-bottom:none}
+.empty{text-align:center;padding:40px 18px}
+.empty-ico{font-size:32px;margin-bottom:9px}
+.empty-t{font-size:15px;font-weight:700;margin-bottom:5px}
+.empty-s{font-size:12px;color:var(--t2);line-height:1.5}
+.fu-item{padding:12px;border-bottom:1px solid var(--border)}
+.ci{padding:11px 12px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:flex-start;cursor:pointer;transition:background .1s}
+.ci:active{background:var(--s1)}
+.ci-av{width:36px;height:36px;min-width:36px;border-radius:50%;background:var(--gdim);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:var(--green)}
+#toast{position:fixed;bottom:76px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--s2);border:1px solid var(--border2);border-radius:999px;padding:7px 14px;font-size:12px;font-weight:600;opacity:0;transition:all .25s;z-index:999;white-space:nowrap;pointer-events:none;max-width:88vw;text-align:center}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.mic{width:34px;height:34px;border-radius:50%;background:var(--gold2);border:1px solid rgba(240,180,41,.25);color:var(--gold);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all .15s}
+.mic.on{background:var(--rdim);border-color:rgba(239,68,68,.4);color:var(--red);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+.tmpl-wrap{padding:0 12px;margin-bottom:10px}
+.sync-banner{margin:0 12px 10px;padding:12px;background:var(--s1);border:1px solid var(--border);border-radius:var(--r);display:flex;align-items:center;gap:10px}
+.sync-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.sync-dot.ok{background:var(--green)}
+.sync-dot.err{background:var(--red)}
+.sync-dot.warn{background:var(--orange)}
+.sync-dot.idle{background:var(--t3)}
+.spin{animation:spin 1s linear infinite}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div id="app">
+<div id="content">
+
+<!-- DASHBOARD -->
+<div class="page active" id="pg-dash">
+  <div class="ph"><div><h1>Dashboard</h1><div class="sub" id="dash-date"></div></div><div style="font-size:18px;font-weight:900;color:var(--gold)">WM</div></div>
+  <div class="sec" id="dash-alert"></div>
+  <div class="sec"><div class="lbl">North Star Matrix</div><div class="card ns-wrap"><table class="ns-table" id="ns-table"></table></div></div>
+  <div class="sec"><div class="lbl">Lead funnel</div><div class="card" style="padding:14px" id="funnel"></div></div>
+  <div class="sec"><div class="lbl">Product interest</div><div class="card" style="padding:12px" id="prod-chart"></div></div>
+  <div class="sec"><div class="lbl">Country</div><div class="card" style="padding:12px" id="country-chart"></div></div>
+</div>
+
+<!-- LEADS -->
+<div class="page" id="pg-leads">
+  <div class="ph">
+    <div><h1>Leads</h1><div class="sub" id="leads-sub"></div></div>
+    <div style="display:flex;gap:7px;align-items:center">
+      <button class="mic" id="mic-btn" onclick="voiceAdd()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
+      <button class="btn btn-gold" style="padding:7px 12px;font-size:12px" onclick="openAddLead()">+ Add</button>
+    </div>
+  </div>
+  <div style="padding:0 12px 9px"><input class="sbox" id="lead-search" placeholder="Search name, mobile, country…" oninput="renderLeads()"></div>
+  <div class="chips" id="status-chips"></div>
+  <div id="lead-list"></div>
+</div>
+
+<!-- FOLLOW-UPS -->
+<div class="page" id="pg-fu"><div class="ph"><h1>Follow-ups</h1></div><div id="fu-list"></div></div>
+
+<!-- CLIENTS -->
+<div class="page" id="pg-clients">
+  <div class="ph">
+    <div><h1>Clients</h1><div class="sub" id="clients-sub"></div></div>
+    <button class="btn btn-gold" style="padding:7px 12px;font-size:12px" onclick="openAddClient()">+ Add</button>
+  </div>
+  <div style="padding:0 12px 9px"><input class="sbox" id="client-search" placeholder="Search…" oninput="renderClients()"></div>
+  <div id="client-list"></div>
+</div>
+
+<!-- SYNC -->
+<div class="page" id="pg-sync">
+  <div class="ph"><h1>Sync</h1></div>
+  <div id="sync-status"></div>
+  <div class="sync-banner" id="sync-banner">
+    <div class="sync-dot idle" id="sync-dot"></div>
+    <div id="sync-banner-text" style="font-size:12px;color:var(--t2)">Not configured. Add your Apps Script URL below.</div>
+  </div>
+  <div class="syc">
+    <div class="sy-t">⬇️ Pull from Sheet</div>
+    <div class="sy-d">Manually load latest data from Google Sheet. Happens automatically on app open if URL is set.</div>
+    <button class="btn btn-ghost btn-full" style="border-color:var(--blue);color:var(--blue)" onclick="pullFromSheet(true)">Pull from Google Sheet</button>
+    <div style="font-size:10px;color:var(--t3);margin-top:7px" id="pull-meta"></div>
+  </div>
+  <div class="syc">
+    <div class="sy-t">🔗 Apps Script URL</div>
+    <div class="sy-d">Paste your Google Apps Script Web App URL here. This is your sync engine — all reads and writes go through it.</div>
+    <div class="fg"><label class="fl">Web App URL</label><input class="fi" id="s-url" placeholder="https://script.google.com/macros/s/…/exec" oninput="cfg('scriptUrl',this.value);updateSyncBanner()"></div>
+    <div style="font-size:11px;color:var(--t3);margin-top:4px">Follow the setup guide in this chat to get this URL (takes ~10 min, free).</div>
+  </div>
+  <div class="syc">
+    <div class="sy-t">📤 Export backup</div>
+    <div class="sy-d">Download all your data as a JSON file.</div>
+    <button class="btn btn-ghost btn-full" onclick="exportData()">Export JSON backup</button>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="page" id="pg-settings">
+  <div class="ph"><h1>Settings</h1></div>
+  <div style="padding:0 12px;margin-bottom:7px" class="lbl">Follow-up rule</div>
+  <div class="sg">
+    <div class="si"><span>Follow up after</span>
+      <select class="fi fi-sel" style="width:100px;padding:5px 24px 5px 8px" id="s-fdays" onchange="cfg('followUpDays',this.value)">
+        <option value="7">7 days</option><option value="10">10 days</option><option value="14" selected>14 days</option><option value="21">21 days</option><option value="30">30 days</option>
+      </select>
+    </div>
+  </div>
+  <div style="padding:0 12px;margin:12px 0 7px" class="lbl">WhatsApp templates</div>
+  <div id="tmpl-section"></div>
+  <div style="padding:0 12px;margin:12px 0 7px" class="lbl">About</div>
+  <div class="sg">
+    <div class="si"><span>Total leads</span><span style="color:var(--t2)" id="st-leads">0</span></div>
+    <div class="si"><span>Total clients</span><span style="color:var(--t2)" id="st-clients">0</span></div>
+    <div class="si"><span>Sync</span><span style="color:var(--t2)" id="st-sync">Not configured</span></div>
+  </div>
+</div>
+
+</div><!-- /content -->
+
+<nav id="nav">
+  <button class="nb active" onclick="nav('dash',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dash</button>
+  <button class="nb" onclick="nav('leads',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>Leads</button>
+  <button class="nb" onclick="nav('fu',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>Follow-up</button>
+  <button class="nb" onclick="nav('clients',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Clients</button>
+  <button class="nb" onclick="nav('sync',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg>Sync</button>
+  <button class="nb" onclick="nav('settings',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Settings</button>
+</nav>
+</div>
+
+<!-- LEAD FORM -->
+<div class="ov" id="ov-lead"><div class="sh">
+  <div class="sh-handle"></div>
+  <div class="sh-hdr"><div class="sh-title" id="lf-title">New Lead</div><button class="sh-x" onclick="closeOv('ov-lead')">✕</button></div>
+  <div class="sh-body">
+    <input type="hidden" id="lf-orig">
+    <div class="frow"><div class="fg"><label class="fl">Name *</label><input class="fi" id="lf-name" placeholder="Full name" autocomplete="off"></div><div class="fg"><label class="fl">Mobile *</label><input class="fi" id="lf-mob" type="tel" placeholder="9847012345"></div></div>
+    <div class="frow"><div class="fg"><label class="fl">Email</label><input class="fi" id="lf-email" type="email" autocomplete="off"></div><div class="fg"><label class="fl">Country</label><input class="fi" id="lf-country" placeholder="India / UAE"></div></div>
+    <div class="frow"><div class="fg"><label class="fl">Age</label><input class="fi" id="lf-age" type="number" placeholder="35"></div><div class="fg"><label class="fl">Gender</label><select class="fi fi-sel" id="lf-gender"><option value="">Select</option><option>Male</option><option>Female</option></select></div></div>
+    <div class="fg"><label class="fl">Status</label><select class="fi fi-sel" id="lf-status"><option>Prospect</option><option>Contacted</option><option>In Progress</option><option>Converted</option></select></div>
+    <div class="fg"><label class="fl">Interested products</label>
+      <div class="ptoggle-grid">
+        <div class="pt" data-p="Investment" onclick="tp(this)">📈 Investment</div>
+        <div class="pt" data-p="Life Insurance" onclick="tp(this)">🛡️ Life Ins.</div>
+        <div class="pt" data-p="Health Insurance" onclick="tp(this)">🏥 Health Ins.</div>
+        <div class="pt" data-p="WILL" onclick="tp(this)">📜 WILL</div>
+      </div>
+    </div>
+    <div class="fg"><label class="fl">Remarks</label><textarea class="fi fi-ta" id="lf-rem" placeholder="Source, notes…"></textarea></div>
+    <button class="btn btn-gold btn-full" onclick="saveLead()" style="margin-top:4px">Save Lead</button>
+    <div style="height:8px"></div>
+  </div>
+</div></div>
+
+<!-- CLIENT FORM -->
+<div class="ov" id="ov-client"><div class="sh">
+  <div class="sh-handle"></div>
+  <div class="sh-hdr"><div class="sh-title" id="cf-title">New Client</div><button class="sh-x" onclick="closeOv('ov-client')">✕</button></div>
+  <div class="sh-body">
+    <input type="hidden" id="cf-orig">
+    <div class="frow"><div class="fg"><label class="fl">Name *</label><input class="fi" id="cf-name"></div><div class="fg"><label class="fl">Mobile *</label><input class="fi" id="cf-mob" type="tel"></div></div>
+    <div class="frow"><div class="fg"><label class="fl">Email</label><input class="fi" id="cf-email"></div><div class="fg"><label class="fl">Country</label><input class="fi" id="cf-country"></div></div>
+    <div class="frow"><div class="fg"><label class="fl">Age</label><input class="fi" id="cf-age" type="number"></div><div class="fg"><label class="fl">Gender</label><select class="fi fi-sel" id="cf-gender"><option value="">Select</option><option>Male</option><option>Female</option></select></div></div>
+    <div class="fg"><label class="fl">PAN</label><input class="fi" id="cf-pan" placeholder="ABCDE1234F"></div>
+    <div class="fg"><label class="fl">Products</label>
+      <div class="ptoggle-grid" id="cf-products">
+        <div class="pt" data-p="Investment" onclick="tp(this)">📈 Investment</div>
+        <div class="pt" data-p="Life Insurance" onclick="tp(this)">🛡️ Life Ins.</div>
+        <div class="pt" data-p="Health Insurance" onclick="tp(this)">🏥 Health Ins.</div>
+        <div class="pt" data-p="WILL" onclick="tp(this)">📜 WILL</div>
+      </div>
+    </div>
+    <div class="fg"><label class="fl">Remarks</label><textarea class="fi fi-ta" id="cf-rem"></textarea></div>
+    <div class="fg"><label class="fl">Converted date</label><input class="fi" id="cf-cdate" type="date"></div>
+    <button class="btn btn-gold btn-full" onclick="saveClient()" style="margin-top:4px">Save Client</button>
+    <div style="height:8px"></div>
+  </div>
+</div></div>
+
+<!-- DETAIL -->
+<div class="ov" id="ov-detail"><div class="sh" id="detail-sh"></div></div>
+
+<div id="toast"></div>
+
+<script>
+// ── DATA ──────────────────────────────────────────
+let leads=[], clients=[], cfg_={}, editLead=null, editClient=null, filterStatus='All';
+let syncInProgress=false;
+
+const DEFMSG={
+  Prospect:`Hi {name},\nHope you are doing great.\nI have started my own Financial Advisory / Wealth Management Firm - Wealth Matrix Finserv LLP. Office at Ernakulam.\nRegards\nArjun`,
+  Contacted:`Dear {name},\nThank you for your time earlier. I wanted to follow up on our conversation. Looking forward to helping you with {products}.\nRegards\nArjun`,
+  'In Progress':`Dear {name},\nJust checking in on our ongoing discussion regarding {products}. Please let me know a convenient time to connect this week.\nRegards\nArjun`,
+  Converted:`Dear {name},\nWelcome to Wealth Matrix Finserv LLP! We are delighted to have you on board. We look forward to a long and fruitful relationship.\nRegards\nArjun`
+};
+
+function load(){
+  try{leads=JSON.parse(localStorage.getItem('wm_leads')||'[]')}catch(e){leads=[]}
+  try{clients=JSON.parse(localStorage.getItem('wm_clients')||'[]')}catch(e){clients=[]}
+  try{cfg_=JSON.parse(localStorage.getItem('wm_cfg')||'{}')}catch(e){cfg_={}}
+  if(!cfg_.followUpDays)cfg_.followUpDays=14;
+  if(!cfg_.msgs)cfg_.msgs={...DEFMSG};
+}
+function saveL(){localStorage.setItem('wm_leads',JSON.stringify(leads))}
+function saveC(){localStorage.setItem('wm_clients',JSON.stringify(clients))}
+function saveCfg(){localStorage.setItem('wm_cfg',JSON.stringify(cfg_))}
+function cfg(k,v){cfg_[k]=v;saveCfg()}
+
+// ── UTILS ─────────────────────────────────────────
+const today=()=>new Date().toISOString().split('T')[0];
+const now=()=>new Date().toISOString();
+function ini(n){return(n||'?').split(' ').map(w=>w[0]||'').join('').toUpperCase().slice(0,2)||'?'}
+function daysAgo(d){if(!d)return 999;return Math.floor((Date.now()-new Date(d).getTime())/86400000)}
+function fmt(d){if(!d)return'';try{return new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}catch(e){return d}}
+function scls(s){const m={'Prospect':'prospect','Contacted':'contacted','In Progress':'inprogress','Converted':'converted'};return'pill-'+(m[s]||'prospect')}
+function waUrl(mob,msg){const d=(mob||'').replace(/\D/g,'');const n=d.length===10?'91'+d:d;return'https://web.whatsapp.com/send?phone='+n+'&text='+encodeURIComponent(msg)}
+function toast(m,d=2200){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),d)}
+
+// ── GOOGLE APPS SCRIPT SYNC ───────────────────────
+// Architecture: Apps Script is the single database.
+// On open → auto-pull (Google Sheet → local cache).
+// On every save → push that record to sheet.
+// No loop: pull only on page load, push only on user action.
+
+function hasScript(){return!!(cfg_.scriptUrl&&cfg_.scriptUrl.includes('script.google.com'))}
+
+async function scriptGet(tab){
+  const url=cfg_.scriptUrl+'?tab='+encodeURIComponent(tab)+'&t='+Date.now();
+  const r=await fetch(url);
+  if(!r.ok)throw new Error('Fetch failed: '+r.status);
+  return r.json();
+}
+
+async function scriptPost(action,rows){
+  // Apps Script requires POST via no-cors workaround using form submission approach
+  // We use a URLSearchParams body which Apps Script can read via e.postData
+  const r=await fetch(cfg_.scriptUrl,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action,rows}),
+    mode:'no-cors' // Apps Script deployed as "Anyone" needs this
+  });
+  // no-cors returns opaque response — we assume success if no throw
+  return true;
+}
+
+// Build full rows arrays for push
+function leadsRows(){
+  const hdr=['Name','Mobile','Email','Country','Status','Products','Age','Gender','Remarks','Modified Date','Created Date'];
+  return[hdr,...leads.map(l=>[l.name||'',l.mobile||'',l.email||'',l.country||'',l.status||'',l.products||'',l.age||'',l.gender||'',l.remarks||'',l.modifiedDate?l.modifiedDate.split('T')[0]:'',l.createdDate?l.createdDate.split('T')[0]:''])];
+}
+function clientsRows(){
+  const hdr=['Name','Mobile','Email','Country','Age','Gender','PAN','Products','Remarks','Converted Date'];
+  return[hdr,...clients.map(c=>[c.name||'',c.mobile||'',c.email||'',c.country||'',c.age||'',c.gender||'',c.pan||'',c.products||'',c.remarks||'',c.convertedDate||''])];
+}
+
+// Push all leads silently (no-cors, fire and forget)
+function pushLeads(){
+  if(!hasScript())return;
+  scriptPost('pushLeads',leadsRows()).catch(()=>{});
+}
+function pushClients(){
+  if(!hasScript())return;
+  scriptPost('pushClients',clientsRows()).catch(()=>{});
+}
+
+// Pull from sheet — parses rows back into objects
+async function pullFromSheet(manual=false){
+  if(!hasScript()){
+    if(manual)showSyncMsg('❌ Add your Apps Script URL in the Sync tab first.',false);
+    return;
+  }
+  if(syncInProgress)return;
+  syncInProgress=true;
+  setSyncBanner('syncing');
+  if(manual)toast('Pulling from sheet…',3000);
+
+  try{
+    // Pull leads
+    const ld=await scriptGet('LEADS');
+    if(ld.rows&&ld.rows.length>1){
+      const rows=ld.rows.slice(1); // skip header
+      let added=0,updated=0;
+      rows.forEach(r=>{
+        const mob=(r[1]||'').trim();
+        if(!mob)return;
+        const obj={name:r[0]||'',mobile:mob,email:r[2]||'',country:r[3]||'',status:r[4]||'Prospect',products:r[5]||'',age:r[6]||'',gender:r[7]||'',remarks:r[8]||'',modifiedDate:r[9]||today(),createdDate:r[10]||today()};
+        const idx=leads.findIndex(l=>l.mobile===mob);
+        if(idx>=0){leads[idx]={...leads[idx],...obj};updated++}
+        else{leads.push(obj);added++}
+      });
+      saveL();
+    }
+
+    // Pull clients
+    const cd=await scriptGet('CLIENTS');
+    if(cd.rows&&cd.rows.length>1){
+      const rows=cd.rows.slice(1);
+      rows.forEach(r=>{
+        const mob=(r[1]||'').trim();
+        if(!mob)return;
+        const obj={name:r[0]||'',mobile:mob,email:r[2]||'',country:r[3]||'',age:r[4]||'',gender:r[5]||'',pan:r[6]||'',products:r[7]||'',remarks:r[8]||'',convertedDate:r[9]||''};
+        const idx=clients.findIndex(c=>c.mobile===mob);
+        if(idx>=0){clients[idx]={...clients[idx],...obj}}
+        else{clients.push(obj)}
+      });
+      saveC();
+    }
+
+    cfg_.lastPull=now();saveCfg();
+    setSyncBanner('ok');
+    renderAll();
+    if(manual)showSyncMsg('✅ Pulled successfully. Data is up to date.',true);
+  }catch(err){
+    setSyncBanner('err');
+    if(manual)showSyncMsg('❌ Pull failed: '+err.message+'. Check your Apps Script URL.',false);
+    console.warn('Pull error:',err);
+  }finally{
+    syncInProgress=false;
+  }
+}
+
+function setSyncBanner(state){
+  const dot=document.getElementById('sync-dot');
+  const txt=document.getElementById('sync-banner-text');
+  if(!dot||!txt)return;
+  dot.className='sync-dot';
+  if(state==='ok'){dot.classList.add('ok');txt.textContent='Synced with Google Sheet · '+(cfg_.lastPull?'Last pull: '+fmt(cfg_.lastPull):'just now')}
+  else if(state==='err'){dot.classList.add('err');txt.textContent='Sync error. Check your Apps Script URL.'}
+  else if(state==='syncing'){dot.classList.add('warn');txt.textContent='Syncing…'}
+  else{dot.classList.add('idle');txt.textContent='Not configured. Add your Apps Script URL in Sync tab.'}
+}
+
+function updateSyncBanner(){setSyncBanner(hasScript()?'idle':'idle')}
+
+function showSyncMsg(msg,ok){
+  const el=document.getElementById('sync-status');
+  if(!el)return;
+  el.innerHTML=`<div class="sm ${ok?'sm-ok':'sm-err'}">${msg}</div>`;
+  clearTimeout(el._t);el._t=setTimeout(()=>el.innerHTML='',6000);
+}
+
+// ── NORTH STAR ────────────────────────────────────
+function nsCount(arr,sf,bucket){
+  const n2=new Date();
+  const fys=new Date(n2.getMonth()>=3?n2.getFullYear():n2.getFullYear()-1,3,1);
+  return arr.filter(l=>{
+    if(sf!=='Total'&&l.status!==sf)return false;
+    const d=new Date(l.modifiedDate||l.createdDate||'2000-01-01');
+    if(bucket==='yday'){const y=new Date(n2);y.setDate(y.getDate()-1);return d.toDateString()===y.toDateString()}
+    if(bucket==='w7'){const c=new Date(n2);c.setDate(c.getDate()-7);return d>=c}
+    if(bucket==='mtd'){const c=new Date(n2);c.setDate(c.getDate()-30);return d>=c}
+    if(bucket==='ytd')return d>=fys;
+    return true;
+  }).length;
+}
+
+// ── DASHBOARD ─────────────────────────────────────
+function renderDash(){
+  document.getElementById('dash-date').textContent=new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const fd=parseInt(cfg_.followUpDays)||14;
+  const ov=leads.filter(l=>['Prospect','Contacted','In Progress'].includes(l.status)&&daysAgo(l.modifiedDate||l.createdDate)>=fd).length;
+  document.getElementById('dash-alert').innerHTML=ov>0?`<div class="alert" onclick="nav('fu',document.querySelectorAll('.nb')[2])"><div style="font-size:17px">🔔</div><div><div style="font-weight:700;font-size:12px;color:var(--orange)">${ov} lead${ov>1?'s':''} overdue for follow-up</div><div style="font-size:11px;color:var(--t2)">Tap to open Follow-ups →</div></div></div>`:'';
+
+  const rows=[
+    {l:'Total Leads',s:'Total',c:'var(--gold)',cl:'row-total'},
+    {l:'Contacted',s:'Contacted',c:'var(--blue)',cl:'row-contacted'},
+    {l:'In Progress',s:'In Progress',c:'var(--orange)',cl:'row-inprogress'},
+    {l:'Converted',s:'Converted',c:'var(--green)',cl:'row-converted'}
+  ];
+  const cols=[{k:'total',h:'Total'},{k:'yday',h:'Yday'},{k:'w7',h:'7d'},{k:'mtd',h:'MTD'},{k:'ytd',h:'YTD'}];
+  let nt=`<thead><tr><th></th>${cols.map(c=>`<th>${c.h}</th>`).join('')}</tr></thead><tbody>`;
+  rows.forEach(r=>{
+    nt+=`<tr class="${r.cl}"><td style="color:${r.c}">${r.l}</td>`;
+    cols.forEach(c=>{const n=nsCount(leads,r.s,c.k);nt+=`<td><span class="ns-num${n===0?' zero':''}">${n}</span></td>`});
+    nt+=`</tr>`;
+  });
+  nt+=`</tbody>`;
+  document.getElementById('ns-table').innerHTML=nt;
+
+  const total=leads.length;
+  const con=leads.filter(l=>['Contacted','In Progress','Converted'].includes(l.status)).length;
+  const inp=leads.filter(l=>['In Progress','Converted'].includes(l.status)).length;
+  const conv=leads.filter(l=>l.status==='Converted').length;
+  const pct=n=>total?Math.max(n/total*100,n>0?6:0):0;
+  const cp=(a,b)=>a?Math.round(b/a*100)+'%':'—';
+  const fr=[{lbl:'Prospects',n:total,pct:100,c:'#94A3B8'},{lbl:'Contacted',n:con,pct:pct(con),c:'#3B82F6'},{lbl:'In Progress',n:inp,pct:pct(inp),c:'#F97316'},{lbl:'Converted',n:conv,pct:pct(conv),c:'#22C55E'}];
+  let fh='';
+  fr.forEach((r,i)=>{if(i>0){const p=fr[i-1];fh+=`<div class="fn-pct">↓ ${cp(p.n,r.n)}</div>`}fh+=`<div class="fn-row"><div class="fn-lbl">${r.lbl}</div><div class="fn-track"><div class="fn-bar" style="width:${r.pct}%;background:${r.c}"></div></div><div class="fn-n" style="color:${r.c}">${r.n}</div></div>`});
+  if(total)fh+=`<div style="font-size:10px;color:var(--t2);margin-top:7px;text-align:right">Conversion: <b style="color:var(--green)">${cp(total,conv)}</b></div>`;
+  document.getElementById('funnel').innerHTML=fh||'<div style="color:var(--t3);font-size:12px;padding:4px 0">No leads yet. Add leads from the Leads tab.</div>';
+
+  const prods=['Investment','Life Insurance','Health Insurance','WILL'];
+  const pcols=['#3B82F6','#22C55E','#F97316','#A855F7'];
+  const pc=prods.map(p=>leads.filter(l=>l.products&&l.products.includes(p)).length);
+  const mx=Math.max(...pc,1);
+  document.getElementById('prod-chart').innerHTML=prods.map((p,i)=>`<div class="fn-row"><div class="fn-lbl" style="font-size:10px">${p}</div><div class="fn-track"><div class="fn-bar" style="width:${pc[i]/mx*100}%;background:${pcols[i]}">&nbsp;</div></div><div class="fn-n" style="color:${pcols[i]}">${pc[i]}</div></div>`).join('');
+
+  const cc={};leads.forEach(l=>{if(l.country)cc[l.country]=(cc[l.country]||0)+1});
+  const sc=Object.entries(cc).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const mx2=sc[0]?.[1]||1;
+  document.getElementById('country-chart').innerHTML=sc.length?sc.map(([c,n])=>`<div class="fn-row"><div class="fn-lbl" style="font-size:10px">${c}</div><div class="fn-track"><div class="fn-bar" style="width:${n/mx2*100}%;background:var(--gold)">&nbsp;</div></div><div class="fn-n" style="color:var(--gold)">${n}</div></div>`).join(''):'<div style="color:var(--t3);font-size:11px;padding:4px 0">No country data.</div>';
+}
+
+// ── LEADS ─────────────────────────────────────────
+function renderLeads(){
+  const statuses=['All','Prospect','Contacted','In Progress','Converted'];
+  document.getElementById('status-chips').innerHTML=statuses.map(s=>{
+    const n=s==='All'?leads.length:leads.filter(l=>l.status===s).length;
+    return`<div class="chip${filterStatus===s?' active':''}" onclick="setF('${s}')">${s} (${n})</div>`;
+  }).join('');
+  const q=(document.getElementById('lead-search')?.value||'').toLowerCase();
+  const fd=parseInt(cfg_.followUpDays)||14;
+  const arr=leads.filter(l=>{
+    const ok=filterStatus==='All'||l.status===filterStatus;
+    const sq=!q||l.name.toLowerCase().includes(q)||l.mobile.includes(q)||(l.country||'').toLowerCase().includes(q)||(l.products||'').toLowerCase().includes(q);
+    return ok&&sq;
+  }).sort((a,b)=>new Date(b.modifiedDate||0)-new Date(a.modifiedDate||0));
+  document.getElementById('leads-sub').textContent=`${arr.length} of ${leads.length}`;
+  document.getElementById('lead-list').innerHTML=arr.length?arr.map(l=>{
+    const d=daysAgo(l.modifiedDate||l.createdDate);
+    const hot=['Prospect','Contacted','In Progress'].includes(l.status)&&d>=fd;
+    return`<div class="li" onclick="openDetail('${l.mobile}','lead')"><div class="av">${ini(l.name)}</div><div class="li-info"><div class="li-name">${l.name}</div><div class="li-meta">${l.mobile}${l.country?' · '+l.country:''}</div>${l.products?`<div class="li-prod">${l.products}</div>`:''}</div><div class="li-right"><span class="pill ${scls(l.status)}">${l.status}</span><span class="days${hot?' hot':''}">${d===0?'Today':d+'d ago'}</span></div></div>`;
+  }).join(''):`<div class="empty"><div class="empty-ico">🔍</div><div class="empty-t">No leads found</div><div class="empty-s">Add a lead or change the filter.</div></div>`;
+}
+function setF(s){filterStatus=s;renderLeads()}
+
+// ── FOLLOW-UPS ────────────────────────────────────
+function renderFU(){
+  const fd=parseInt(cfg_.followUpDays)||14;
+  const arr=leads.filter(l=>['Prospect','Contacted','In Progress'].includes(l.status)&&daysAgo(l.modifiedDate||l.createdDate)>=fd)
+    .sort((a,b)=>daysAgo(a.modifiedDate||a.createdDate)-daysAgo(b.modifiedDate||b.createdDate));
+  document.getElementById('fu-list').innerHTML=arr.length?arr.map(l=>{
+    const d=daysAgo(l.modifiedDate||l.createdDate);
+    const msg=waMsg(l);
+    return`<div class="fu-item"><div style="display:flex;gap:9px;align-items:center;margin-bottom:7px"><div class="av" style="width:32px;height:32px;min-width:32px;font-size:11px">${ini(l.name)}</div><div><div style="font-weight:700;font-size:13px">${l.name}</div><div style="font-size:11px;color:var(--red);font-weight:600">🔴 ${l.status} · ${d} days since last update${l.country?' · '+l.country:''}</div>${l.products?`<div style="font-size:10px;color:var(--blue)">${l.products}</div>`:''}</div></div><a href="${waUrl(l.mobile,msg)}" target="_blank" class="btn btn-wa btn-full" style="text-decoration:none;font-size:12px" onclick="bumpM('${l.mobile}')">${waIcon()} Send follow-up on WhatsApp</a></div>`;
+  }).join(''):`<div class="empty"><div class="empty-ico">🎉</div><div class="empty-t">All caught up!</div><div class="empty-s">No active leads are overdue. Leads appear here ${fd} days after their last update.</div></div>`;
+}
+function bumpM(mob){
+  const l=leads.find(x=>x.mobile===mob);
+  if(l){l.modifiedDate=now();saveL();pushLeads();setTimeout(renderFU,600);}
+}
+
+// ── CLIENTS ───────────────────────────────────────
+function renderClients(){
+  const q=(document.getElementById('client-search')?.value||'').toLowerCase();
+  const arr=clients.filter(c=>!q||c.name.toLowerCase().includes(q)||c.mobile.includes(q));
+  document.getElementById('clients-sub').textContent=`${arr.length} clients`;
+  document.getElementById('client-list').innerHTML=arr.length?arr.map(c=>`<div class="ci" onclick="openDetail('${c.mobile}','client')"><div class="ci-av">${ini(c.name)}</div><div class="li-info"><div class="li-name">${c.name}</div><div class="li-meta">${c.mobile}${c.country?' · '+c.country:''}</div>${c.products?`<div class="li-prod">${c.products}</div>`:''}</div><div class="li-right"><span style="font-size:9px;color:var(--green);font-weight:700">CLIENT</span>${c.convertedDate?`<span class="days">${fmt(c.convertedDate)}</span>`:''}</div></div>`).join(''):`<div class="empty"><div class="empty-ico">💼</div><div class="empty-t">No clients yet</div><div class="empty-s">Convert a lead to Converted status and they appear here automatically.</div></div>`;
+}
+
+// ── DETAIL ────────────────────────────────────────
+function dr(k,v){return v?`<div class="dr"><span class="dk">${k}</span><span class="dv">${v}</span></div>`:''}
+function openDetail(mob,type){
+  const rec=type==='lead'?leads.find(x=>x.mobile===mob):clients.find(x=>x.mobile===mob);
+  if(!rec)return;
+  let html='';
+  if(type==='lead'){
+    const msg=waMsg(rec);
+    html=`<div class="sh-handle"></div><div class="sh-hdr"><div class="sh-title">${rec.name}</div><button class="sh-x" onclick="closeOv('ov-detail')">✕</button></div>
+    <div class="dt-hdr"><div class="dt-av">${ini(rec.name)}</div><div><div class="dt-name">${rec.name}</div><div class="dt-sub">${rec.mobile}${rec.country?' · '+rec.country:''}</div><span class="pill ${scls(rec.status)}" style="margin-top:5px;display:inline-flex">${rec.status}</span></div></div>
+    <div class="act-row"><a href="${waUrl(rec.mobile,msg)}" target="_blank" class="btn btn-wa" style="flex:1;text-decoration:none;font-size:12px" onclick="bumpM('${rec.mobile}')">${waIcon()} WhatsApp</a><a href="tel:${rec.mobile}" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:12px">📞 Call</a></div>
+    <div style="padding:0 12px"><div class="card" style="padding:0 12px">${dr('Email',rec.email)}${dr('Age',rec.age?rec.age+' yrs':'')}${dr('Gender',rec.gender)}${dr('Interested in',rec.products)}${dr('Remarks',rec.remarks)}${dr('Modified',fmt(rec.modifiedDate))}${dr('Created',fmt(rec.createdDate))}</div></div>
+    <div style="padding:10px 12px"><div class="lbl" style="margin-bottom:7px">Change status</div><div style="display:flex;flex-wrap:wrap;gap:6px">${['Prospect','Contacted','In Progress','Converted'].map(s=>`<button class="btn ${rec.status===s?'btn-gold':'btn-ghost'}" style="font-size:11px;padding:6px 10px;flex:1;min-width:76px" onclick="quickStatus('${rec.mobile}','${s}')">${s}</button>`).join('')}</div></div>
+    <div style="padding:0 12px 14px;display:flex;gap:7px"><button class="btn btn-ghost" style="flex:1;font-size:12px" onclick="closeOv('ov-detail');editLeadOpen('${rec.mobile}')">✏️ Edit</button><button class="btn btn-red" style="flex:1;font-size:12px" onclick="deleteLead('${rec.mobile}')">🗑️ Delete</button></div>`;
+  }else{
+    html=`<div class="sh-handle"></div><div class="sh-hdr"><div class="sh-title">${rec.name}</div><button class="sh-x" onclick="closeOv('ov-detail')">✕</button></div>
+    <div class="dt-hdr"><div class="dt-av" style="background:var(--gdim);color:var(--green)">${ini(rec.name)}</div><div><div class="dt-name">${rec.name}</div><div class="dt-sub">${rec.mobile}${rec.country?' · '+rec.country:''}</div><span style="font-size:10px;color:var(--green);font-weight:700;margin-top:5px;display:block">✅ CLIENT</span></div></div>
+    <div class="act-row"><a href="${waUrl(rec.mobile,'Dear '+rec.name+',')}" target="_blank" class="btn btn-wa" style="flex:1;text-decoration:none;font-size:12px">${waIcon()} WhatsApp</a><a href="tel:${rec.mobile}" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:12px">📞 Call</a></div>
+    <div style="padding:0 12px"><div class="card" style="padding:0 12px">${dr('Email',rec.email)}${dr('Country',rec.country)}${dr('Age',rec.age?rec.age+' yrs':'')}${dr('Gender',rec.gender)}${dr('PAN',rec.pan)}${dr('Products',rec.products)}${dr('Remarks',rec.remarks)}${dr('Converted',fmt(rec.convertedDate))}</div></div>
+    <div style="padding:10px 12px 14px;display:flex;gap:7px"><button class="btn btn-ghost" style="flex:1;font-size:12px" onclick="closeOv('ov-detail');editClientOpen('${rec.mobile}')">✏️ Edit</button><button class="btn btn-red" style="flex:1;font-size:12px" onclick="deleteClient('${rec.mobile}')">🗑️ Delete</button></div>`;
+  }
+  document.getElementById('detail-sh').innerHTML=html;
+  document.getElementById('ov-detail').classList.add('open');
+}
+
+function quickStatus(mob,status){
+  const l=leads.find(x=>x.mobile===mob);if(!l)return;
+  const prev=l.status;l.status=status;l.modifiedDate=now();saveL();
+  if(status==='Converted'&&prev!=='Converted')autoConvert(l);
+  closeOv('ov-detail');renderLeads();renderDash();renderFU();
+  toast('Status → '+status);
+  pushLeads();
+}
+function deleteLead(mob){
+  if(!confirm('Delete this lead?'))return;
+  leads=leads.filter(x=>x.mobile!==mob);saveL();
+  closeOv('ov-detail');renderLeads();renderDash();renderFU();
+  toast('Lead deleted');pushLeads();
+}
+function deleteClient(mob){
+  if(!confirm('Delete this client?'))return;
+  clients=clients.filter(x=>x.mobile!==mob);saveC();
+  closeOv('ov-detail');renderClients();
+  toast('Client deleted');pushClients();
+}
+
+// ── LEAD FORM ─────────────────────────────────────
+function openAddLead(pre){
+  editLead=null;
+  document.getElementById('lf-title').textContent='New Lead';
+  document.getElementById('lf-orig').value='';
+  ['name','mob','email','country','age','rem'].forEach(f=>{const el=document.getElementById('lf-'+f);if(el)el.value=pre?.[f]||''});
+  document.getElementById('lf-gender').value=pre?.gender||'';
+  document.getElementById('lf-status').value=pre?.status||'Prospect';
+  document.querySelectorAll('#ov-lead .pt').forEach(t=>t.classList.remove('on'));
+  if(pre?.products)pre.products.split(',').forEach(p=>{const t=document.querySelector(`#ov-lead .pt[data-p="${p.trim()}"]`);if(t)t.classList.add('on')});
+  document.getElementById('ov-lead').classList.add('open');
+}
+function editLeadOpen(mob){
+  const l=leads.find(x=>x.mobile===mob);if(!l)return;
+  editLead=mob;
+  document.getElementById('lf-title').textContent='Edit Lead';
+  document.getElementById('lf-name').value=l.name;
+  document.getElementById('lf-mob').value=l.mobile;
+  document.getElementById('lf-email').value=l.email||'';
+  document.getElementById('lf-country').value=l.country||'';
+  document.getElementById('lf-age').value=l.age||'';
+  document.getElementById('lf-gender').value=l.gender||'';
+  document.getElementById('lf-status').value=l.status;
+  document.getElementById('lf-rem').value=l.remarks||'';
+  document.querySelectorAll('#ov-lead .pt').forEach(t=>t.classList.toggle('on',!!(l.products&&l.products.includes(t.dataset.p))));
+  document.getElementById('ov-lead').classList.add('open');
+}
+function saveLead(){
+  const name=document.getElementById('lf-name').value.trim();
+  const mob=document.getElementById('lf-mob').value.trim();
+  if(!name||!mob){toast('Name and mobile required');return}
+  const prods=[...document.querySelectorAll('#ov-lead .pt.on')].map(t=>t.dataset.p).join(', ');
+  const status=document.getElementById('lf-status').value;
+  if(editLead){
+    const idx=leads.findIndex(l=>l.mobile===editLead);if(idx<0)return;
+    const prev=leads[idx].status;
+    leads[idx]={...leads[idx],name,mobile:mob,email:document.getElementById('lf-email').value.trim(),country:document.getElementById('lf-country').value.trim(),age:document.getElementById('lf-age').value,gender:document.getElementById('lf-gender').value,status,products:prods,remarks:document.getElementById('lf-rem').value.trim(),modifiedDate:now()};
+    saveL();if(status==='Converted'&&prev!=='Converted')autoConvert(leads[idx]);
+    pushLeads();toast('Lead updated');
+  }else{
+    if(leads.find(l=>l.mobile===mob)){toast('Mobile already exists');return}
+    const l={name,mobile:mob,email:document.getElementById('lf-email').value.trim(),country:document.getElementById('lf-country').value.trim(),age:document.getElementById('lf-age').value,gender:document.getElementById('lf-gender').value,status,products:prods,remarks:document.getElementById('lf-rem').value.trim(),createdDate:now(),modifiedDate:now()};
+    leads.push(l);saveL();pushLeads();
+    if(status==='Converted')autoConvert(l);
+    toast('✅ Lead added');
+  }
+  closeOv('ov-lead');renderLeads();renderDash();renderFU();
+}
+
+// ── AUTO CONVERT ──────────────────────────────────
+function autoConvert(l){
+  if(clients.find(c=>c.mobile===l.mobile))return;
+  const c={name:l.name,mobile:l.mobile,email:l.email||'',country:l.country||'',age:l.age||'',gender:l.gender||'',products:l.products||'',remarks:l.remarks||'',pan:'',convertedDate:today(),createdDate:today()};
+  clients.push(c);saveC();renderClients();pushClients();
+  toast('✅ Added '+l.name+' to Clients');
+}
+
+// ── CLIENT FORM ───────────────────────────────────
+function openAddClient(){
+  editClient=null;
+  document.getElementById('cf-title').textContent='New Client';
+  ['name','mob','email','country','age','pan','rem'].forEach(f=>{const el=document.getElementById('cf-'+f);if(el)el.value=''});
+  document.getElementById('cf-gender').value='';
+  document.getElementById('cf-cdate').value=today();
+  document.querySelectorAll('#cf-products .pt').forEach(t=>t.classList.remove('on'));
+  document.getElementById('ov-client').classList.add('open');
+}
+function editClientOpen(mob){
+  const c=clients.find(x=>x.mobile===mob);if(!c)return;
+  editClient=mob;
+  document.getElementById('cf-title').textContent='Edit Client';
+  document.getElementById('cf-name').value=c.name;
+  document.getElementById('cf-mob').value=c.mobile;
+  document.getElementById('cf-email').value=c.email||'';
+  document.getElementById('cf-country').value=c.country||'';
+  document.getElementById('cf-age').value=c.age||'';
+  document.getElementById('cf-gender').value=c.gender||'';
+  document.getElementById('cf-pan').value=c.pan||'';
+  document.getElementById('cf-rem').value=c.remarks||'';
+  document.getElementById('cf-cdate').value=c.convertedDate||'';
+  document.querySelectorAll('#cf-products .pt').forEach(t=>t.classList.toggle('on',!!(c.products&&c.products.includes(t.dataset.p))));
+  document.getElementById('ov-client').classList.add('open');
+}
+function saveClient(){
+  const name=document.getElementById('cf-name').value.trim();
+  const mob=document.getElementById('cf-mob').value.trim();
+  if(!name||!mob){toast('Name and mobile required');return}
+  const prods=[...document.querySelectorAll('#cf-products .pt.on')].map(t=>t.dataset.p).join(', ');
+  const data={name,mobile:mob,email:document.getElementById('cf-email').value.trim(),country:document.getElementById('cf-country').value.trim(),age:document.getElementById('cf-age').value,gender:document.getElementById('cf-gender').value,pan:document.getElementById('cf-pan').value.trim().toUpperCase(),products:prods,remarks:document.getElementById('cf-rem').value.trim(),convertedDate:document.getElementById('cf-cdate').value};
+  if(editClient){const idx=clients.findIndex(c=>c.mobile===editClient);if(idx>=0)clients[idx]={...clients[idx],...data};toast('Client updated')}
+  else{if(clients.find(c=>c.mobile===mob)){toast('Mobile already exists');return}data.createdDate=today();clients.push(data);toast('✅ Client added')}
+  saveC();closeOv('ov-client');renderClients();pushClients();
+}
+
+// ── WHATSAPP ──────────────────────────────────────
+function waMsg(l){const tmpl=(cfg_.msgs&&cfg_.msgs[l.status])||DEFMSG[l.status]||DEFMSG.Prospect;return tmpl.replace(/\{name\}/g,l.name).replace(/\{products\}/g,l.products||'our financial planning services')}
+function waIcon(){return`<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>`}
+
+// ── SETTINGS ──────────────────────────────────────
+function renderSettings(){
+  document.getElementById('s-fdays').value=cfg_.followUpDays||14;
+  document.getElementById('st-leads').textContent=leads.length;
+  document.getElementById('st-clients').textContent=clients.length;
+  document.getElementById('st-sync').textContent=hasScript()?'✅ Connected':'❌ Not configured';
+  if(!cfg_.msgs)cfg_.msgs={...DEFMSG};
+  const statuses=['Prospect','Contacted','In Progress','Converted'];
+  const colors=['#94A3B8','#3B82F6','#F97316','#22C55E'];
+  document.getElementById('tmpl-section').innerHTML=statuses.map((s,i)=>`<div class="tmpl-wrap"><label class="fl" style="color:${colors[i]};margin-bottom:5px;display:block">${s} message</label><textarea class="fi fi-ta" style="min-height:80px;font-size:12px" oninput="saveTemplate('${s}',this.value)">${(cfg_.msgs[s]||DEFMSG[s]).replace(/</g,'&lt;')}</textarea><div style="font-size:10px;color:var(--t3);margin-top:3px">{name} → name · {products} → products</div></div>`).join('');
+}
+function saveTemplate(status,val){if(!cfg_.msgs)cfg_.msgs={...DEFMSG};cfg_.msgs[status]=val;saveCfg()}
+
+// ── SYNC PAGE ─────────────────────────────────────
+function renderSync(){
+  const el=document.getElementById('s-url');
+  if(el)el.value=cfg_.scriptUrl||'';
+  if(cfg_.lastPull)document.getElementById('pull-meta').textContent='Last pull: '+fmt(cfg_.lastPull);
+  updateSyncBanner();
+}
+
+function exportData(){
+  const blob=new Blob([JSON.stringify({leads,clients,exportDate:new Date().toISOString()},null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='wm-crm-'+today()+'.json';a.click();toast('Exported!');
+}
+
+// ── VOICE ─────────────────────────────────────────
+let recog=null;
+function voiceAdd(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){toast('Voice not available in this browser');return}
+  const btn=document.getElementById('mic-btn');
+  if(recog){recog.stop();return}
+  recog=new SR();recog.lang='en-IN';recog.interimResults=false;
+  btn.classList.add('on');toast('🎤 Listening…',30000);
+  recog.onresult=e=>{const t=e.results[0][0].transcript;openAddLead(parseVoice(t));document.getElementById('toast').classList.remove('show');toast('Review and save')};
+  recog.onerror=()=>toast('Mic error');
+  recog.onend=()=>{btn.classList.remove('on');recog=null};
+  recog.start();
+}
+function parseVoice(t){
+  const lo=t.toLowerCase();const p={name:'',mob:'',email:'',country:'',age:'',gender:'',status:'Prospect',products:''};
+  const dm=t.replace(/[^0-9]/g,'').match(/(\d{10,12})/);if(dm)p.mob=dm[1].slice(-10);
+  const em=t.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);if(em)p.email=em[0];
+  const am=lo.match(/age\s+(\d{1,2})/)||lo.match(/(\d{1,2})\s+years/);if(am)p.age=am[1];
+  if(lo.includes('female')||lo.includes('lady'))p.gender='Female';
+  else if(lo.includes('male')||lo.includes('gent'))p.gender='Male';
+  if(lo.includes('converted'))p.status='Converted';
+  else if(lo.includes('in progress'))p.status='In Progress';
+  else if(lo.includes('contacted'))p.status='Contacted';
+  const pr=[];
+  if(lo.includes('investment'))pr.push('Investment');
+  if(lo.includes('life insurance'))pr.push('Life Insurance');
+  if(lo.includes('health'))pr.push('Health Insurance');
+  if(lo.includes(' will '))pr.push('WILL');
+  p.products=pr.join(', ');
+  const nm=lo.match(/name\s+([a-z ]+?)(?=,|\s+mobile|\s+age|\s+country|\s*$)/);
+  if(nm)p.name=nm[1].trim().replace(/\b\w/g,c=>c.toUpperCase());
+  const cm=lo.match(/(?:country|from)\s+([a-z ]+?)(?=,|\s+age|\s+mobile|\s*$)/);
+  if(cm)p.country=cm[1].trim().replace(/\b\w/g,c=>c.toUpperCase());
+  const rm=lo.match(/remark[s]?\s+(.+)$/);if(rm)p.rem=rm[1];
+  return p;
+}
+
+// ── HELPERS ───────────────────────────────────────
+function tp(el){el.classList.toggle('on')}
+function closeOv(id){document.getElementById(id).classList.remove('open');editLead=null;editClient=null}
+document.querySelectorAll('.ov').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)closeOv(o.id)}));
+
+function renderAll(){renderDash();renderLeads();renderFU();renderClients()}
+
+function nav(name,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
+  document.getElementById('pg-'+name).classList.add('active');
+  if(btn)btn.classList.add('active');
+  const r={dash:renderDash,leads:renderLeads,fu:renderFU,clients:renderClients,sync:renderSync,settings:renderSettings};
+  if(r[name])r[name]();
+}
+
+// ── BOOT ──────────────────────────────────────────
+load();
+renderDash();
+// Auto-pull from sheet on every page load (handles multi-device sync)
+// Small delay to let the page render first
+setTimeout(()=>{
+  if(hasScript()){
+    pullFromSheet(false);
+  }else{
+    setSyncBanner('idle');
+  }
+},800);
+</script>
+</body>
+</html>
