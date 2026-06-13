@@ -141,6 +141,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .ci{padding:11px 12px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:flex-start;cursor:pointer;transition:background .1s}
 .ci:active{background:var(--s2)}
 .ci-av{width:36px;height:36px;min-width:36px;border-radius:50%;background:var(--gdim);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:var(--green)}
+#loading-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .3s}
+#loading-screen.hide{opacity:0;pointer-events:none}
+.spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin 0.8s linear infinite}
 #toast{position:fixed;bottom:76px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--s2);border:1px solid var(--border2);border-radius:999px;padding:7px 14px;font-size:12px;font-weight:600;opacity:0;transition:all .25s;z-index:999;white-space:nowrap;pointer-events:none;max-width:88vw;text-align:center}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .mic{width:34px;height:34px;border-radius:50%;background:var(--gold2);border:1px solid rgba(240,180,41,.25);color:var(--gold);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all .15s}
@@ -188,6 +191,12 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 </head>
 <body>
 <div id="app">
+<!-- LOADING SCREEN -->
+<div id="loading-screen">
+  <div style="font-size:24px;font-weight:900;color:var(--gold);letter-spacing:-1px">WM</div>
+  <div class="spinner"></div>
+  <div style="font-size:13px;color:var(--t2)" id="loading-msg">Loading your data…</div>
+</div>
 <div id="content">
 
 <!-- DASHBOARD -->
@@ -196,8 +205,13 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div><h1>Dashboard</h1><div class="sub" id="dash-date"></div></div>
     <div style="display:flex;align-items:center;gap:8px">
       <button onclick="toggleDark()" style="background:none;border:none;cursor:pointer;font-size:18px" id="dark-btn">🌙</button>
+      <button onclick="manualSync()" style="background:none;border:none;cursor:pointer;font-size:18px" title="Sync now">🔄</button>
       <div style="font-size:18px;font-weight:900;color:var(--gold)">WM</div>
     </div>
+  </div>
+  <div id="sync-status-bar" style="margin:0 12px 10px;padding:7px 12px;border-radius:var(--r2);font-size:11px;font-weight:600;display:flex;align-items:center;gap:7px;background:var(--s1);border:1px solid var(--border)">
+    <div class="sync-dot idle" id="top-sync-dot"></div>
+    <span id="top-sync-txt" style="color:var(--t2)">Connecting…</span>
   </div>
   <div class="sec" id="dash-alert"></div>
   <div class="sec"><div class="lbl">North Star Matrix</div><div class="card ns-wrap"><table class="ns-table" id="ns-table"></table></div></div>
@@ -460,7 +474,7 @@ function cfg(k,v){cfg_[k]=v;saveCfg()}
 // ═══════════════════════════════════════════════════
 const today=()=>new Date().toISOString().split('T')[0];
 const now=()=>new Date().toISOString();
-function caps(s){return(s||'').toUpperCase().trim()}
+function caps(s){return String(s===null||s===undefined?'':s).toUpperCase().trim()}
 function autoCaps(el){const p=el.selectionStart;el.value=el.value.toUpperCase();el.setSelectionRange(p,p)}
 function ini(n){return(n||'?').split(' ').map(w=>w[0]||'').join('').toUpperCase().slice(0,2)||'?'}
 function daysAgo(d){if(!d)return 999;return Math.floor((Date.now()-new Date(d).getTime())/86400000)}
@@ -1066,10 +1080,28 @@ function saveTemplate(status,val){if(!cfg_.msgs)cfg_.msgs={...DEFMSG};cfg_.msgs[
 // ═══════════════════════════════════════════════════
 function hasScript(){return!!(cfg_.scriptUrl&&cfg_.scriptUrl.includes('script.google.com'))}
 
-async function scriptGet(tab){
-  const url=cfg_.scriptUrl+'?tab='+encodeURIComponent(tab)+'&t='+Date.now();
-  const r=await fetch(url);if(!r.ok)throw new Error('Fetch failed: '+r.status);
-  return r.json();
+async function scriptGet(tab, retries=3){
+  for(let attempt=1; attempt<=retries; attempt++){
+    try{
+      const url=cfg_.scriptUrl+'?tab='+encodeURIComponent(tab)+'&t='+Date.now();
+      const controller=new AbortController();
+      const timeout=setTimeout(()=>controller.abort(), 15000); // 15s timeout
+      const r=await fetch(url, {signal:controller.signal});
+      clearTimeout(timeout);
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      const json=await r.json();
+      if(json.error && attempt < retries){
+        await new Promise(res=>setTimeout(res, 1000*attempt)); // backoff
+        continue;
+      }
+      return json;
+    }catch(err){
+      if(attempt===retries) throw err;
+      const msg=document.getElementById('loading-msg');
+      if(msg) msg.textContent='Retrying… ('+attempt+'/'+retries+')';
+      await new Promise(res=>setTimeout(res, 1500*attempt));
+    }
+  }
 }
 async function scriptPost(action,rows){
   const payload=encodeURIComponent(JSON.stringify({action,rows}));
@@ -1116,8 +1148,8 @@ async function pullFromSheet(manual=false){
     if(ld.rows&&ld.rows.length>1){
       const rows=ld.rows.slice(1);
       rows.forEach(r=>{
-        const mob=(r[1]||'').trim();if(!mob)return;
-        const obj={name:caps(r[0]),mobile:mob,email:caps(r[2]),country:caps(r[3]),status:caps(r[4])||'PROSPECT',source:caps(r[5]),products:caps(r[6]),age:r[7]||'',gender:caps(r[8]),nextFollowUp:r[9]||'',remarks:caps(r[10]),modifiedDate:r[11]||today(),createdDate:r[12]||today()};
+        const mob=String(r[1]||'').trim();if(!mob)return;
+        const obj={name:caps(r[0]),mobile:mob,email:caps(r[2]),country:caps(r[3]),status:caps(r[4])||'PROSPECT',source:caps(r[5]),products:caps(r[6]),age:String(r[7]||''),gender:caps(r[8]),nextFollowUp:String(r[9]||''),remarks:caps(r[10]),modifiedDate:String(r[11]||today()),createdDate:String(r[12]||today())};
         const idx=leads.findIndex(l=>l.mobile===mob);
         if(idx>=0)leads[idx]={...leads[idx],...obj};else leads.push({...obj,notes:[]});
       });saveL();
@@ -1126,16 +1158,19 @@ async function pullFromSheet(manual=false){
     if(cd.rows&&cd.rows.length>1){
       const rows=cd.rows.slice(1);
       rows.forEach(r=>{
-        const mob=(r[1]||'').trim();if(!mob)return;
-        const obj={name:caps(r[0]),mobile:mob,email:caps(r[2]),country:caps(r[3]),age:r[4]||'',gender:caps(r[5]),pan:caps(r[6]),products:caps(r[7]),remarks:caps(r[8]),convertedDate:r[9]||''};
+        const mob=String(r[1]||'').trim();if(!mob)return;
+        const obj={name:caps(r[0]),mobile:mob,email:caps(r[2]),country:caps(r[3]),age:String(r[4]||''),gender:caps(r[5]),pan:caps(r[6]),products:caps(r[7]),remarks:caps(r[8]),convertedDate:String(r[9]||'')};
         const idx=clients.findIndex(c=>c.mobile===mob);
         if(idx>=0)clients[idx]={...clients[idx],...obj};else clients.push(obj);
       });saveC();
     }
-    cfg_.lastPull=now();saveCfg();setSyncBanner('ok');renderAll();
+    cfg_.lastPull=now();saveCfg();setSyncBanner('ok');
+    const ts2=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+    setTopSync('ok','Last synced: '+ts2);
+    renderAll();
     if(manual)showSyncMsg('✅ Pulled successfully.',true);
     scheduleNotifications();
-  }catch(err){setSyncBanner('err');if(manual)showSyncMsg('❌ '+err.message,false)}
+  }catch(err){setSyncBanner('err');setTopSync('err','Sync failed');if(manual)showSyncMsg('❌ '+err.message,false)}
   finally{syncInProgress=false}
 }
 
@@ -1158,7 +1193,7 @@ async function importFromSheet(){
     if(nameI<0||mobI<0){showSyncMsg('❌ Could not find Name or Mobile columns in '+tab,false);return}
     let added=0,skipped=0;
     d.rows.slice(1).forEach(r=>{
-      const mob=(r[mobI]||'').toString().trim();
+      const mob=String(r[mobI]||'').trim();
       const name=caps((r[nameI]||'').toString());
       if(!mob||!name){skipped++;return}
       if(leads.find(l=>l.mobile===mob)){skipped++;return}
@@ -1244,18 +1279,142 @@ function nav(name,btn){
 }
 
 // ═══════════════════════════════════════════════════
-// BOOT
+// MANUAL SYNC BUTTON
+// ═══════════════════════════════════════════════════
+async function manualSync(){
+  if(!hasScript()){toast('Add Apps Script URL in Sync tab');return}
+  setTopSync('syncing','Syncing…');
+  await pullFromSheet(false);
+  toast('✅ Synced');
+}
+
+function setTopSync(state,msg){
+  const dot=document.getElementById('top-sync-dot');
+  const txt=document.getElementById('top-sync-txt');
+  if(!dot||!txt)return;
+  dot.className='sync-dot';
+  if(state==='ok'){dot.classList.add('ok');}
+  else if(state==='err'){dot.classList.add('err');}
+  else if(state==='syncing'){dot.classList.add('warn');}
+  else{dot.classList.add('idle');}
+  txt.textContent=msg;
+}
+
+function hideLoading(){
+  const ls=document.getElementById('loading-screen');
+  if(ls)ls.classList.add('hide');
+  setTimeout(()=>{if(ls)ls.style.display='none'},350);
+}
+
+// ═══════════════════════════════════════════════════
+// BOOT — pull from sheet first, then render
 // ═══════════════════════════════════════════════════
 load();
 applyDarkMode();
-renderDash();
-updateFUBadge();
-// Auto-pull on open
-setTimeout(()=>{
-  if(hasScript())pullFromSheet(false);
-  else setSyncBanner('idle');
+
+async function bootSequence(){
+  // Always show loading screen
+  const loadEl = document.getElementById('loading-screen');
+  const loadMsg = document.getElementById('loading-msg');
+
+  if(!hasScript()){
+    // No script configured — load from local cache and show warning
+    if(loadMsg) loadMsg.textContent='No sync configured — loading local data…';
+    await new Promise(res=>setTimeout(res,800));
+    renderDash(); renderLeads(); renderFU(); renderClients();
+    updateFUBadge();
+    setTopSync('idle','Not synced — add Apps Script URL in Sync tab');
+    setSyncBanner('idle');
+    hideLoading();
+    return;
+  }
+
+  if(loadMsg) loadMsg.textContent='Connecting to Google Sheet…';
+  setTopSync('syncing','Connecting…');
+
+  try{
+    syncInProgress=true;
+
+    // ── Pull LEADS ──
+    if(loadMsg) loadMsg.textContent='Loading leads…';
+    const ld = await scriptGet('LEADS');
+    if(ld && ld.rows && ld.rows.length > 1){
+      const rows = ld.rows.slice(1);
+      let added=0, updated=0;
+      rows.forEach(r=>{
+        const mob=String(r[1]||'').trim();
+        if(!mob) return;
+        const obj={
+          name:caps(r[0]), mobile:mob, email:caps(r[2]),
+          country:caps(r[3]), status:caps(r[4])||'PROSPECT',
+          source:caps(r[5]), products:caps(r[6]),
+          age:String(r[7]||''), gender:caps(r[8]),
+          nextFollowUp:String(r[9]||''), remarks:caps(r[10]),
+          modifiedDate:String(r[11]||today()),
+          createdDate:String(r[12]||today())
+        };
+        const idx=leads.findIndex(l=>l.mobile===mob);
+        if(idx>=0){
+          leads[idx]={...leads[idx], ...obj, notes:leads[idx].notes||[]};
+          updated++;
+        } else {
+          leads.push({...obj, notes:[]});
+          added++;
+        }
+      });
+      saveL();
+      if(loadMsg) loadMsg.textContent=`Leads loaded (${updated} updated, ${added} new)…`;
+    }
+
+    // ── Pull CLIENTS ──
+    if(loadMsg) loadMsg.textContent='Loading clients…';
+    const cd = await scriptGet('CLIENTS');
+    if(cd && cd.rows && cd.rows.length > 1){
+      const rows = cd.rows.slice(1);
+      rows.forEach(r=>{
+        const mob=String(r[1]||'').trim();
+        if(!mob) return;
+        const obj={
+          name:caps(r[0]), mobile:mob, email:caps(r[2]),
+          country:caps(r[3]), age:String(r[4]||''),
+          gender:caps(r[5]), pan:caps(r[6]),
+          products:caps(r[7]), remarks:caps(r[8]),
+          convertedDate:String(r[9]||'')
+        };
+        const idx=clients.findIndex(c=>c.mobile===mob);
+        if(idx>=0) clients[idx]={...clients[idx], ...obj};
+        else clients.push(obj);
+      });
+      saveC();
+    }
+
+    cfg_.lastPull=now(); saveCfg();
+    const ts=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+    setTopSync('ok','Synced at '+ts+' · '+leads.length+' leads');
+    setSyncBanner('ok');
+    if(loadMsg) loadMsg.textContent='All data loaded ✓';
+
+  }catch(err){
+    console.warn('Boot pull failed:',err.message);
+    setTopSync('err','Sync failed — tap 🔄 to retry');
+    setSyncBanner('err');
+    if(loadMsg) loadMsg.textContent='Sync failed — showing local data';
+    await new Promise(res=>setTimeout(res,1200));
+  }finally{
+    syncInProgress=false;
+  }
+
+  // Render everything after data is ready
+  renderDash();
+  renderLeads();
+  renderFU();
+  renderClients();
+  updateFUBadge();
   scheduleNotifications();
-},800);
+  hideLoading();
+}
+
+bootSequence();
 </script>
 </body>
 </html>
