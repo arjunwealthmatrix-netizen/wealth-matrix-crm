@@ -403,9 +403,13 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   <div class="sh-hdr"><div class="sh-title">WhatsApp preview</div><button class="sh-x" onclick="closeOv('ov-wa')">✕</button></div>
   <div class="sh-body">
     <div class="wa-preview"><div class="wa-bubble" id="wa-preview-text"></div></div>
-    <div style="margin-top:12px;display:flex;gap:8px">
-      <a id="wa-send-btn" href="#" target="_blank" class="btn btn-wa btn-full" style="text-decoration:none" onclick="closeOv('ov-wa')"><?xml version="1.0"?><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg> Open WhatsApp</a>
-      <button class="btn btn-ghost" onclick="closeOv('ov-wa')" style="flex:0 0 auto">Cancel</button>
+    <div style="margin-top:12px;display:flex;gap:7px;flex-wrap:wrap">
+      <a id="wa-app-btn" href="#" class="btn btn-wa" style="text-decoration:none;flex:1;min-width:100px;font-size:12px" onclick="closeOv('ov-wa')">${waIcon()} WhatsApp App</a>
+      <a id="wa-web-btn" href="#" target="_blank" class="btn btn-ghost" style="text-decoration:none;flex:1;min-width:100px;font-size:12px;border-color:#25D366;color:#25D366" onclick="closeOv('ov-wa')">${waIcon()} WhatsApp Web</a>
+    </div>
+    <div style="margin-top:7px;display:flex;gap:7px">
+      <a id="wa-call-btn" href="#" class="btn btn-ghost" style="text-decoration:none;flex:1;font-size:12px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg> Call</a>
+      <button class="btn btn-ghost" onclick="closeOv('ov-wa')" style="flex:1;font-size:12px">Cancel</button>
     </div>
   </div>
 </div></div>
@@ -463,7 +467,8 @@ function daysAgo(d){if(!d)return 999;return Math.floor((Date.now()-new Date(d).g
 function daysUntil(d){if(!d)return 999;return Math.ceil((new Date(d).getTime()-Date.now())/86400000)}
 function fmt(d){if(!d)return'';try{return new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}catch(e){return d}}
 function scls(s){const m={'PROSPECT':'prospect','CONTACTED':'contacted','IN PROGRESS':'inprogress','CONVERTED':'converted'};return'pill-'+(m[(s||'').toUpperCase()]||'prospect')}
-function waUrl(mob,msg){const d=(mob||'').replace(/\D/g,'');const n=d.length===10?'91'+d:d;return'https://web.whatsapp.com/send?phone='+n+'&text='+encodeURIComponent(msg)}
+function waUrl(mob,msg){const d=(mob||'').replace(/\D/g,'');const n=d.length===10?'91'+d:d;const enc=encodeURIComponent(msg);return{app:'whatsapp://send?phone='+n+'&text='+enc,web:'https://web.whatsapp.com/send?phone='+n+'&text='+enc,tel:'tel:'+d}}
+function waBtns(mob,msg,onClickExtra=''){const u=waUrl(mob,msg);return`<a href="${u.app}" class="btn btn-wa" style="flex:1;text-decoration:none;font-size:12px;gap:5px" ${onClickExtra}>${waIcon()}App</a><a href="${u.web}" target="_blank" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:12px;border-color:#25D366;color:#25D366" ${onClickExtra}>${waIcon()}Web</a><a href="${u.tel}" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:12px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg>Call</a>`}
 function toast(m,d=2200){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),d)}
 
 // ═══════════════════════════════════════════════════
@@ -763,7 +768,11 @@ function renderFU(){
         </div>
         <button class="btn btn-ghost" style="padding:5px 8px;font-size:11px;flex-shrink:0" onclick="openDetail('${l.mobile}','lead')">View</button>
       </div>
-      <button onclick="previewWA('${l.mobile}')" class="btn btn-wa btn-full" style="font-size:12px">${waIcon()} Send follow-up on WhatsApp</button>
+      <div style="display:flex;gap:7px;margin-top:2px">
+        <a href="whatsapp://send?phone=${(()=>{const d=(l.mobile||'').replace(/\D/g,'');return d.length===10?'91'+d:d})()}&text=${encodeURIComponent(waMsg(l))}" class="btn btn-wa" style="flex:2;text-decoration:none;font-size:12px" onclick="bumpM('${l.mobile}')">${waIcon()} WA App</a>
+        <a href="https://web.whatsapp.com/send?phone=${(()=>{const d=(l.mobile||'').replace(/\D/g,'');return d.length===10?'91'+d:d})()}&text=${encodeURIComponent(waMsg(l))}" target="_blank" class="btn btn-ghost" style="flex:2;text-decoration:none;font-size:12px;border-color:#25D366;color:#25D366" onclick="bumpM('${l.mobile}')">${waIcon()} WA Web</a>
+        <a href="tel:${l.mobile}" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:12px;justify-content:center"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg></a>
+      </div>
     </div>`;
   }).join(''):`<div class="empty"><div class="empty-ico">🎉</div><div class="empty-t">All caught up!</div><div class="empty-s">No active leads are overdue. Leads appear here ${fd} days after their last update, or on their next follow-up date.</div></div>`;
   updateFUBadge();
@@ -776,9 +785,14 @@ function bumpM(mob){const l=leads.find(x=>x.mobile===mob);if(l){l.modifiedDate=n
 function previewWA(mob){
   const l=leads.find(x=>x.mobile===mob);if(!l)return;
   const msg=waMsg(l);
+  const u=waUrl(l.mobile,msg);
   document.getElementById('wa-preview-text').textContent=msg;
-  document.getElementById('wa-send-btn').href=waUrl(l.mobile,msg);
-  document.getElementById('wa-send-btn').onclick=()=>{bumpM(mob);closeOv('ov-wa')};
+  document.getElementById('wa-app-btn').href=u.app;
+  document.getElementById('wa-web-btn').href=u.web;
+  document.getElementById('wa-call-btn').href=u.tel;
+  const bump=()=>bumpM(mob);
+  document.getElementById('wa-app-btn').onclick=bump;
+  document.getElementById('wa-web-btn').onclick=bump;
   document.getElementById('ov-wa').classList.add('open');
 }
 function waMsg(l){
@@ -811,9 +825,10 @@ function openDetail(mob,type){
     html=`<div class="sh-handle"></div>
     <div class="sh-hdr"><div class="sh-title">${rec.name}</div><button class="sh-x" onclick="closeOv('ov-detail')">✕</button></div>
     <div class="dt-hdr"><div class="dt-av">${ini(rec.name)}</div><div><div class="dt-name">${rec.name}</div><div class="dt-sub">${rec.mobile}${rec.country?' · '+rec.country:''}</div><span class="pill ${scls(rec.status)}" style="margin-top:5px;display:inline-flex">${(rec.status||'').charAt(0)+(rec.status||'').slice(1).toLowerCase()}</span></div></div>
-    <div class="act-row">
-      <button onclick="previewWA('${rec.mobile}')" class="btn btn-wa" style="flex:1;font-size:12px">${waIcon()} WhatsApp</button>
-      <a href="tel:${rec.mobile}" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:12px">📞 Call</a>
+    <div class="act-row" style="flex-wrap:wrap;gap:7px">
+      <a href="whatsapp://send?phone=${(()=>{const d=(rec.mobile||'').replace(/\D/g,'');return d.length===10?'91'+d:d})()}&text=${encodeURIComponent(waMsg(rec))}" class="btn btn-wa" style="flex:1;min-width:90px;text-decoration:none;font-size:12px" onclick="bumpM('${rec.mobile}')">${waIcon()} App</a>
+      <a href="https://web.whatsapp.com/send?phone=${(()=>{const d=(rec.mobile||'').replace(/\D/g,'');return d.length===10?'91'+d:d})()}&text=${encodeURIComponent(waMsg(rec))}" target="_blank" class="btn btn-ghost" style="flex:1;min-width:90px;text-decoration:none;font-size:12px;border-color:#25D366;color:#25D366" onclick="bumpM('${rec.mobile}')">${waIcon()} Web</a>
+      <a href="tel:${rec.mobile}" class="btn btn-ghost" style="flex:1;min-width:60px;text-decoration:none;font-size:12px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg> Call</a>
     </div>
     <div style="padding:0 12px"><div class="card" style="padding:0 12px">
       ${dr('Email',rec.email)}${dr('Age',rec.age?rec.age+' yrs':'')}${dr('Gender',rec.gender)}
@@ -847,7 +862,11 @@ function openDetail(mob,type){
     html=`<div class="sh-handle"></div>
     <div class="sh-hdr"><div class="sh-title">${rec.name}</div><button class="sh-x" onclick="closeOv('ov-detail')">✕</button></div>
     <div class="dt-hdr"><div class="dt-av" style="background:var(--gdim);color:var(--green)">${ini(rec.name)}</div><div><div class="dt-name">${rec.name}</div><div class="dt-sub">${rec.mobile}${rec.country?' · '+rec.country:''}</div><span style="font-size:10px;color:var(--green);font-weight:700;margin-top:5px;display:block">✅ CLIENT</span></div></div>
-    <div class="act-row"><a href="${waUrl(rec.mobile,'DEAR '+rec.name+',')}" target="_blank" class="btn btn-wa" style="flex:1;text-decoration:none;font-size:12px">${waIcon()} WhatsApp</a><a href="tel:${rec.mobile}" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:12px">📞 Call</a></div>
+    <div class="act-row" style="flex-wrap:wrap;gap:7px">
+      <a href="whatsapp://send?phone=${(()=>{const d=(rec.mobile||'').replace(/\D/g,'');return d.length===10?'91'+d:d})()}&text=${encodeURIComponent('DEAR '+rec.name+',')}" class="btn btn-wa" style="flex:1;min-width:90px;text-decoration:none;font-size:12px">${waIcon()} App</a>
+      <a href="https://web.whatsapp.com/send?phone=${(()=>{const d=(rec.mobile||'').replace(/\D/g,'');return d.length===10?'91'+d:d})()}&text=${encodeURIComponent('DEAR '+rec.name+',')}" target="_blank" class="btn btn-ghost" style="flex:1;min-width:90px;text-decoration:none;font-size:12px;border-color:#25D366;color:#25D366">${waIcon()} Web</a>
+      <a href="tel:${rec.mobile}" class="btn btn-ghost" style="flex:1;min-width:60px;text-decoration:none;font-size:12px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg> Call</a>
+    </div>
     <div style="padding:0 12px"><div class="card" style="padding:0 12px">${dr('Email',rec.email)}${dr('Country',rec.country)}${dr('Age',rec.age?rec.age+' yrs':'')}${dr('Gender',rec.gender)}${dr('PAN',rec.pan)}${dr('Products',rec.products)}${dr('Remarks',rec.remarks)}${dr('Converted',fmt(rec.convertedDate))}</div></div>
     <div style="padding:10px 12px 14px;display:flex;gap:7px"><button class="btn btn-ghost" style="flex:1;font-size:12px" onclick="closeOv('ov-detail');editClientOpen('${rec.mobile}')">✏️ Edit</button><button class="btn btn-red" style="flex:1;font-size:12px" onclick="deleteClient('${rec.mobile}')">🗑️ Delete</button></div>`;
   }
