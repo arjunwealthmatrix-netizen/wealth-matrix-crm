@@ -7,25 +7,29 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Wealth Matrix CRM">
-<title>Wealth Matrix CRM</title>
+<title>Wealth Matrix CRM v1.3</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
-  --bg:#0C1420;--s1:#142031;--s2:#1A2B40;--s3:#223350;
-  --border:#2A3F58;--border2:#344d68;
-  --gold:#F0B429;--gold2:rgba(240,180,41,.12);
-  --text:#F0F6FF;--t2:#8BA4BF;--t3:#4A6480;
-  --green:#22C55E;--gdim:rgba(34,197,94,.12);
-  --blue:#3B82F6;--bdim:rgba(59,130,246,.12);
-  --orange:#F97316;--odim:rgba(249,115,22,.12);
-  --red:#EF4444;--rdim:rgba(239,68,68,.12);
-  --purple:#A855F7;--pdim:rgba(168,85,247,.12);
+  /* Wealth Matrix Brand — Dark theme */
+  --bg:#0A0A0F;--s1:#13131A;--s2:#1C1C26;--s3:#252532;
+  --border:#2E2E3D;--border2:#3D3D52;
+  --accent:#C0392B;--accent2:rgba(192,57,43,.15);
+  --accent-light:#E74C3C;
+  --gold:#C0392B;--gold2:rgba(192,57,43,.12); /* brand red as primary */
+  --text:#FFFFFF;--t2:#A0A0B8;--t3:#606078;
+  --green:#27AE60;--gdim:rgba(39,174,96,.15);
+  --blue:#2980B9;--bdim:rgba(41,128,185,.15);
+  --orange:#E67E22;--odim:rgba(230,126,34,.15);
+  --red:#C0392B;--rdim:rgba(192,57,43,.15);
+  --purple:#8E44AD;--pdim:rgba(142,68,173,.12);
+  --dropped:#7F8C8D;--droppeddim:rgba(127,140,141,.15);
   --r:12px;--r2:8px;
 }
 .dark-mode{
-  --bg:#F8FAFC;--s1:#FFFFFF;--s2:#F1F5F9;--s3:#E2E8F0;
-  --border:#CBD5E1;--border2:#94A3B8;
-  --text:#0F172A;--t2:#475569;--t3:#94A3B8;
+  --bg:#F5F5F5;--s1:#FFFFFF;--s2:#F0F0F0;--s3:#E0E0E0;
+  --border:#D0D0D0;--border2:#B0B0B0;
+  --text:#0A0A0F;--t2:#505060;--t3:#909090;
 }
 html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;overscroll-behavior:none;-webkit-font-smoothing:antialiased;transition:background .2s,color .2s}
 #app{display:flex;flex-direction:column;height:100dvh;height:100vh;max-width:520px;margin:0 auto;position:relative;overflow:hidden}
@@ -33,7 +37,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 #nav{position:absolute;bottom:0;left:0;right:0;background:rgba(12,20,32,.97);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--border);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom,4px)}
 .dark-mode #nav{background:rgba(248,250,252,.97)}
 .nb{flex:1;padding:9px 2px 7px;display:flex;flex-direction:column;align-items:center;gap:3px;border:none;background:none;color:var(--t3);cursor:pointer;font-size:10px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;transition:color .15s;min-width:0;position:relative;-webkit-user-select:none;user-select:none}
-.nb.active{color:var(--gold)}
+.nb.active{color:var(--accent)}
 .nb svg{width:23px;height:23px;flex-shrink:0}
 .nb-badge{position:absolute;top:4px;right:calc(50% - 14px);background:var(--red);color:#fff;font-size:9px;font-weight:800;min-width:16px;height:16px;border-radius:999px;display:flex;align-items:center;justify-content:center;padding:0 3px}
 .page{display:none}
@@ -46,7 +50,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .card{background:var(--s1);border-radius:var(--r);border:1px solid var(--border);overflow:hidden}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:10px 16px;border-radius:var(--r2);border:none;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .12s,transform .08s;text-decoration:none;white-space:nowrap}
 .btn:active{transform:scale(.97)}
-.btn-gold{background:var(--gold);color:#0C1420}
+.btn-gold{background:var(--accent);color:#FFFFFF}
 .btn-ghost{background:var(--s2);color:var(--text);border:1px solid var(--border)}
 .btn-wa{background:#25D366;color:#fff}
 .btn-red{background:var(--rdim);color:var(--red);border:1px solid rgba(239,68,68,.2)}
@@ -58,16 +62,17 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .pill-contacted{background:var(--bdim);color:var(--blue)}
 .pill-inprogress{background:var(--odim);color:var(--orange)}
 .pill-converted{background:var(--gdim);color:var(--green)}
+.pill-dropped{background:var(--droppeddim);color:var(--dropped)}
 .sbox{width:100%;background:var(--s1);border:1px solid var(--border);border-radius:var(--r2);padding:9px 12px;color:var(--text);font-family:inherit;font-size:14px;outline:none;-webkit-appearance:none}
-.sbox:focus{border-color:var(--gold)}
+.sbox:focus{border-color:var(--accent)}
 .chips{display:flex;gap:6px;padding:0 12px 9px;overflow-x:auto;scrollbar-width:none}
 .chips::-webkit-scrollbar{display:none}
 .chip{flex-shrink:0;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;border:1px solid var(--border);background:var(--s1);color:var(--t2);cursor:pointer;white-space:nowrap}
-.chip.active{background:var(--gold);color:#0C1420;border-color:var(--gold)}
+.chip.active{background:var(--accent);color:#FFFFFF;border-color:var(--accent)}
 .li{padding:11px 12px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:10px;cursor:pointer;transition:background .1s}
 .li:active{background:var(--s2)}
 .li.selected{background:var(--bdim);border-left:3px solid var(--blue)}
-.av{width:36px;height:36px;min-width:36px;border-radius:50%;background:var(--s2);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:var(--gold)}
+.av{width:36px;height:36px;min-width:36px;border-radius:50%;background:rgba(192,57,43,.15);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:var(--accent)}
 .li-info{flex:1;min-width:0}
 .li-name{font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .li-meta{font-size:11px;color:var(--t2);margin-top:1px}
@@ -85,10 +90,12 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .ns-table td:first-child{text-align:left;font-weight:600;font-size:11px;color:var(--t2);padding-left:8px}
 .ns-table tr:last-child td{border-bottom:none}
 .ns-num.zero{color:var(--t3);font-weight:400}
-.row-total td{color:var(--gold)}
+.row-total td{color:var(--accent)}
 .row-contacted td:first-child{color:var(--blue)}
 .row-inprogress td:first-child{color:var(--orange)}
 .row-converted td:first-child{color:var(--green)}
+.row-prospect td:first-child{color:var(--t2)}
+.row-dropped td:first-child{color:var(--dropped)}
 .fn-row{display:flex;align-items:center;gap:7px;margin-bottom:7px}
 .fn-lbl{font-size:11px;color:var(--t2);width:76px;flex-shrink:0}
 .fn-track{flex:1;height:6px;background:var(--s3);border-radius:3px;overflow:hidden}
@@ -107,7 +114,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .fg{margin-bottom:10px}
 .fl{font-size:10px;font-weight:700;color:var(--t2);margin-bottom:3px;display:block;text-transform:uppercase;letter-spacing:.4px}
 .fi{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--r2);padding:9px 11px;color:var(--text);font-family:inherit;font-size:14px;outline:none;-webkit-appearance:none;appearance:none}
-.fi:focus{border-color:var(--gold)}
+.fi:focus{border-color:var(--accent)}
 .fi-sel{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%234A6480' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:26px}
 .fi-ta{min-height:58px;resize:none;line-height:1.5}
 .frow{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -115,7 +122,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .pt{background:var(--bg);border:1px solid var(--border);border-radius:var(--r2);padding:7px 8px;font-size:11px;font-weight:600;color:var(--t2);cursor:pointer;text-align:center;-webkit-user-select:none;user-select:none;transition:all .1s}
 .pt.on{background:var(--bdim);border-color:var(--blue);color:var(--blue)}
 .dt-hdr{padding:12px;display:flex;gap:10px;align-items:flex-start}
-.dt-av{width:44px;height:44px;min-width:44px;border-radius:50%;background:var(--s3);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;color:var(--gold)}
+.dt-av{width:44px;height:44px;min-width:44px;border-radius:50%;background:rgba(192,57,43,.2);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;color:var(--accent)}
 .dt-name{font-size:17px;font-weight:800}
 .dt-sub{font-size:11px;color:var(--t2);margin-top:2px}
 .dr{display:flex;justify-content:space-between;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--border)}
@@ -141,12 +148,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .ci{padding:11px 12px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:flex-start;cursor:pointer;transition:background .1s}
 .ci:active{background:var(--s2)}
 .ci-av{width:36px;height:36px;min-width:36px;border-radius:50%;background:var(--gdim);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:var(--green)}
-#loading-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .3s}
-#loading-screen.hide{opacity:0;pointer-events:none}
-.spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin 0.8s linear infinite}
+#loading-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;padding:20px}
+#loading-screen::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent),transparent)}
 /* Floating Add Button */
-.fab{position:fixed;bottom:86px;right:18px;width:54px;height:54px;border-radius:50%;background:var(--gold);color:#0C1420;border:none;font-size:26px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(240,180,41,.4);z-index:150;transition:transform .15s,box-shadow .15s;-webkit-user-select:none;user-select:none}
-.fab:active{transform:scale(.92);box-shadow:0 2px 8px rgba(240,180,41,.3)}
+.fab{position:fixed;bottom:86px;right:18px;width:54px;height:54px;border-radius:50%;background:var(--accent);color:#0C1420;border:none;font-size:26px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(192,57,43,.5);z-index:150;transition:transform .15s,box-shadow .15s;-webkit-user-select:none;user-select:none}
+.fab:active{transform:scale(.92);box-shadow:0 2px 8px rgba(192,57,43,.3)}
 .fab.hidden{display:none}
 #toast{position:fixed;bottom:152px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--s2);border:1px solid var(--border2);border-radius:999px;padding:7px 14px;font-size:12px;font-weight:600;opacity:0;transition:all .25s;z-index:999;white-space:nowrap;pointer-events:none;max-width:88vw;text-align:center}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -155,7 +161,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
 .tmpl-wrap{padding:0 12px;margin-bottom:10px}
 .sync-banner{margin:0 12px 10px;padding:11px 12px;background:var(--s1);border:1px solid var(--border);border-radius:var(--r);display:flex;align-items:center;gap:10px}
-.sync-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.sync-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
 .sync-dot.ok{background:var(--green)}
 .sync-dot.err{background:var(--red)}
 .sync-dot.warn{background:var(--orange)}
@@ -163,8 +169,32 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 /* Note log */
 .note-item{padding:8px 0;border-bottom:1px solid var(--border)}
 .note-item:last-child{border-bottom:none}
-.note-ts{font-size:10px;color:var(--t3);margin-bottom:2px}
-.note-txt{font-size:12px;line-height:1.5}
+.note-ts{font-size:10px;font-weight:700;margin-bottom:2px;letter-spacing:.3px}
+.note-txt{font-size:12px;line-height:1.5;color:var(--text)}
+/* Quick log chips */
+.qlog-grid{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:4px}
+/* Goal progress bars */
+.goal-bar-wrap{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin:5px 0 2px}
+.goal-bar{height:100%;border-radius:3px;transition:width .5s ease;min-width:3px}
+.goal-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:8px}
+.goal-title{font-size:12px;font-weight:700;color:var(--t2);margin-bottom:2px}
+.goal-nums{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
+.goal-achieved{font-size:20px;font-weight:900;color:var(--text)}
+.goal-target{font-size:11px;color:var(--t3)}
+.goal-pct{font-size:11px;font-weight:700}
+/* Stale lead badge */
+.stale-badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:999px;font-size:10px;font-weight:700;background:var(--rdim);color:var(--red);border:1px solid rgba(239,68,68,.2)}
+/* Referral chip */
+.ref-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:999px;font-size:10px;font-weight:700;background:var(--pdim);color:var(--purple)}
+.qlog-chip{padding:7px 11px;border-radius:999px;font-size:11px;font-weight:600;border:1px solid var(--border2);background:var(--s1);color:var(--text);cursor:pointer;transition:all .12s;white-space:nowrap;-webkit-user-select:none;user-select:none;display:inline-flex;align-items:center;gap:4px}
+.qlog-chip:active{background:var(--accent);color:#fff;border-color:var(--accent);transform:scale(.95)}
+.qlog-chip:hover{border-color:var(--accent);color:var(--accent)}
+/* Log entry types */
+.log-status{color:var(--orange)!important}
+.log-wa{color:#25D366!important}
+.log-call{color:var(--blue)!important}
+.log-created{color:var(--accent)!important}
+.log-manual{color:var(--t2)!important}
 /* Analytics */
 .ana-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
 .ana-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:12px}
@@ -175,7 +205,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .trend-wrap::-webkit-scrollbar{display:none}
 .trend-bars{display:flex;align-items:flex-end;gap:4px;height:80px;padding:0 2px}
 .trend-col{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;min-width:28px}
-.trend-bar{width:100%;background:var(--gold);border-radius:3px 3px 0 0;min-height:2px;transition:height .4s ease}
+.trend-bar{width:100%;background:var(--accent);border-radius:3px 3px 0 0;min-height:2px;transition:height .4s ease}
 .trend-lbl{font-size:8px;color:var(--t3);white-space:nowrap}
 .trend-n{font-size:9px;font-weight:700;color:var(--t2)}
 /* Bulk action bar */
@@ -189,42 +219,76 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .toggle input{opacity:0;width:0;height:0}
 .toggle-slider{position:absolute;inset:0;background:var(--border2);border-radius:999px;cursor:pointer;transition:.2s}
 .toggle-slider:before{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}
-.toggle input:checked+.toggle-slider{background:var(--gold)}
+.toggle input:checked+.toggle-slider{background:var(--accent)}
 .toggle input:checked+.toggle-slider:before{transform:translateX(20px)}
 </style>
 </head>
 <body>
 <div id="app">
-<!-- LOADING SCREEN -->
+<!-- LOADING SCREEN — blocks until data is ready -->
 <div id="loading-screen">
-  <div style="font-size:24px;font-weight:900;color:var(--gold);letter-spacing:-1px">WM</div>
-  <div class="spinner"></div>
-  <div style="font-size:13px;color:var(--t2)" id="loading-msg">Loading your data…</div>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+    <!-- Logo box -->
+    <div style="width:72px;height:72px;background:var(--accent);border-radius:18px;display:flex;align-items:center;justify-content:center;margin-bottom:8px;box-shadow:0 8px 32px rgba(192,57,43,.4)">
+      <span style="font-size:28px;font-weight:900;color:#fff;letter-spacing:1px">WM</span>
+    </div>
+    <div style="font-size:18px;font-weight:900;color:var(--text);letter-spacing:.5px">Wealth Matrix</div>
+    <div style="font-size:10px;color:var(--t3);letter-spacing:2px;text-transform:uppercase">Prosper With Purpose</div>
+    <div style="font-size:9px;color:var(--accent);font-weight:700;letter-spacing:1px;margin-top:2px">CRM v1.3</div>
+  </div>
+
+  <!-- Progress bar -->
+  <div style="width:180px;margin-top:28px">
+    <div style="height:3px;background:var(--border);border-radius:2px;overflow:hidden">
+      <div id="load-progress" style="height:100%;background:var(--accent);border-radius:2px;width:0%;transition:width .4s ease"></div>
+    </div>
+    <div id="load-msg" style="font-size:11px;color:var(--t2);text-align:center;margin-top:10px">Connecting…</div>
+  </div>
+
+  <!-- Skip option after 8 seconds -->
+  <div id="load-skip" style="display:none;margin-top:20px">
+    <button onclick="skipLoad()" style="background:none;border:1px solid var(--border);color:var(--t2);padding:7px 16px;border-radius:999px;font-size:12px;cursor:pointer;font-family:inherit">
+      Skip — use offline data
+    </button>
+  </div>
 </div>
 <div id="content">
 
 <!-- DASHBOARD -->
 <div class="page" id="pg-dash">
-  <div class="ph">
-    <div><h1>Dashboard</h1><div class="sub" id="dash-date"></div></div>
+  <div class="ph" style="padding-bottom:6px">
+    <div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:32px;height:32px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <span style="font-size:13px;font-weight:900;color:#fff;letter-spacing:.5px">WM</span>
+        </div>
+        <div>
+          <div style="font-size:15px;font-weight:900;color:var(--text);letter-spacing:-.3px">Wealth Matrix</div>
+          <div style="font-size:9px;color:var(--t3);letter-spacing:1px;text-transform:uppercase">Prosper With Purpose</div>
+        </div>
+      </div>
+    </div>
     <div style="display:flex;align-items:center;gap:8px">
-      <button onclick="toggleDark()" style="background:none;border:none;cursor:pointer;font-size:18px" id="dark-btn">🌙</button>
-      <button onclick="manualSync()" style="background:none;border:none;cursor:pointer;font-size:18px" title="Sync now">🔄</button>
-      <div style="font-size:18px;font-weight:900;color:var(--gold)">WM</div>
+      <button onclick="toggleDark()" style="background:none;border:none;cursor:pointer;font-size:16px" id="dark-btn">🌙</button>
+      <button onclick="manualSync()" style="background:none;border:none;cursor:pointer;font-size:16px" title="Sync now">🔄</button>
+      <span style="font-size:9px;font-weight:700;color:var(--accent);background:var(--accent2);padding:2px 7px;border-radius:999px;border:1px solid var(--accent)">v1.3</span>
     </div>
   </div>
-  <div id="sync-status-bar" style="margin:0 12px 10px;padding:7px 12px;border-radius:var(--r2);font-size:11px;font-weight:600;display:flex;align-items:center;gap:7px;background:var(--s1);border:1px solid var(--border)">
-    <div class="sync-dot idle" id="top-sync-dot"></div>
-    <span id="top-sync-txt" style="color:var(--t2)">Connecting…</span>
+  <div class="sub" id="dash-date" style="padding:0 14px 10px;font-size:11px;color:var(--t2)"></div>
+  <div id="sync-status-bar" style="margin:0 12px 8px;padding:5px 10px;border-radius:var(--r2);font-size:10px;font-weight:600;display:flex;align-items:center;gap:6px;background:var(--s1);border:1px solid var(--border);opacity:.8">
+    <div class="sync-dot idle" id="top-sync-dot" style="width:6px;height:6px"></div>
+    <span id="top-sync-txt" style="color:var(--t3)">Loading…</span>
   </div>
   <div class="sec" id="dash-alert"></div>
-  <div class="sec"><div class="lbl">North Star Matrix</div><div class="card ns-wrap"><table class="ns-table" id="ns-table"></table></div></div>
-  <div class="sec"><div class="lbl">Lead funnel</div><div class="card" style="padding:14px" id="funnel"></div></div>
+  <div class="sec"><div class="lbl" style="color:var(--accent)">⭐ North Star Matrix</div><div class="card ns-wrap"><table class="ns-table" id="ns-table"></table></div></div>
+  <div class="sec" id="goal-section-wrap"></div>
+  <div class="sec"><div class="lbl">🔻 Lead Funnel</div><div class="card" style="padding:14px" id="funnel"></div></div>
   <div class="sec"><div class="lbl">Monthly trend</div><div class="card" style="padding:14px"><div class="trend-wrap"><div class="trend-bars" id="trend-bars"></div></div></div></div>
   <div class="sec"><div class="lbl">Analytics</div><div class="ana-grid" id="analytics"></div></div>
   <div class="sec"><div class="lbl">Product interest</div><div class="card" style="padding:12px" id="prod-chart"></div></div>
   <div class="sec"><div class="lbl">Source breakdown</div><div class="card" style="padding:12px" id="source-chart"></div></div>
   <div class="sec"><div class="lbl">Country</div><div class="card" style="padding:12px" id="country-chart"></div></div>
+  <div class="sec"><div class="lbl">👤 Top referrers</div><div class="card" style="padding:12px" id="referral-chart"></div></div>
   <div class="sec"><div class="lbl">Age groups</div><div class="card" style="padding:12px" id="age-chart"></div></div>
   <div class="sec"><div class="lbl">Gender</div><div class="card" style="padding:12px" id="gender-chart"></div></div>
 </div>
@@ -297,11 +361,16 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 <!-- SETTINGS -->
 <div class="page" id="pg-settings">
   <div class="ph"><h1>Settings</h1></div>
-  <div style="padding:0 12px;margin-bottom:7px" class="lbl">Follow-up rule</div>
+  <div style="padding:0 12px;margin-bottom:7px" class="lbl">Follow-up & stale rules</div>
   <div class="sg">
     <div class="si"><span>Follow up after</span>
       <select class="fi fi-sel" style="width:100px;padding:5px 24px 5px 8px" id="s-fdays" onchange="cfg('followUpDays',this.value);updateFUBadge()">
         <option value="7">7 days</option><option value="10">10 days</option><option value="14" selected>14 days</option><option value="21">21 days</option><option value="30">30 days</option>
+      </select>
+    </div>
+    <div class="si"><span>Stale lead after</span>
+      <select class="fi fi-sel" style="width:100px;padding:5px 24px 5px 8px" id="s-stale" onchange="cfg('staleDays',this.value)">
+        <option value="21">21 days</option><option value="30" selected>30 days</option><option value="45">45 days</option><option value="60">60 days</option>
       </select>
     </div>
     <div class="si">
@@ -309,11 +378,33 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       <label class="toggle"><input type="checkbox" id="notif-toggle" onchange="toggleNotifications(this.checked)"><span class="toggle-slider"></span></label>
     </div>
   </div>
+  <div style="padding:0 12px;margin:14px 0 7px" class="lbl">🎯 Monthly goals</div>
+  <div class="sg">
+    <div class="si">
+      <span>New leads per month</span>
+      <input type="number" class="fi" id="g-leads" placeholder="20" min="1"
+        style="width:70px;padding:5px 8px;text-align:center"
+        oninput="cfg('goalLeads',this.value)">
+    </div>
+    <div class="si">
+      <span>Conversions per month</span>
+      <input type="number" class="fi" id="g-conv" placeholder="5" min="1"
+        style="width:70px;padding:5px 8px;text-align:center"
+        oninput="cfg('goalConversions',this.value)">
+    </div>
+    <div class="si">
+      <span>Follow-ups per month</span>
+      <input type="number" class="fi" id="g-fu" placeholder="30" min="1"
+        style="width:70px;padding:5px 8px;text-align:center"
+        oninput="cfg('goalFollowups',this.value)">
+    </div>
+  </div>
   <div style="padding:0 12px;margin:12px 0 7px" class="lbl">WhatsApp templates</div>
   <div id="tmpl-section"></div>
   <div style="padding:0 12px;margin:12px 0 7px" class="lbl">About</div>
   <div class="sg">
-    <div class="si"><span>Total leads</span><span style="color:var(--t2)" id="st-leads">0</span></div>
+    <div class="si"><span>Version</span><span style="color:var(--accent);font-weight:700">v1.3</span></div>
+      <div class="si"><span>Total leads</span><span style="color:var(--t2)" id="st-leads">0</span></div>
     <div class="si"><span>Total clients</span><span style="color:var(--t2)" id="st-clients">0</span></div>
     <div class="si"><span>Sync status</span><span style="color:var(--t2)" id="st-sync">Not configured</span></div>
   </div>
@@ -363,8 +454,12 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       <div class="fg"><label class="fl">Gender</label><select class="fi fi-sel" id="lf-gender"><option value="">Select</option><option>MALE</option><option>FEMALE</option></select></div>
     </div>
     <div class="frow">
-      <div class="fg"><label class="fl">Status</label><select class="fi fi-sel" id="lf-status"><option>PROSPECT</option><option>CONTACTED</option><option>IN PROGRESS</option><option>CONVERTED</option></select></div>
-      <div class="fg"><label class="fl">Source</label><select class="fi fi-sel" id="lf-source"><option value="">Select</option><option>REFERRAL</option><option>SOCIAL MEDIA</option><option>WALK-IN</option><option>SEMINAR</option><option>SIB</option><option>COLD CALL</option><option>WEBSITE</option><option>OTHER</option></select></div>
+      <div class="fg"><label class="fl">Status</label><select class="fi fi-sel" id="lf-status"><option>PROSPECT</option><option>CONTACTED</option><option>IN PROGRESS</option><option>CONVERTED</option><option>DROPPED</option></select></div>
+      <div class="fg"><label class="fl">Source</label><select class="fi fi-sel" id="lf-source" onchange="const rfw=document.getElementById('referral-field-wrap');if(rfw)rfw.style.display=(this.value==='REFERRAL'||this.value==='FRIENDS')?'block':'none'"><option value="">Select</option><option>REFERRAL</option><option>FRIENDS</option><option>SOCIAL MEDIA</option><option>WALK-IN</option><option>SEMINAR</option><option>SIB</option><option>COLD CALL</option><option>WEBSITE</option><option>OTHER</option></select></div>
+    </div>
+    <div class="fg" id="referral-field-wrap" style="display:none">
+      <label class="fl">Referred by (client name or mobile)</label>
+      <input class="fi" id="lf-referral" placeholder="e.g. Rajesh Pappinicode or 971504508254" autocomplete="off" oninput="autoCaps(this)">
     </div>
     <div class="fg"><label class="fl">Next follow-up date</label><input class="fi" id="lf-followup" type="date"></div>
     <div class="fg"><label class="fl">Interested products</label>
@@ -375,7 +470,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         <div class="pt" data-p="WILL" onclick="tp(this)">📜 WILL</div>
       </div>
     </div>
-    <div class="fg"><label class="fl">Remarks</label><textarea class="fi fi-ta" id="lf-rem" placeholder="Source, notes…" oninput="autoCaps(this)"></textarea></div>
+    <div class="fg"><label class="fl">Add note to log</label><textarea class="fi fi-ta" id="lf-rem" placeholder="Add a new entry to the communication log… (optional)" oninput="autoCaps(this)"></textarea><div style="font-size:10px;color:var(--t3);margin-top:3px">This will be added as a new timestamped entry. Leave blank to keep existing log.</div></div>
     <button class="btn btn-gold btn-full" onclick="saveLead()" style="margin-top:4px">Save Lead</button>
     <div style="height:8px"></div>
   </div>
@@ -441,7 +536,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   <div class="sh-hdr"><div class="sh-title">Change status</div><button class="sh-x" onclick="closeOv('ov-bulk')">✕</button></div>
   <div class="sh-body">
     <div style="display:flex;flex-direction:column;gap:8px">
-      ${['PROSPECT','CONTACTED','IN PROGRESS','CONVERTED'].map(s=>`<button class="btn btn-ghost btn-full" onclick="applyBulkStatus('${s}')" style="justify-content:flex-start">${s}</button>`).join('')}
+      ${['PROSPECT','CONTACTED','IN PROGRESS','CONVERTED','DROPPED'].map(s=>`<button class="btn btn-ghost btn-full" onclick="applyBulkStatus('${s}')" style="justify-content:flex-start">${s}</button>`).join('')}
     </div>
   </div>
 </div></div>
@@ -500,7 +595,7 @@ function ini(n){return(n||'?').split(' ').map(w=>w[0]||'').join('').toUpperCase(
 function daysAgo(d){if(!d)return 999;return Math.floor((Date.now()-new Date(d).getTime())/86400000)}
 function daysUntil(d){if(!d)return 999;return Math.ceil((new Date(d).getTime()-Date.now())/86400000)}
 function fmt(d){if(!d)return'';try{return new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}catch(e){return d}}
-function scls(s){const m={'PROSPECT':'prospect','CONTACTED':'contacted','IN PROGRESS':'inprogress','CONVERTED':'converted'};return'pill-'+(m[(s||'').toUpperCase()]||'prospect')}
+function scls(s){const m={'PROSPECT':'prospect','CONTACTED':'contacted','IN PROGRESS':'inprogress','CONVERTED':'converted','DROPPED':'dropped'};return'pill-'+(m[(s||'').toUpperCase()]||'prospect')}
 function waUrl(mob,msg){const d=(mob||'').replace(/\D/g,'');const n=d.length===10?'91'+d:d;const enc=encodeURIComponent(msg);return{app:'whatsapp://send?phone='+n+'&text='+enc,web:'https://web.whatsapp.com/send?phone='+n+'&text='+enc,tel:'tel:'+d}}
 function waBtns(mob,msg,onClickExtra=''){const u=waUrl(mob,msg);return`<a href="${u.app}" class="btn btn-wa" style="flex:1;text-decoration:none;font-size:12px;gap:5px" ${onClickExtra}>${waIcon()}App</a><a href="${u.web}" target="_blank" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:12px;border-color:#25D366;color:#25D366" ${onClickExtra}>${waIcon()}Web</a><a href="${u.tel}" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:12px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg>Call</a>`}
 function toast(m,d=2200){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),d)}
@@ -590,18 +685,37 @@ function nsCount(arr,sf,bucket){
 // DASHBOARD
 // ═══════════════════════════════════════════════════
 function renderDash(){
-  document.getElementById('dash-date').textContent=new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('dash-date').textContent='📅 '+new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  renderGoals();
+
+  // ── Compute conversion cycle (hoisted — used in NS table AND analytics) ──
+  const convertedLeads=leads.filter(l=>(l.status||'').toUpperCase()==='CONVERTED'&&l.createdDate);
+  const avgCycleDays=convertedLeads.length?Math.round(
+    convertedLeads.reduce((sum,l)=>{
+      const created=new Date(l.createdDate);
+      const convEntry=(l.remarks||'').split('\n').find(r=>r.toUpperCase().includes('STATUS CHANGED')&&r.toUpperCase().includes('→ CONVERTED'));
+      let convDate;
+      if(convEntry){const m=convEntry.match(/\[(\d{2})\/(\d{2})\/(\d{4})/);if(m)convDate=new Date(parseInt(m[3]),parseInt(m[2])-1,parseInt(m[1]));}
+      if(!convDate) convDate=new Date(l.modifiedDate||l.createdDate);
+      return sum+Math.max(0,Math.floor((convDate-created)/86400000));
+    },0)/convertedLeads.length
+  ):null;
+
   const fd=parseInt(cfg_.followUpDays)||14;
   const overdue=leads.filter(l=>['PROSPECT','CONTACTED','IN PROGRESS'].includes((l.status||'').toUpperCase())&&(daysAgo(l.modifiedDate||l.createdDate)>=fd||(l.nextFollowUp&&daysUntil(l.nextFollowUp)<=0))).length;
+  const dropped=leads.filter(l=>(l.status||'').toUpperCase()==='DROPPED').length;
   document.getElementById('dash-alert').innerHTML=overdue>0?`<div class="alert" onclick="nav('fu',document.querySelectorAll('.nb')[2])"><div style="font-size:17px">🔔</div><div><div style="font-weight:700;font-size:12px;color:var(--orange)">${overdue} lead${overdue>1?'s':''} need follow-up</div><div style="font-size:11px;color:var(--t2)">Tap to open Follow-ups →</div></div></div>`:'';
 
   // NS Table
   const nsRows=[
-    {l:'Total Leads',s:'Total',c:'var(--gold)',cl:'row-total'},
+    {l:'Total Leads',s:'Total',c:'var(--accent)',cl:'row-total'},
+    {l:'Prospect',s:'PROSPECT',c:'var(--t2)',cl:'row-prospect'},
     {l:'Contacted',s:'CONTACTED',c:'var(--blue)',cl:'row-contacted'},
     {l:'In Progress',s:'IN PROGRESS',c:'var(--orange)',cl:'row-inprogress'},
-    {l:'Converted',s:'CONVERTED',c:'var(--green)',cl:'row-converted'}
+    {l:'Converted',s:'CONVERTED',c:'var(--green)',cl:'row-converted'},
+    {l:'Dropped',s:'DROPPED',c:'var(--dropped)',cl:'row-dropped'}
   ];
+  // (convertedLeads and avgCycleDays computed at top of renderDash)
   const cols=[{k:'total',h:'Total'},{k:'ftd',h:'FTD'},{k:'wtd',h:'WTD'},{k:'mtd',h:'MTD'},{k:'ytd',h:'YTD'}];
   let nt=`<thead><tr><th></th>${cols.map(c=>`<th>${c.h}</th>`).join('')}</tr></thead><tbody>`;
   nsRows.forEach(r=>{
@@ -609,6 +723,15 @@ function renderDash(){
     cols.forEach(c=>{const n=nsCount(leads,r.s,c.k);nt+=`<td><span class="ns-num${n===0?' zero':''}">${n}</span></td>`});
     nt+=`</tr>`;
   });
+  // Avg conversion cycle row — spans all columns with single value
+  const cycleDisplay=avgCycleDays!==null?avgCycleDays+' days':'—';
+  nt+=`<tr style="border-top:2px solid var(--border)">
+    <td style="color:var(--green);font-weight:700">⏱ Avg Cycle</td>
+    <td colspan="5" style="text-align:center;color:var(--green);font-size:15px;font-weight:900">
+      ${cycleDisplay}
+      <span style="font-size:10px;color:var(--t3);font-weight:400;margin-left:6px">${convertedLeads.length?'('+convertedLeads.length+' converted)':''}</span>
+    </td>
+  </tr>`;
   document.getElementById('ns-table').innerHTML=nt+`</tbody>`;
 
   // Funnel
@@ -637,10 +760,12 @@ function renderDash(){
   const convRate=total?Math.round(conv/total*100):0;
   const avgAge=leads.filter(l=>l.age>0).length?Math.round(leads.filter(l=>l.age>0).reduce((s,l)=>s+(parseInt(l.age)||0),0)/leads.filter(l=>l.age>0).length):0;
   document.getElementById('analytics').innerHTML=`
-    <div class="ana-card"><div class="ana-val" style="color:var(--gold)">${convRate}%</div><div class="ana-lbl">Conversion rate</div></div>
+    <div class="ana-card"><div class="ana-val" style="color:var(--accent)">${convRate}%</div><div class="ana-lbl">Conversion rate</div></div>
+    <div class="ana-card"><div class="ana-val" style="color:var(--green)">${avgCycleDays!==null?avgCycleDays+' d':'—'}</div><div class="ana-lbl">Avg conversion cycle</div></div>
     <div class="ana-card"><div class="ana-val" style="color:var(--blue)">${avgAge||'—'}</div><div class="ana-lbl">Average age</div></div>
     <div class="ana-card"><div class="ana-val" style="color:var(--blue)">${maleC}</div><div class="ana-lbl">Male leads</div></div>
     <div class="ana-card"><div class="ana-val" style="color:var(--purple)">${femaleC}</div><div class="ana-lbl">Female leads</div></div>
+    <div class="ana-card"><div class="ana-val" style="color:var(--green)">${convertedLeads.length}</div><div class="ana-lbl">Total converted</div></div>
   `;
 
   // Product chart
@@ -652,8 +777,8 @@ function renderDash(){
   document.getElementById('prod-chart').innerHTML=prods.map((p,i)=>`<div class="fn-row"><div class="fn-lbl" style="font-size:10px">${pdisplay[i]}</div><div class="fn-track"><div class="fn-bar" style="width:${pc[i]/mx*100}%;background:${pcols[i]}">&nbsp;</div></div><div class="fn-n" style="color:${pcols[i]}">${pc[i]}</div></div>`).join('');
 
   // Source chart
-  const sources=['REFERRAL','SOCIAL MEDIA','WALK-IN','SEMINAR','SIB','COLD CALL','WEBSITE','OTHER'];
-  const scols2=['#F0B429','#3B82F6','#22C55E','#F97316','#A855F7','#06B6D4','#EC4899','#94A3B8'];
+  const sources=['REFERRAL','FRIENDS','SOCIAL MEDIA','WALK-IN','SEMINAR','SIB','COLD CALL','WEBSITE','OTHER'];
+  const scols2=['#C0392B','#27AE60','#2980B9','#E67E22','#8E44AD','#16A085','#D35400','#2C3E50','#95A5A6'];
   const sc2=sources.map(s=>leads.filter(l=>(l.source||'').toUpperCase()===s).length);
   const mx2=Math.max(...sc2,1);
   document.getElementById('source-chart').innerHTML=sources.map((s,i)=>sc2[i]>0?`<div class="fn-row"><div class="fn-lbl" style="font-size:10px;width:90px">${s.charAt(0)+s.slice(1).toLowerCase()}</div><div class="fn-track"><div class="fn-bar" style="width:${sc2[i]/mx2*100}%;background:${scols2[i]}">&nbsp;</div></div><div class="fn-n" style="color:${scols2[i]}">${sc2[i]}</div></div>`:'').join('')||'<div style="color:var(--t3);font-size:11px">No source data yet.</div>';
@@ -662,6 +787,20 @@ function renderDash(){
   const cc={};leads.forEach(l=>{if(l.country){const k=l.country.toUpperCase().trim();cc[k]=(cc[k]||0)+1}});
   const sortedC=Object.entries(cc).sort((a,b)=>b[1]-a[1]).slice(0,5);
   const mx3=sortedC[0]?.[1]||1;
+  // Referral analytics
+  const refCounts={};
+  leads.filter(l=>l.referral).forEach(l=>{const k=l.referral.trim();if(k)refCounts[k]=(refCounts[k]||0)+1});
+  const topRefs=Object.entries(refCounts).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const refEl=document.getElementById('referral-chart');
+  if(refEl){
+    const mxR=topRefs[0]?.[1]||1;
+    refEl.innerHTML=topRefs.length?topRefs.map(([name,n])=>`
+      <div class="fn-row"><div class="fn-lbl" style="font-size:10px">${toTitle(name)}</div>
+      <div class="fn-track"><div class="fn-bar" style="width:${n/mxR*100}%;background:var(--purple)">&nbsp;</div></div>
+      <div class="fn-n" style="color:var(--purple)">${n}</div></div>`).join('')
+    :'<div style="color:var(--t3);font-size:11px">No referral data yet. Tag leads with referrer when adding.</div>';
+  }
+
   document.getElementById('country-chart').innerHTML=sortedC.length?sortedC.map(([c,n])=>`<div class="fn-row"><div class="fn-lbl" style="font-size:10px">${c}</div><div class="fn-track"><div class="fn-bar" style="width:${n/mx3*100}%;background:var(--gold)">&nbsp;</div></div><div class="fn-n" style="color:var(--gold)">${n}</div></div>`).join(''):'<div style="color:var(--t3);font-size:11px">No country data.</div>';
 
   // Age groups
@@ -684,7 +823,7 @@ function renderDash(){
 // LEADS
 // ═══════════════════════════════════════════════════
 function renderLeads(){
-  const statuses=['All','PROSPECT','CONTACTED','IN PROGRESS','CONVERTED'];
+  const statuses=['All','PROSPECT','CONTACTED','IN PROGRESS','CONVERTED','DROPPED'];
   document.getElementById('status-chips').innerHTML=statuses.map(s=>{
     const n=s==='All'?leads.length:leads.filter(l=>(l.status||'').toUpperCase()===s).length;
     const display=s==='All'?'All':s.charAt(0)+s.slice(1).toLowerCase();
@@ -721,6 +860,7 @@ function renderLeads(){
       <div class="li-info">
         <div class="li-name">${l.name}</div>
         <div class="li-meta">${l.mobile}${l.country?' · '+l.country:''}${l.source?' · '+l.source.charAt(0)+l.source.slice(1).toLowerCase():''}</div>
+        ${lastRemarkSummary(l.remarks)?`<div style="font-size:10px;color:var(--t3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${lastRemarkSummary(l.remarks)}</div>`:''}
         ${l.products?`<div class="li-prod">${l.products}</div>`:''}
         ${l.nextFollowUp&&daysUntil(l.nextFollowUp)<=3?`<div style="font-size:10px;color:${fuDue?'var(--red)':'var(--orange)'};margin-top:1px">📅 Follow-up: ${fmt(l.nextFollowUp)}</div>`:''}
       </div>
@@ -781,14 +921,46 @@ function bulkDelete(){
 // ═══════════════════════════════════════════════════
 function renderFU(){
   const fd=parseInt(cfg_.followUpDays)||14;
-  // Overdue by days
+  const staleDays=parseInt(cfg_.staleDays)||30;
+
+  // Overdue by days (follow-up window)
   const overdueByDays=leads.filter(l=>['PROSPECT','CONTACTED','IN PROGRESS'].includes((l.status||'').toUpperCase())&&daysAgo(l.modifiedDate||l.createdDate)>=fd);
   // Due by next follow-up date
   const dueByDate=leads.filter(l=>l.nextFollowUp&&daysUntil(l.nextFollowUp)<=0&&['PROSPECT','CONTACTED','IN PROGRESS'].includes((l.status||'').toUpperCase())&&!overdueByDays.find(x=>x.mobile===l.mobile));
+  // STALE — in Contacted/In Progress with zero activity for staleDays+
+  const stale=leads.filter(l=>['CONTACTED','IN PROGRESS'].includes((l.status||'').toUpperCase())&&daysAgo(l.modifiedDate||l.createdDate)>=staleDays&&!overdueByDays.find(x=>x.mobile===l.mobile)&&!dueByDate.find(x=>x.mobile===l.mobile));
+
   const arr=[...overdueByDays,...dueByDate].sort((a,b)=>daysAgo(a.modifiedDate||a.createdDate)-daysAgo(b.modifiedDate||b.createdDate));
 
-  document.getElementById('fu-sub').textContent=`${arr.length} pending`;
-  document.getElementById('fu-list').innerHTML=arr.length?arr.map(l=>{
+  document.getElementById('fu-sub').textContent=`${arr.length} follow-ups${stale.length>0?' · '+stale.length+' stale':''}`;
+  // Build stale section
+  const staleHtml=stale.length?`
+    <div style="padding:10px 14px 6px;background:var(--rdim);border-bottom:1px solid var(--border)">
+      <div style="font-size:10px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.6px">⚠️ Stale leads — ${staleDays}+ days no activity</div>
+      <div style="font-size:10px;color:var(--t2);margin-top:2px">These leads are going cold. Take action or drop them.</div>
+    </div>
+    ${stale.map(l=>{
+      const d=daysAgo(l.modifiedDate||l.createdDate);
+      const msg=waMsg(l);
+      return`<div class="fu-item" style="border-left:3px solid var(--red)">
+        <div style="display:flex;gap:9px;align-items:center;margin-bottom:8px">
+          <div class="av" style="width:32px;height:32px;min-width:32px;font-size:11px;background:var(--rdim);color:var(--red)">${ini(l.name)}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:700;font-size:13px">${l.name}</div>
+            <div style="font-size:11px;color:var(--red);font-weight:600">🧊 ${l.status} · ${d} days cold${l.country?' · '+l.country:''}</div>
+            ${l.products?`<div style="font-size:10px;color:var(--blue)">${l.products}</div>`:''}
+          </div>
+          <span class="stale-badge">STALE</span>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-ghost btn-full" style="font-size:12px;flex:2" onclick="openDetail('${l.mobile}','lead')">View & Log</button>
+          <a href="whatsapp://send?phone=${(()=>{const d2=(l.mobile||'').replace(/\D/g,'');return d2.length===10?'91'+d2:d2})()}&text=${encodeURIComponent(waMsg(l))}" class="btn btn-wa" style="flex:2;text-decoration:none;font-size:12px" onclick="bumpM('${l.mobile}');setTimeout(()=>askAddRemark(leads.find(x=>x.mobile==='${l.mobile}'),'WhatsApp sent',null),1500)">${waIcon()} WA</a>
+          <button class="btn btn-red" style="flex:1;font-size:11px" onclick="quickStatus('${l.mobile}','DROPPED')">Drop</button>
+        </div>
+      </div>`;
+    }).join('')}`:'';
+
+  document.getElementById('fu-list').innerHTML=(arr.length||stale.length)?(staleHtml+arr.map(l=>{
     const d=daysAgo(l.modifiedDate||l.createdDate);
     const msg=waMsg(l);
     return`<div class="fu-item">
@@ -803,12 +975,12 @@ function renderFU(){
         <button class="btn btn-ghost" style="padding:5px 8px;font-size:11px;flex-shrink:0" onclick="openDetail('${l.mobile}','lead')">View</button>
       </div>
       <div style="display:flex;gap:7px;margin-top:2px">
-        <a href="whatsapp://send?phone=${(()=>{const d=(l.mobile||'').replace(/\D/g,'');return d.length===10?'91'+d:d})()}&text=${encodeURIComponent(waMsg(l))}" class="btn btn-wa" style="flex:2;text-decoration:none;font-size:12px" onclick="bumpM('${l.mobile}')">${waIcon()} WA App</a>
-        <a href="https://web.whatsapp.com/send?phone=${(()=>{const d=(l.mobile||'').replace(/\D/g,'');return d.length===10?'91'+d:d})()}&text=${encodeURIComponent(waMsg(l))}" target="_blank" class="btn btn-ghost" style="flex:2;text-decoration:none;font-size:12px;border-color:#25D366;color:#25D366" onclick="bumpM('${l.mobile}')">${waIcon()} WA Web</a>
-        <a href="tel:${l.mobile}" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:12px;justify-content:center"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg></a>
+        <a href="whatsapp://send?phone=${(()=>{const d=(l.mobile||'').replace(/\D/g,'');return d.length===10?'91'+d:d})()}&text=${encodeURIComponent(waMsg(l))}" class="btn btn-wa" style="flex:2;text-decoration:none;font-size:12px" onclick="bumpM('${l.mobile}');setTimeout(()=>askAddRemark(leads.find(x=>x.mobile==='${l.mobile}'),'WhatsApp sent',null),1500)">${waIcon()} WA App</a>
+        <a href="https://web.whatsapp.com/send?phone=${(()=>{const d=(l.mobile||'').replace(/\D/g,'');return d.length===10?'91'+d:d})()}&text=${encodeURIComponent(waMsg(l))}" target="_blank" class="btn btn-ghost" style="flex:2;text-decoration:none;font-size:12px;border-color:#25D366;color:#25D366" onclick="bumpM('${l.mobile}');setTimeout(()=>askAddRemark(leads.find(x=>x.mobile==='${l.mobile}'),'WhatsApp sent',null),1500)">${waIcon()} WA Web</a>
+        <a href="tel:${l.mobile}" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:12px;justify-content:center" onclick="bumpM('${l.mobile}');setTimeout(()=>askAddRemark(leads.find(x=>x.mobile==='${l.mobile}'),'Called',null),2000)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg></a>
       </div>
     </div>`;
-  }).join(''):`<div class="empty"><div class="empty-ico">🎉</div><div class="empty-t">All caught up!</div><div class="empty-s">No active leads are overdue. Leads appear here ${fd} days after their last update, or on their next follow-up date.</div></div>`;
+  }).join(''):`<div class="empty"><div class="empty-ico">🎉</div><div class="empty-t">All caught up!</div><div class="empty-s">No follow-ups or stale leads. Keep going!</div></div>`;
   updateFUBadge();
 }
 function bumpM(mob){const l=leads.find(x=>x.mobile===mob);if(l){l.modifiedDate=now();saveL();pushLeads();setTimeout(renderFU,600)}}
@@ -824,9 +996,17 @@ function previewWA(mob){
   document.getElementById('wa-app-btn').href=u.app;
   document.getElementById('wa-web-btn').href=u.web;
   document.getElementById('wa-call-btn').href=u.tel;
-  const bump=()=>bumpM(mob);
-  document.getElementById('wa-app-btn').onclick=bump;
-  document.getElementById('wa-web-btn').onclick=bump;
+
+  // On WA send — ask to log remark AFTER opening WhatsApp
+  const onWaSend=()=>{
+    bumpM(mob);
+    // Ask after a short delay so WA opens first
+    setTimeout(()=>{
+      askAddRemark(l,'WhatsApp sent',null);
+    },1500);
+  };
+  document.getElementById('wa-app-btn').onclick=()=>{closeOv('ov-wa');onWaSend()};
+  document.getElementById('wa-web-btn').onclick=()=>{closeOv('ov-wa');onWaSend()};
   document.getElementById('ov-wa').classList.add('open');
 }
 function waMsg(l){
@@ -838,8 +1018,150 @@ function waMsg(l){
   return tmpl.replace(/\{name\}/g,name).replace(/\{products\}/g,products);
 }
 
+// ── GOAL PROGRESS ──
+function renderGoals(){
+  const el=document.getElementById('goal-section-wrap');
+  if(!el)return;
+  const gLeads=parseInt(cfg_.goalLeads)||0;
+  const gConv=parseInt(cfg_.goalConversions)||0;
+  const gFU=parseInt(cfg_.goalFollowups)||0;
+  if(!gLeads&&!gConv&&!gFU){
+    el.innerHTML='';return;
+  }
+
+  // This month's data
+  const now2=new Date();
+  const monthStart=new Date(now2.getFullYear(),now2.getMonth(),1);
+  const mLeads=leads.filter(l=>new Date(l.createdDate)>=monthStart).length;
+  const mConv=leads.filter(l=>{
+    if((l.status||'').toUpperCase()!=='CONVERTED')return false;
+    const convEntry=(l.remarks||'').split('\n').find(r=>r.toUpperCase().includes('→ CONVERTED'));
+    if(convEntry){const m=convEntry.match(/\[(\d{2})\/(\d{2})\/(\d{4})/);if(m){const d=new Date(parseInt(m[3]),parseInt(m[2])-1,parseInt(m[1]));return d>=monthStart;}}
+    return new Date(l.modifiedDate||l.createdDate)>=monthStart;
+  }).length;
+  const fd=parseInt(cfg_.followUpDays)||14;
+  const mFU=leads.filter(l=>{
+    // Count leads that were followed up this month (modifiedDate in month, not a new lead)
+    const mod=new Date(l.modifiedDate||'');
+    const cre=new Date(l.createdDate||'');
+    return mod>=monthStart&&cre<monthStart;
+  }).length;
+
+  const goalBar=(achieved,target,color)=>{
+    if(!target)return'';
+    const pct=Math.min(achieved/target*100,100);
+    const over=achieved>target;
+    return`
+      <div class="goal-card">
+        <div class="goal-nums">
+          <div>
+            <div class="goal-title">${over?'✅ ':'🎯 '}${achieved>=target?'Goal hit!':Math.ceil(target-achieved)+' to go'}</div>
+            <div style="font-size:10px;color:var(--t3);margin-top:1px">This month</div>
+          </div>
+          <div style="text-align:right">
+            <span class="goal-achieved" style="color:${over?'var(--green)':color}">${achieved}</span>
+            <span class="goal-target"> / ${target}</span>
+          </div>
+        </div>
+        <div class="goal-bar-wrap">
+          <div class="goal-bar" style="width:${pct}%;background:${over?'var(--green)':color}"></div>
+        </div>
+        <div class="goal-pct" style="color:${over?'var(--green)':color}">${Math.round(pct)}% of monthly goal</div>
+      </div>`;
+  };
+
+  let html='<div class="lbl">🎯 Monthly goals</div>';
+  if(gLeads)html+=goalBar(mLeads,gLeads,'var(--accent)').replace('Goal hit!','Leads goal hit!').replace('to go',' more leads');
+  if(gConv)html+=goalBar(mConv,gConv,'var(--green)').replace('Goal hit!','Conversions goal hit!').replace('to go',' more conversions');
+  if(gFU)html+=goalBar(mFU,gFU,'var(--blue)').replace('Goal hit!','Follow-ups goal hit!').replace('to go',' more follow-ups');
+
+  el.innerHTML=html;
+}
+
 function toTitle(str){
   return(str||'').toLowerCase().replace(/\b\w/g,c=>c.toUpperCase());
+}
+
+// ── REMARKS LOG HELPERS ──
+function fmtStamp(date){
+  const d=date||new Date();
+  const day=String(d.getDate()).padStart(2,'0');
+  const mon=String(d.getMonth()+1).padStart(2,'0');
+  const yr=d.getFullYear();
+  const h=String(d.getHours()).padStart(2,'0');
+  const m=String(d.getMinutes()).padStart(2,'0');
+  return `${day}/${mon}/${yr} ${h}:${m}`;
+}
+
+function migrateRemarks(remarksText){
+  // If existing remarks have no timestamp prefix, add [13/06/2026]
+  if(!remarksText||remarksText.trim()==='') return '';
+  // Check if already has timestamp format [DD/MM/YYYY
+  if(/\[\d{2}\/\d{2}\/\d{4}/.test(remarksText)) return remarksText;
+  // Add date prefix to each line
+  return remarksText.split('\n').filter(l=>l.trim()).map(l=>`[13/06/2026] ${l.trim()}`).join('\n');
+}
+
+function appendRemark(existing, note){
+  const stamp=fmtStamp(new Date());
+  const newEntry=`[${stamp}] ${note}`;
+  if(!existing||existing.trim()==='') return newEntry;
+  return existing.trim()+'\n'+newEntry;
+}
+
+function lastRemarkDate(remarksText){
+  // Extract date of last entry
+  if(!remarksText) return null;
+  const lines=remarksText.trim().split('\n');
+  for(let i=lines.length-1;i>=0;i--){
+    const m=lines[i].match(/\[(\d{2})\/(\d{2})\/(\d{4})/);
+    if(m) return new Date(parseInt(m[3]),parseInt(m[2])-1,parseInt(m[1]));
+  }
+  return null;
+}
+
+function isSameDay(d1,d2){
+  if(!d1||!d2) return false;
+  return d1.getFullYear()===d2.getFullYear()&&d1.getMonth()===d2.getMonth()&&d1.getDate()===d2.getDate();
+}
+
+function lastRemarkSummary(remarks){
+  if(!remarks||!remarks.trim()) return '';
+  const lines=remarks.trim().split('\n').filter(l=>l.trim());
+  if(!lines.length) return '';
+  const last=lines[lines.length-1];
+  // Return truncated last entry
+  return last.length>60?last.substring(0,60)+'…':last;
+}
+
+// Ask user before adding WA remark, then call callback if confirmed
+function askAddRemark(lead, note, callback){
+  const existing=lead.remarks||'';
+  // Show a toast-style confirm popup
+  const ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:flex-end;justify-content:center';
+  ov.innerHTML=`
+    <div style="background:var(--s1);border-radius:16px 16px 0 0;width:100%;max-width:520px;padding:20px 16px 28px;border-top:3px solid var(--accent)">
+      <div style="font-size:14px;font-weight:700;margin-bottom:6px;color:var(--text)">Add to communication log?</div>
+      <div style="font-size:12px;color:var(--t2);margin-bottom:14px;background:var(--s2);padding:10px 12px;border-radius:8px;font-family:monospace">[${fmtStamp(new Date())}] ${note}</div>
+      <div style="display:flex;gap:8px">
+        <button id="remark-yes" class="btn btn-gold btn-full" style="flex:1">✅ Yes, log it</button>
+        <button id="remark-no" class="btn btn-ghost" style="flex:1">Skip</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  document.getElementById('remark-yes').onclick=()=>{
+    lead.remarks=appendRemark(lead.remarks||'', note);
+    lead.modifiedDate=now();
+    saveL(); pushLeads();
+    document.body.removeChild(ov);
+    if(callback) callback();
+  };
+  document.getElementById('remark-no').onclick=()=>{
+    document.body.removeChild(ov);
+    if(callback) callback();
+  };
+  ov.addEventListener('click',e=>{if(e.target===ov){document.body.removeChild(ov);if(callback)callback();}});
 }
 function waIcon(){return`<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>`}
 
@@ -867,31 +1189,80 @@ function openDetail(mob,type){
     <div class="sh-hdr"><div class="sh-title">${rec.name}</div><button class="sh-x" onclick="closeOv('ov-detail')">✕</button></div>
     <div class="dt-hdr"><div class="dt-av">${ini(rec.name)}</div><div><div class="dt-name">${rec.name}</div><div class="dt-sub">${rec.mobile}${rec.country?' · '+rec.country:''}</div><span class="pill ${scls(rec.status)}" style="margin-top:5px;display:inline-flex">${(rec.status||'').charAt(0)+(rec.status||'').slice(1).toLowerCase()}</span></div></div>
     <div class="act-row" style="flex-wrap:wrap;gap:7px">
-      <a href="whatsapp://send?phone=${(()=>{const d=(rec.mobile||'').replace(/\D/g,'');return d.length===10?'91'+d:d})()}&text=${encodeURIComponent(waMsg(rec))}" class="btn btn-wa" style="flex:1;min-width:90px;text-decoration:none;font-size:12px" onclick="bumpM('${rec.mobile}')">${waIcon()} App</a>
-      <a href="https://web.whatsapp.com/send?phone=${(()=>{const d=(rec.mobile||'').replace(/\D/g,'');return d.length===10?'91'+d:d})()}&text=${encodeURIComponent(waMsg(rec))}" target="_blank" class="btn btn-ghost" style="flex:1;min-width:90px;text-decoration:none;font-size:12px;border-color:#25D366;color:#25D366" onclick="bumpM('${rec.mobile}')">${waIcon()} Web</a>
-      <a href="tel:${rec.mobile}" class="btn btn-ghost" style="flex:1;min-width:60px;text-decoration:none;font-size:12px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg> Call</a>
+      <a href="whatsapp://send?phone=${(()=>{const d=(rec.mobile||'').replace(/\D/g,'');return d.length===10?'91'+d:d})()}&text=${encodeURIComponent(waMsg(rec))}" class="btn btn-wa" style="flex:1;min-width:80px;text-decoration:none;font-size:11px" onclick="bumpM('${rec.mobile}');setTimeout(()=>askAddRemark(leads.find(x=>x.mobile==='${rec.mobile}'),'WhatsApp sent',null),1500)">${waIcon()} WA App</a>
+      <a href="https://web.whatsapp.com/send?phone=${(()=>{const d=(rec.mobile||'').replace(/\D/g,'');return d.length===10?'91'+d:d})()}&text=${encodeURIComponent(waMsg(rec))}" target="_blank" class="btn btn-ghost" style="flex:1;min-width:80px;text-decoration:none;font-size:11px;border-color:#25D366;color:#25D366" onclick="bumpM('${rec.mobile}');setTimeout(()=>askAddRemark(leads.find(x=>x.mobile==='${rec.mobile}'),'WhatsApp sent',null),1500)">${waIcon()} WA Web</a>
+      <a href="tel:${rec.mobile}" class="btn btn-ghost" style="flex:1;min-width:50px;text-decoration:none;font-size:11px" onclick="setTimeout(()=>askAddRemark(leads.find(x=>x.mobile==='${rec.mobile}'),'Called',null),2000)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg> Call</a>
+      <button class="btn btn-ghost" style="flex:1;min-width:50px;font-size:11px;color:#4285F4;border-color:#4285F4" onclick="addToCalendar('${rec.mobile}')">📅 Cal</button>
     </div>
     <div style="padding:0 12px"><div class="card" style="padding:0 12px">
       ${dr('Email',rec.email)}${dr('Age',rec.age?rec.age+' yrs':'')}${dr('Gender',rec.gender)}
       ${dr('Source',rec.source?rec.source.charAt(0)+rec.source.slice(1).toLowerCase():'')}
       ${dr('Interested in',rec.products)}
       ${dr('Next follow-up',rec.nextFollowUp?fmt(rec.nextFollowUp)+' ('+daysUntil(rec.nextFollowUp)+'d)':'')}
-      ${dr('Remarks',rec.remarks)}
+      ${dr('Last note', lastRemarkSummary(rec.remarks))}
+    ${rec.referral?`${dr('Referred by','<span class="ref-chip">👤 '+toTitle(rec.referral)+'</span>')}`:''}
       ${dr('Modified',fmt(rec.modifiedDate))}${dr('Created',fmt(rec.createdDate))}
+    ${(()=>{
+      if((rec.status||'').toUpperCase()!=='CONVERTED') return '';
+      const created=new Date(rec.createdDate);
+      const convEntry=(rec.remarks||'').split('\n').find(r=>r.toUpperCase().includes('→ CONVERTED'));
+      let convDate;
+      if(convEntry){const m=convEntry.match(/\[(\d{2})\/(\d{2})\/(\d{4})/);if(m)convDate=new Date(parseInt(m[3]),parseInt(m[2])-1,parseInt(m[1]));}
+      if(!convDate) convDate=new Date(rec.modifiedDate);
+      const days=Math.max(0,Math.floor((convDate-created)/86400000));
+      return dr('⏱ Conversion cycle', days+' days');
+    })()}
     </div></div>
     <div style="padding:10px 12px"><div class="lbl" style="margin-bottom:7px">Change status</div>
     <div style="display:flex;flex-wrap:wrap;gap:6px">
       ${['PROSPECT','CONTACTED','IN PROGRESS','CONVERTED'].map(s=>`<button class="btn ${(rec.status||'').toUpperCase()===s?'btn-gold':'btn-ghost'}" style="font-size:11px;padding:6px 10px;flex:1;min-width:76px" onclick="quickStatus('${rec.mobile}','${s}')">${s.charAt(0)+s.slice(1).toLowerCase()}</button>`).join('')}
     </div></div>
     <div style="padding:0 12px 10px">
-      <div class="lbl" style="margin-bottom:7px">Notes history</div>
-      <div style="background:var(--bg);border-radius:var(--r2);padding:10px;margin-bottom:8px">
-        <div id="notes-list-${rec.mobile}" style="max-height:120px;overflow-y:auto;margin-bottom:8px">
-          ${notes.length?notes.slice().reverse().map(n=>`<div class="note-item"><div class="note-ts">${fmt(n.ts)}</div><div class="note-txt">${n.text}</div></div>`).join(''):'<div style="color:var(--t3);font-size:12px">No notes yet.</div>'}
+      <div class="lbl" style="margin-bottom:10px">📋 Log Activity</div>
+
+      <!-- ── ADD ENTRY SECTION ── -->
+      <div style="background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:12px;margin-bottom:12px">
+        <div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">Tap to log instantly</div>
+        <div class="qlog-grid">
+          ${[
+            {icon:'📄',label:'Brochure sent'},
+            {icon:'📵',label:'Could not connect'},
+            {icon:'❓',label:'Asked for more details'},
+            {icon:'🤝',label:'Physical meeting scheduled'},
+            {icon:'💻',label:'VC scheduled'},
+            {icon:'⏳',label:'Will contact later'},
+            {icon:'💬',label:'WhatsApp sent'},
+            {icon:'📞',label:'Called'},
+            {icon:'🫱',label:'Physically met'},
+            {icon:'📧',label:'Email sent'},
+          ].map(q=>`<div class="qlog-chip" onclick="quickLog('${rec.mobile}','${q.icon} ${q.label}')">${q.icon} ${q.label}</div>`).join('')}
         </div>
-        <div style="display:flex;gap:6px">
-          <input class="fi" id="note-input-${rec.mobile}" placeholder="Add a note…" style="flex:1;padding:7px 10px;font-size:12px" onkeydown="if(event.key==='Enter')addNote('${rec.mobile}')">
-          <button class="btn btn-gold" style="padding:7px 12px;font-size:12px" onclick="addNote('${rec.mobile}')">Add</button>
+
+        <div style="display:flex;align-items:center;gap:8px;margin:10px 0 8px">
+          <div style="flex:1;height:1px;background:var(--border)"></div>
+          <div style="font-size:10px;color:var(--t3);font-weight:600">OR TYPE A CUSTOM NOTE</div>
+          <div style="flex:1;height:1px;background:var(--border)"></div>
+        </div>
+
+        <div style="display:flex;gap:7px">
+          <input class="fi" id="note-input-${rec.mobile}"
+            placeholder="Type anything… e.g. Agreed to invest ₹50K"
+            style="flex:1;padding:9px 11px;font-size:13px;background:var(--bg)"
+            onkeydown="if(event.key==='Enter'){addManualNote('${rec.mobile}');event.preventDefault()}">
+          <button class="btn btn-gold"
+            style="padding:9px 14px;font-size:13px;font-weight:700;flex-shrink:0"
+            onclick="addManualNote('${rec.mobile}')">Log →</button>
+        </div>
+      </div>
+
+      <!-- ── HISTORY SECTION ── -->
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r);overflow:hidden">
+        <div style="padding:10px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+          <div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.6px">History (newest first)</div>
+          <div style="font-size:10px;color:var(--t2)">${(rec.remarks||'').split('\n').filter(l=>l.trim()).length} entries</div>
+        </div>
+        <div id="comm-log-${rec.mobile}" style="max-height:220px;overflow-y:auto;padding:0 12px">
+          ${renderCommLog(rec.remarks)}
         </div>
       </div>
     </div>
@@ -906,36 +1277,169 @@ function openDetail(mob,type){
     <div class="act-row" style="flex-wrap:wrap;gap:7px">
       <a href="whatsapp://send?phone=${(()=>{const d=(rec.mobile||'').replace(/\D/g,'');return d.length===10?'91'+d:d})()}&text=${encodeURIComponent('Dear '+toTitle(rec.name)+',')}" class="btn btn-wa" style="flex:1;min-width:90px;text-decoration:none;font-size:12px">${waIcon()} App</a>
       <a href="https://web.whatsapp.com/send?phone=${(()=>{const d=(rec.mobile||'').replace(/\D/g,'');return d.length===10?'91'+d:d})()}&text=${encodeURIComponent('Dear '+toTitle(rec.name)+',')}" target="_blank" class="btn btn-ghost" style="flex:1;min-width:90px;text-decoration:none;font-size:12px;border-color:#25D366;color:#25D366">${waIcon()} Web</a>
-      <a href="tel:${rec.mobile}" class="btn btn-ghost" style="flex:1;min-width:60px;text-decoration:none;font-size:12px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg> Call</a>
+      <a href="tel:${rec.mobile}" class="btn btn-ghost" style="flex:1;min-width:60px;text-decoration:none;font-size:12px" onclick="setTimeout(()=>askAddRemark(leads.find(x=>x.mobile==='${rec.mobile}'),'Called',null),2000)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg> Call</a>
     </div>
-    <div style="padding:0 12px"><div class="card" style="padding:0 12px">${dr('Email',rec.email)}${dr('Country',rec.country)}${dr('Age',rec.age?rec.age+' yrs':'')}${dr('Gender',rec.gender)}${dr('PAN',rec.pan)}${dr('Products',rec.products)}${dr('Remarks',rec.remarks)}${dr('Converted',fmt(rec.convertedDate))}</div></div>
+    <div style="padding:0 12px"><div class="card" style="padding:0 12px">${dr('Email',rec.email)}${dr('Country',rec.country)}${dr('Age',rec.age?rec.age+' yrs':'')}${dr('Gender',rec.gender)}${dr('PAN',rec.pan)}${dr('Products',rec.products)}${dr('Last note', lastRemarkSummary(rec.remarks))}
+    ${rec.referral?`${dr('Referred by','<span class="ref-chip">👤 '+toTitle(rec.referral)+'</span>')}`:''}${dr('Converted',fmt(rec.convertedDate))}</div></div>
     <div style="padding:10px 12px 14px;display:flex;gap:7px"><button class="btn btn-ghost" style="flex:1;font-size:12px" onclick="closeOv('ov-detail');editClientOpen('${rec.mobile}')">✏️ Edit</button><button class="btn btn-red" style="flex:1;font-size:12px" onclick="deleteClient('${rec.mobile}')">🗑️ Delete</button></div>`;
   }
   document.getElementById('detail-sh').innerHTML=html;
   document.getElementById('ov-detail').classList.add('open');
 }
 
-// Notes
-function addNote(mob){
+// ── COMMUNICATION LOG ──
+function renderCommLog(remarks){
+  const text=migrateRemarks(remarks||'');
+  if(!text.trim()) return '<div style="color:var(--t3);font-size:12px;padding:8px 0">No activity recorded yet.</div>';
+  const entries=text.trim().split('\n').filter(l=>l.trim()).reverse();
+  return entries.map(entry=>{
+    const m=entry.match(/^\[(\d{2}\/\d{2}\/\d{4}(?:\s\d{2}:\d{2})?)\]\s*(.*)$/);
+    if(m){
+      const ts=m[1], txt=m[2];
+      const lo=txt.toLowerCase();
+      let icon='📝', cls='log-manual';
+      if(lo.includes('status changed'))      { icon='🔄'; cls='log-status'; }
+      else if(lo.includes('lead created'))   { icon='⭐'; cls='log-created'; }
+      else if(lo.includes('whatsapp'))       { icon='💬'; cls='log-wa'; }
+      else if(lo.includes('called')||lo.includes('call'))      { icon='📞'; cls='log-call'; }
+      else if(lo.includes('brochure'))       { icon='📄'; cls='log-manual'; }
+      else if(lo.includes('meeting'))        { icon='🤝'; cls='log-manual'; }
+      else if(lo.includes('email'))          { icon='📧'; cls='log-manual'; }
+      else if(lo.includes('vc')||lo.includes('video'))         { icon='💻'; cls='log-manual'; }
+      return `<div class="note-item">
+        <div class="note-ts ${cls}">${icon} ${ts}</div>
+        <div class="note-txt">${txt}</div>
+      </div>`;
+    }
+    return `<div class="note-item"><div class="note-txt" class="log-manual">${entry}</div></div>`;
+  }).join('');
+}
+
+// ── GOOGLE CALENDAR INTEGRATION ──
+function addToCalendar(mob){
+  const l=leads.find(x=>x.mobile===mob);if(!l)return;
+
+  // Show a mini date/time picker overlay
+  const ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:flex-end;justify-content:center';
+
+  // Default: next follow-up date or tomorrow
+  const defDate=l.nextFollowUp||new Date(Date.now()+86400000).toISOString().split('T')[0];
+  const defTime='10:00';
+
+  ov.innerHTML=`
+    <div style="background:var(--s1);border-radius:16px 16px 0 0;width:100%;max-width:520px;padding:20px 16px 28px;border-top:3px solid #4285F4">
+      <div style="font-size:15px;font-weight:800;margin-bottom:4px;color:var(--text)">📅 Add to Google Calendar</div>
+      <div style="font-size:12px;color:var(--t2);margin-bottom:14px">Meeting with ${toTitle(l.name)}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+        <div>
+          <label class="fl" style="display:block;margin-bottom:4px">Date</label>
+          <input class="fi" type="date" id="cal-date" value="${defDate}" style="font-size:13px">
+        </div>
+        <div>
+          <label class="fl" style="display:block;margin-bottom:4px">Time</label>
+          <input class="fi" type="time" id="cal-time" value="${defTime}" style="font-size:13px">
+        </div>
+      </div>
+      <div style="margin-bottom:12px">
+        <label class="fl" style="display:block;margin-bottom:4px">Event title</label>
+        <input class="fi" id="cal-title" value="Meeting with ${toTitle(l.name)} — Wealth Matrix" style="font-size:13px">
+      </div>
+      <div style="margin-bottom:16px">
+        <label class="fl" style="display:block;margin-bottom:4px">Duration</label>
+        <select class="fi fi-sel" id="cal-dur" style="font-size:13px">
+          <option value="30">30 minutes</option>
+          <option value="60" selected>1 hour</option>
+          <option value="90">1.5 hours</option>
+          <option value="120">2 hours</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-full" style="flex:1;background:#4285F4;color:#fff;font-size:14px" onclick="openGoogleCalendar('${mob}')">Open Google Calendar</button>
+        <button class="btn btn-ghost" style="flex:0 0 auto" onclick="this.closest('[style*=fixed]').remove()">✕</button>
+      </div>
+      <div style="font-size:10px;color:var(--t3);text-align:center;margin-top:10px">Opens Google Calendar with event pre-filled. Save the event there.</div>
+    </div>`;
+
+  document.body.appendChild(ov);
+  ov.addEventListener('click',e=>{if(e.target===ov)ov.remove()});
+}
+
+function openGoogleCalendar(mob){
+  const l=leads.find(x=>x.mobile===mob);if(!l)return;
+  const date=document.getElementById('cal-date')?.value;
+  const time=document.getElementById('cal-time')?.value||'10:00';
+  const title=document.getElementById('cal-title')?.value||`Meeting with ${toTitle(l.name)}`;
+  const dur=parseInt(document.getElementById('cal-dur')?.value)||60;
+
+  if(!date){toast('Pick a date first');return}
+
+  // Build Google Calendar URL
+  const [h,m]=time.split(':');
+  const start=new Date(date+'T'+time+':00');
+  const end=new Date(start.getTime()+dur*60000);
+
+  const fmt2=d=>{
+    return d.toISOString().replace(/[-:]/g,'').split('.')[0]+'Z';
+  };
+
+  const details=`Lead: ${toTitle(l.name)}\nMobile: ${l.mobile}\nStatus: ${l.status}\nProducts: ${l.products||'—'}\n\nWealth Matrix Finserv LLP`;
+  const calUrl='https://calendar.google.com/calendar/render?action=TEMPLATE'
+    +'&text='+encodeURIComponent(title)
+    +'&dates='+fmt2(start)+'/'+fmt2(end)
+    +'&details='+encodeURIComponent(details)
+    +'&location='+encodeURIComponent('Alapatt Heritage Building, MG Road, Ernakulam');
+
+  // Log to remarks
+  quickLog(mob,'📅 Meeting scheduled: '+date+' '+time);
+
+  // Close overlay and open calendar
+  document.querySelectorAll('[style*="z-index:9999"]').forEach(el=>{
+    if(el.querySelector('#cal-date'))el.remove();
+  });
+  window.open(calUrl,'_blank');
+  toast('Opening Google Calendar…',2500);
+}
+
+// Quick log — predefined chip tapped, no prompt, instant stamp
+function quickLog(mob, note){
+  const l=leads.find(x=>x.mobile===mob);if(!l)return;
+  l.remarks=migrateRemarks(l.remarks||'');
+  l.remarks=appendRemark(l.remarks, note.toUpperCase());
+  l.modifiedDate=now();
+  saveL();pushLeads();
+  const logEl=document.getElementById('comm-log-'+mob);
+  if(logEl) logEl.innerHTML=renderCommLog(l.remarks);
+  toast('✅ Logged: '+note);
+}
+
+// Manual note — typed by user, no prompt, direct add
+function addManualNote(mob){
   const input=document.getElementById('note-input-'+mob);
-  const text=(input?.value||'').trim().toUpperCase();
+  const text=(input?.value||'').trim();
   if(!text)return;
   const l=leads.find(x=>x.mobile===mob);
   if(!l)return;
-  if(!l.notes)l.notes=[];
-  l.notes.push({ts:now(),text});
+  l.remarks=migrateRemarks(l.remarks||'');
+  l.remarks=appendRemark(l.remarks, text.toUpperCase());
   l.modifiedDate=now();
   input.value='';
   saveL();pushLeads();
-  // Re-render notes list
-  const nl=document.getElementById('notes-list-'+mob);
-  if(nl)nl.innerHTML=l.notes.slice().reverse().map(n=>`<div class="note-item"><div class="note-ts">${fmt(n.ts)}</div><div class="note-txt">${n.text}</div></div>`).join('');
-  toast('Note added');
+  const logEl=document.getElementById('comm-log-'+mob);
+  if(logEl) logEl.innerHTML=renderCommLog(l.remarks);
+  toast('Note added to log');
 }
 
 function quickStatus(mob,status){
   const l=leads.find(x=>x.mobile===mob);if(!l)return;
-  const prev=l.status;l.status=status;l.modifiedDate=now();saveL();
+  const prev=(l.status||'PROSPECT').toUpperCase();
+  if(prev===status.toUpperCase()){closeOv('ov-detail');return;}
+  l.status=status;
+  l.modifiedDate=now();
+  // Auto-stamp status change in remarks log
+  l.remarks=migrateRemarks(l.remarks||'');
+  l.remarks=appendRemark(l.remarks, `Status changed: ${prev} → ${status}`);
+  saveL();
   if(status==='CONVERTED'&&prev!=='CONVERTED')autoConvert(l);
   closeOv('ov-detail');renderLeads();renderDash();renderFU();
   toast('Status → '+status);pushLeads();
@@ -962,6 +1466,9 @@ function openAddLead(pre){
   ['name','mob','email','country','age','rem'].forEach(f=>{const el=document.getElementById('lf-'+f);if(el)el.value=pre?.[f]||''});
   document.getElementById('lf-gender').value=pre?.gender||'';
   document.getElementById('lf-status').value=pre?.status||'PROSPECT';
+  document.getElementById('lf-referral').value=pre?.referral||'';
+  const rfw2=document.getElementById('referral-field-wrap');
+  if(rfw2)rfw2.style.display='none';
   document.getElementById('lf-source').value=pre?.source||'';
   // Default follow-up = 7 days from today for new leads
   const defFollowup=(()=>{const d=new Date();d.setDate(d.getDate()+7);return d.toISOString().split('T')[0]})();
@@ -982,8 +1489,11 @@ function editLeadOpen(mob){
   document.getElementById('lf-gender').value=l.gender||'';
   document.getElementById('lf-status').value=l.status||'PROSPECT';
   document.getElementById('lf-source').value=l.source||'';
+  document.getElementById('lf-referral').value=l.referral||'';
+  const rfw=document.getElementById('referral-field-wrap');
+  if(rfw)rfw.style.display=(l.source==='REFERRAL'||l.source==='FRIENDS')?'block':'none';
   document.getElementById('lf-followup').value=l.nextFollowUp||'';
-  document.getElementById('lf-rem').value=l.remarks||'';
+  document.getElementById('lf-rem').value=''; // Log is shown in detail view, not pre-filled here
   document.querySelectorAll('#ov-lead .pt').forEach(t=>t.classList.toggle('on',!!(l.products&&l.products.toUpperCase().includes(t.dataset.p))));
   document.getElementById('ov-lead').classList.add('open');
 }
@@ -1018,7 +1528,10 @@ function saveLead(){
       status,source,products:prods,
       nextFollowUp:document.getElementById('lf-followup').value,
       remarks:caps(document.getElementById('lf-rem').value),
+      referral:caps(document.getElementById('lf-referral').value),
       notes:[],createdDate:now(),modifiedDate:now()};
+    // Auto-stamp creation in log
+    l.remarks=appendRemark(l.remarks||'', `Lead created as ${status}`);
     leads.push(l);saveL();pushLeads();
     if(status==='CONVERTED')autoConvert(l);
     toast('✅ Lead added');
@@ -1090,6 +1603,10 @@ function saveClient(){
 // ═══════════════════════════════════════════════════
 function renderSettings(){
   document.getElementById('s-fdays').value=cfg_.followUpDays||14;
+  const staleEl=document.getElementById('s-stale');if(staleEl)staleEl.value=cfg_.staleDays||30;
+  const glEl=document.getElementById('g-leads');if(glEl)glEl.value=cfg_.goalLeads||'';
+  const gcEl=document.getElementById('g-conv');if(gcEl)gcEl.value=cfg_.goalConversions||'';
+  const gfEl=document.getElementById('g-fu');if(gfEl)gfEl.value=cfg_.goalFollowups||'';
   document.getElementById('st-leads').textContent=leads.length;
   document.getElementById('st-clients').textContent=clients.length;
   document.getElementById('st-sync').textContent=hasScript()?'✅ Connected':'❌ Not configured';
@@ -1139,8 +1656,8 @@ async function scriptPost(action,rows){
 }
 
 function leadsRows(){
-  const hdr=['Name','Mobile','Email','Country','Status','Source','Products','Age','Gender','Next Follow-up','Remarks','Modified Date','Created Date'];
-  return[hdr,...leads.map(l=>[l.name||'',l.mobile||'',l.email||'',l.country||'',l.status||'',l.source||'',l.products||'',l.age||'',l.gender||'',l.nextFollowUp||'',l.remarks||'',l.modifiedDate?l.modifiedDate.split('T')[0]:'',l.createdDate?l.createdDate.split('T')[0]:''])];
+  const hdr=['Name','Mobile','Email','Country','Status','Source','Referred By','Products','Age','Gender','Next Follow-up','Remarks','Modified Date','Created Date'];
+  return[hdr,...leads.map(l=>[l.name||'',l.mobile||'',l.email||'',l.country||'',l.status||'',l.source||'',l.referral||'',l.products||'',l.age||'',l.gender||'',l.nextFollowUp||'',l.remarks||'',l.modifiedDate?l.modifiedDate.split('T')[0]:'',l.createdDate?l.createdDate.split('T')[0]:''])];
 }
 function clientsRows(){
   const hdr=['Name','Mobile','Email','Country','Age','Gender','PAN','Products','Remarks','Converted Date'];
@@ -1169,7 +1686,7 @@ async function pullFromSheet(manual=false){
   if(!hasScript()){if(manual)showSyncMsg('❌ Add your Apps Script URL in the Sync tab first.',false);return}
   if(syncInProgress)return;
   syncInProgress=true;setSyncBanner('syncing');
-  if(manual)toast('Pulling from sheet…',3000);
+  if(manual){setTopSync('syncing','Syncing…');}
   try{
     const ld=await scriptGet('LEADS');
     if(ld.rows&&ld.rows.length>1){
@@ -1330,9 +1847,15 @@ async function manualSync(){
 function setTopSync(state,msg){
   const dot=document.getElementById('top-sync-dot');
   const txt=document.getElementById('top-sync-txt');
+  const bar=document.getElementById('sync-status-bar');
   if(!dot||!txt)return;
   dot.className='sync-dot';
-  if(state==='ok'){dot.classList.add('ok');}
+  txt.textContent=msg;
+  if(state==='ok'){dot.classList.add('ok');if(bar)bar.style.opacity='.45';}
+  else if(state==='err'){dot.classList.add('err');if(bar)bar.style.opacity='1';}
+  else if(state==='syncing'){dot.classList.add('warn');if(bar)bar.style.opacity='.7';}
+  else{dot.classList.add('idle');if(bar)bar.style.opacity='.6';}
+}
   else if(state==='err'){dot.classList.add('err');}
   else if(state==='syncing'){dot.classList.add('warn');}
   else{dot.classList.add('idle');}
@@ -1341,8 +1864,23 @@ function setTopSync(state,msg){
 
 function hideLoading(){
   const ls=document.getElementById('loading-screen');
-  if(ls)ls.classList.add('hide');
-  setTimeout(()=>{if(ls)ls.style.display='none'},350);
+  if(!ls)return;
+  // Set progress to 100% briefly then fade
+  const prog=document.getElementById('load-progress');
+  if(prog){prog.style.width='100%';}
+  setTimeout(()=>{
+    ls.style.transition='opacity .3s ease';
+    ls.style.opacity='0';
+    setTimeout(()=>{ls.style.display='none';},320);
+  },250);
+}
+
+let skipAllowed=false;
+function skipLoad(){
+  skipAllowed=true;
+  // Render with local data and hide
+  renderAll();updateFUBadge();scheduleNotifications();hideLoading();
+  toast('Using local data — tap 🔄 to sync when ready',4000);
 }
 
 // ═══════════════════════════════════════════════════
@@ -1352,108 +1890,104 @@ load();
 applyDarkMode();
 
 async function bootSequence(){
-  // Always show loading screen
-  const loadEl = document.getElementById('loading-screen');
-  const loadMsg = document.getElementById('loading-msg');
+  const setProgress=(pct,msg)=>{
+    const p=document.getElementById('load-progress');
+    const m=document.getElementById('load-msg');
+    if(p) p.style.width=pct+'%';
+    if(m) m.textContent=msg;
+  };
+
+  // Show skip button after 8 seconds
+  const skipTimer=setTimeout(()=>{
+    const skip=document.getElementById('load-skip');
+    if(skip) skip.style.display='block';
+  },8000);
 
   if(!hasScript()){
-    // No script configured — load from local cache and show warning
-    if(loadMsg) loadMsg.textContent='No sync configured — loading local data…';
-    await new Promise(res=>setTimeout(res,800));
-    renderDash(); renderLeads(); renderFU(); renderClients();
-    updateFUBadge();
-    setTopSync('idle','Not synced — add Apps Script URL in Sync tab');
-    setSyncBanner('idle');
-    hideLoading();
+    setProgress(100,'No sync configured');
+    setTimeout(()=>{
+      clearTimeout(skipTimer);
+      renderAll();updateFUBadge();scheduleNotifications();hideLoading();
+      setTopSync('idle','Not synced — add Apps Script URL in Sync tab');
+      setSyncBanner('idle');
+    },600);
     return;
   }
 
-  if(loadMsg) loadMsg.textContent='Connecting to Google Sheet…';
-  setTopSync('syncing','Connecting…');
-
   try{
     syncInProgress=true;
+    setProgress(10,'Connecting to Google Sheet…');
+    await new Promise(res=>setTimeout(res,200));
 
     // ── Pull LEADS ──
-    if(loadMsg) loadMsg.textContent='Loading leads…';
-    const ld = await scriptGet('LEADS');
-    if(ld && ld.rows && ld.rows.length > 1){
-      const rows = ld.rows.slice(1);
-      let added=0, updated=0;
-      rows.forEach(r=>{
-        const mob=String(r[1]||'').trim();
-        if(!mob) return;
+    setProgress(30,'Loading leads…');
+    const ld=await scriptGet('LEADS');
+    if(ld&&ld.rows&&ld.rows.length>1){
+      let added=0,updated=0;
+      ld.rows.slice(1).forEach(r=>{
+        const mob=String(r[1]||'').trim();if(!mob)return;
         const obj={
-          name:caps(r[0]), mobile:mob, email:caps(r[2]),
-          country:caps(r[3]), status:caps(r[4])||'PROSPECT',
-          source:caps(r[5]), products:caps(r[6]),
-          age:String(r[7]||''), gender:caps(r[8]),
-          nextFollowUp:String(r[9]||''), remarks:caps(r[10]),
-          modifiedDate:String(r[11]||today()),
-          createdDate:String(r[12]||today())
+          name:caps(r[0]),mobile:mob,email:caps(r[2]),country:caps(r[3]),
+          status:caps(r[4])||'PROSPECT',source:caps(r[5]),referral:caps(r[6]),
+          products:caps(r[7]),age:String(r[8]||''),gender:caps(r[9]),
+          nextFollowUp:String(r[10]||''),
+          remarks:migrateRemarks(String(r[11]||'')),
+          modifiedDate:String(r[12]||today()),createdDate:String(r[13]||today())
         };
         const idx=leads.findIndex(l=>l.mobile===mob);
-        if(idx>=0){
-          leads[idx]={...leads[idx], ...obj, notes:leads[idx].notes||[]};
-          updated++;
-        } else {
-          leads.push({...obj, notes:[]});
-          added++;
-        }
+        if(idx>=0){leads[idx]={...leads[idx],...obj,notes:leads[idx].notes||[]};updated++;}
+        else{leads.push({...obj,notes:[]});added++;}
       });
       saveL();
-      if(loadMsg) loadMsg.textContent=`Leads loaded (${updated} updated, ${added} new)…`;
+      setProgress(60,`Leads ready — ${leads.length} records`);
+    } else {
+      setProgress(60,'Leads tab empty');
     }
 
     // ── Pull CLIENTS ──
-    if(loadMsg) loadMsg.textContent='Loading clients…';
-    const cd = await scriptGet('CLIENTS');
-    if(cd && cd.rows && cd.rows.length > 1){
-      const rows = cd.rows.slice(1);
-      rows.forEach(r=>{
-        const mob=String(r[1]||'').trim();
-        if(!mob) return;
+    setProgress(70,'Loading clients…');
+    const cd=await scriptGet('CLIENTS');
+    if(cd&&cd.rows&&cd.rows.length>1){
+      cd.rows.slice(1).forEach(r=>{
+        const mob=String(r[1]||'').trim();if(!mob)return;
         const obj={
-          name:caps(r[0]), mobile:mob, email:caps(r[2]),
-          country:caps(r[3]), age:String(r[4]||''),
-          gender:caps(r[5]), pan:caps(r[6]),
-          products:caps(r[7]), remarks:caps(r[8]),
-          convertedDate:String(r[9]||'')
+          name:caps(r[0]),mobile:mob,email:caps(r[2]),country:caps(r[3]),
+          age:String(r[4]||''),gender:caps(r[5]),pan:caps(r[6]),
+          products:caps(r[7]),remarks:caps(r[8]),convertedDate:String(r[9]||'')
         };
         const idx=clients.findIndex(c=>c.mobile===mob);
-        if(idx>=0) clients[idx]={...clients[idx], ...obj};
+        if(idx>=0) clients[idx]={...clients[idx],...obj};
         else clients.push(obj);
       });
       saveC();
     }
 
-    cfg_.lastPull=now(); saveCfg();
+    setProgress(90,'Preparing dashboard…');
+    cfg_.lastPull=now();saveCfg();
+
     const ts=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
     setTopSync('ok','Synced at '+ts+' · '+leads.length+' leads');
     setSyncBanner('ok');
-    if(loadMsg) loadMsg.textContent='All data loaded ✓';
+
+    await new Promise(res=>setTimeout(res,300));
+    setProgress(100,'All data ready ✓');
 
   }catch(err){
-    console.warn('Boot pull failed:',err.message);
-    setTopSync('err','Sync failed — tap 🔄 to retry');
+    console.warn('Boot sync failed:',err.message);
+    setTopSync('err','Sync failed — using local data · tap 🔄 to retry');
     setSyncBanner('err');
-    if(loadMsg) loadMsg.textContent='Sync failed — showing local data';
+    const m=document.getElementById('load-msg');
+    if(m) m.textContent='Sync failed — loading local data…';
+    const p=document.getElementById('load-progress');
+    if(p){p.style.background='var(--red)';p.style.width='100%';}
     await new Promise(res=>setTimeout(res,1200));
   }finally{
     syncInProgress=false;
+    clearTimeout(skipTimer);
+    if(!skipAllowed){
+      renderAll();updateFUBadge();scheduleNotifications();hideLoading();
+    }
   }
-
-  // Render everything after data is ready — leads page is landing
-  renderLeads();
-  renderDash();
-  renderFU();
-  renderClients();
-  updateFUBadge();
-  scheduleNotifications();
-  // FAB visible on landing page (leads)
-  const fab=document.getElementById('fab-add');
-  if(fab) fab.classList.remove('hidden');
-  hideLoading();
 }
 
 bootSequence();
