@@ -762,28 +762,55 @@ function renderFU(){
       </div>`;
     }).join('')}`:'';
 
-  document.getElementById('fu-list').innerHTML=(arr.length||stale.length)?(staleHtml+arr.map(l=>{
+  // Build follow-up list HTML
+  function makeFuItem(l){
     const d=daysAgo(l.modifiedDate||l.createdDate);
-    const msg=waMsg(l);
-    return`<div class="fu-item">
-      <div style="display:flex;gap:9px;align-items:center;margin-bottom:8px">
-        <div class="av" style="width:32px;height:32px;min-width:32px;font-size:11px">${ini(l.name)}</div>
-        <div style="flex:1;min-width:0">
-          <div style="font-weight:700;font-size:13px">${l.name}</div>
-          <div style="font-size:11px;color:var(--red);font-weight:600">🔴 ${l.status} · ${d} days since update${l.country?' · '+l.country:''}</div>
-          ${l.products?`<div style="font-size:10px;color:var(--blue)">${l.products}</div>`:''}
-          ${l.nextFollowUp?`<div style="font-size:10px;color:var(--orange)">📅 Follow-up date: ${fmt(l.nextFollowUp)}</div>`:''}
-        </div>
-        <button class="btn btn-ghost" style="padding:5px 8px;font-size:11px;flex-shrink:0" onclick="openDetail('${l.mobile}','lead')">View</button>
-      </div>
-      <div style="display:flex;gap:7px;margin-top:2px">
-        <a href="whatsapp://send?phone=${(()=>{const d=(l.mobile||'').replace(/\D/g,'');return d.length===10?'91'+d:d})()}&text=${encodeURIComponent(waMsg(l))}" class="btn btn-wa" style="flex:2;text-decoration:none;font-size:12px" onclick="bumpM('${l.mobile}');setTimeout(()=>askAddRemark(leads.find(x=>x.mobile==='${l.mobile}'),'WhatsApp sent',null),1500)">${waIcon()} WA App</a>
-        <a href="https://web.whatsapp.com/send?phone=${(()=>{const d=(l.mobile||'').replace(/\D/g,'');return d.length===10?'91'+d:d})()}&text=${encodeURIComponent(waMsg(l))}" target="_blank" class="btn btn-ghost" style="flex:2;text-decoration:none;font-size:12px;border-color:#25D366;color:#25D366" onclick="bumpM('${l.mobile}');setTimeout(()=>askAddRemark(leads.find(x=>x.mobile==='${l.mobile}'),'WhatsApp sent',null),1500)">${waIcon()} WA Web</a>
-        <a href="tel:${l.mobile}" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:12px;justify-content:center" onclick="bumpM('${l.mobile}');setTimeout(()=>askAddRemark(leads.find(x=>x.mobile==='${l.mobile}'),'Called',null),2000)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg></a>
-      </div>
-    </div>`;
-  }).join(''):`<div class="empty"><div class="empty-ico">🎉</div><div class="empty-t">All caught up!</div><div class="empty-s">No follow-ups or stale leads. Keep going!</div></div>`;
-  updateFUBadge();
+    const digits=(l.mobile||'').replace(/\D/g,'');
+    const waNum=digits.length===10?'91'+digits:digits;
+    const msg=encodeURIComponent(waMsg(l));
+    const mob=l.mobile;
+    const callIcon='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg>';
+    var div=document.createElement('div');
+    div.className='fu-item';
+    div.innerHTML=[
+      '<div style="display:flex;gap:9px;align-items:center;margin-bottom:8px">',
+        '<div class="av" style="width:32px;height:32px;min-width:32px;font-size:11px">'+ini(l.name)+'</div>',
+        '<div style="flex:1;min-width:0">',
+          '<div style="font-weight:700;font-size:13px">'+l.name+'</div>',
+          '<div style="font-size:11px;color:var(--red);font-weight:600">🔴 '+l.status+' · '+d+' days'+(l.country?' · '+l.country:'')+'</div>',
+          (l.products?'<div style="font-size:10px;color:var(--blue)">'+l.products+'</div>':''),
+          (l.nextFollowUp?'<div style="font-size:10px;color:var(--orange)">📅 '+fmt(l.nextFollowUp)+'</div>':''),
+        '</div>',
+        '<button class="btn btn-ghost" style="padding:5px 8px;font-size:11px" data-action="view" data-mob="'+mob+'">View</button>',
+      '</div>',
+      '<div style="display:flex;gap:7px">',
+        '<a href="whatsapp://send?phone='+waNum+'&text='+msg+'" class="btn btn-wa" style="flex:2;text-decoration:none;font-size:12px" data-action="wa-app" data-mob="'+mob+'">'+waIcon()+' WA App</a>',
+        '<a href="https://web.whatsapp.com/send?phone='+waNum+'&text='+msg+'" target="_blank" class="btn btn-ghost" style="flex:2;text-decoration:none;font-size:12px;border-color:#25D366;color:#25D366">'+waIcon()+' WA Web</a>',
+        '<a href="tel:'+mob+'" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:12px;justify-content:center" data-action="call" data-mob="'+mob+'">'+callIcon+'</a>',
+      '</div>'
+    ].join('');
+    return div.outerHTML;
+  }
+
+  // Event delegation for fu-list buttons
+  document.getElementById('fu-list').onclick=function(e){
+    var btn=e.target.closest('[data-action]');
+    if(!btn)return;
+    var mob=btn.dataset.mob;
+    var action=btn.dataset.action;
+    if(action==='view') openDetail(mob,'lead');
+    if(action==='wa-app'||action==='wa-web'){bumpM(mob);setTimeout(function(){askAddRemark(leads.find(function(x){return x.mobile===mob}),'WhatsApp sent',null);},1500);}
+    if(action==='call'){bumpM(mob);setTimeout(function(){askAddRemark(leads.find(function(x){return x.mobile===mob}),'Called',null);},2000);}
+  };
+
+  let fuHtml='';
+  if(arr.length||stale.length){
+    fuHtml=staleHtml+arr.map(makeFuItem).join('');
+  } else {
+    fuHtml='<div class="empty"><div class="empty-ico">🎉</div><div class="empty-t">All caught up!</div><div class="empty-s">No follow-ups or stale leads. Keep going!</div></div>';
+  }
+  document.getElementById('fu-list').innerHTML=fuHtml;
+    updateFUBadge();
 }
 function bumpM(mob){const l=leads.find(x=>x.mobile===mob);if(l){l.modifiedDate=now();saveL();pushLeads();setTimeout(renderFU,600)}}
 
@@ -1659,11 +1686,7 @@ function setTopSync(state,msg){
   else if(state==='syncing'){dot.classList.add('warn');if(bar)bar.style.opacity='.7';}
   else{dot.classList.add('idle');if(bar)bar.style.opacity='.6';}
 }
-  else if(state==='err'){dot.classList.add('err');}
-  else if(state==='syncing'){dot.classList.add('warn');}
-  else{dot.classList.add('idle');}
-  txt.textContent=msg;
-}
+
 
 function hideLoading(){
   const ls=document.getElementById('loading-screen');
