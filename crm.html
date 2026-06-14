@@ -225,214 +225,16 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 </head>
 <body>
 <div id="app">
-<!-- LOADING SCREEN — blocks until data is ready -->
+<!-- LOADING SCREEN — brief brand flash, hides instantly -->
 <div id="loading-screen">
-  <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
-    <!-- Logo box -->
-    <div style="width:72px;height:72px;background:var(--accent);border-radius:18px;display:flex;align-items:center;justify-content:center;margin-bottom:8px;box-shadow:0 8px 32px rgba(192,57,43,.4)">
-      <span style="font-size:28px;font-weight:900;color:#fff;letter-spacing:1px">WM</span>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+    <div style="width:64px;height:64px;background:var(--accent);border-radius:16px;display:flex;align-items:center;justify-content:center;margin-bottom:8px;box-shadow:0 8px 32px rgba(192,57,43,.4)">
+      <span style="font-size:26px;font-weight:900;color:#fff">WM</span>
     </div>
-    <div style="font-size:18px;font-weight:900;color:var(--text);letter-spacing:.5px">Wealth Matrix</div>
-    <div style="font-size:10px;color:var(--t3);letter-spacing:2px;text-transform:uppercase">Prosper With Purpose</div>
-    <div style="font-size:9px;color:var(--accent);font-weight:700;letter-spacing:1px;margin-top:2px">CRM v1.3</div>
+    <div style="font-size:17px;font-weight:900;color:var(--text)">Wealth Matrix</div>
+    <div style="font-size:9px;color:var(--t3);letter-spacing:2px;text-transform:uppercase">Prosper With Purpose</div>
+    <div style="font-size:9px;color:var(--accent);font-weight:700;margin-top:2px">CRM v1.3</div>
   </div>
-
-  <!-- Progress bar -->
-  <div style="width:180px;margin-top:28px">
-    <div style="height:3px;background:var(--border);border-radius:2px;overflow:hidden">
-      <div id="load-progress" style="height:100%;background:var(--accent);border-radius:2px;width:0%;transition:width .4s ease"></div>
-    </div>
-    <div id="load-msg" style="font-size:11px;color:var(--t2);text-align:center;margin-top:10px">Connecting…</div>
-  </div>
-
-  <!-- Skip option after 8 seconds -->
-  <div id="load-skip" style="display:none;margin-top:20px">
-    <button onclick="skipLoad()" style="background:none;border:1px solid var(--border);color:var(--t2);padding:7px 16px;border-radius:999px;font-size:12px;cursor:pointer;font-family:inherit">
-      Skip — use offline data
-    </button>
-  </div>
-</div>
-<div id="content">
-
-<!-- DASHBOARD -->
-<div class="page" id="pg-dash">
-  <div class="ph" style="padding-bottom:6px">
-    <div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <div style="width:32px;height:32px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-          <span style="font-size:13px;font-weight:900;color:#fff;letter-spacing:.5px">WM</span>
-        </div>
-        <div>
-          <div style="font-size:15px;font-weight:900;color:var(--text);letter-spacing:-.3px">Wealth Matrix</div>
-          <div style="font-size:9px;color:var(--t3);letter-spacing:1px;text-transform:uppercase">Prosper With Purpose</div>
-        </div>
-      </div>
-    </div>
-    <div style="display:flex;align-items:center;gap:8px">
-      <button onclick="toggleDark()" style="background:none;border:none;cursor:pointer;font-size:16px" id="dark-btn">🌙</button>
-      <button onclick="manualSync()" style="background:none;border:none;cursor:pointer;font-size:16px" title="Sync now">🔄</button>
-      <span style="font-size:9px;font-weight:700;color:var(--accent);background:var(--accent2);padding:2px 7px;border-radius:999px;border:1px solid var(--accent)">v1.3</span>
-    </div>
-  </div>
-  <div class="sub" id="dash-date" style="padding:0 14px 10px;font-size:11px;color:var(--t2)"></div>
-  <div id="sync-status-bar" style="margin:0 12px 8px;padding:5px 10px;border-radius:var(--r2);font-size:10px;font-weight:600;display:flex;align-items:center;gap:6px;background:var(--s1);border:1px solid var(--border);opacity:.8">
-    <div class="sync-dot idle" id="top-sync-dot" style="width:6px;height:6px"></div>
-    <span id="top-sync-txt" style="color:var(--t3)">Loading…</span>
-  </div>
-  <div class="sec" id="dash-alert"></div>
-  <div class="sec"><div class="lbl" style="color:var(--accent)">⭐ North Star Matrix</div><div class="card ns-wrap"><table class="ns-table" id="ns-table"></table></div></div>
-  <div class="sec" id="goal-section-wrap"></div>
-  <div class="sec"><div class="lbl">🔻 Lead Funnel</div><div class="card" style="padding:14px" id="funnel"></div></div>
-  <div class="sec"><div class="lbl">Monthly trend</div><div class="card" style="padding:14px"><div class="trend-wrap"><div class="trend-bars" id="trend-bars"></div></div></div></div>
-  <div class="sec"><div class="lbl">Analytics</div><div class="ana-grid" id="analytics"></div></div>
-  <div class="sec"><div class="lbl">Product interest</div><div class="card" style="padding:12px" id="prod-chart"></div></div>
-  <div class="sec"><div class="lbl">Source breakdown</div><div class="card" style="padding:12px" id="source-chart"></div></div>
-  <div class="sec"><div class="lbl">Country</div><div class="card" style="padding:12px" id="country-chart"></div></div>
-  <div class="sec"><div class="lbl">👤 Top referrers</div><div class="card" style="padding:12px" id="referral-chart"></div></div>
-  <div class="sec"><div class="lbl">Age groups</div><div class="card" style="padding:12px" id="age-chart"></div></div>
-  <div class="sec"><div class="lbl">Gender</div><div class="card" style="padding:12px" id="gender-chart"></div></div>
-</div>
-
-<!-- LEADS -->
-<div class="page active" id="pg-leads">
-  <div class="ph">
-    <div><h1>Leads</h1><div class="sub" id="leads-sub"></div></div>
-    <div style="display:flex;gap:7px;align-items:center">
-      <button class="mic" id="mic-btn" onclick="voiceAdd()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
-      <button class="btn btn-ghost" style="padding:7px 10px;font-size:11px" onclick="toggleBulk()" id="bulk-toggle-btn">☑️ Select</button>
-
-    </div>
-  </div>
-  <div style="padding:0 12px 9px;display:flex;gap:8px">
-    <input class="sbox" id="lead-search" placeholder="Search leads and clients…" oninput="renderLeads()" style="flex:1">
-  </div>
-  <div class="chips" id="status-chips"></div>
-  <div id="lead-list"></div>
-</div>
-
-<!-- FOLLOW-UPS -->
-<div class="page" id="pg-fu">
-  <div class="ph"><h1>Follow-ups</h1><div class="sub" id="fu-sub"></div></div>
-  <div id="fu-list"></div>
-</div>
-
-<!-- CLIENTS -->
-<div class="page" id="pg-clients">
-  <div class="ph">
-    <div><h1>Clients</h1><div class="sub" id="clients-sub"></div></div>
-    <button class="btn btn-gold" style="padding:7px 12px;font-size:12px" onclick="openAddClient()">+ Add</button>
-  </div>
-  <div style="padding:0 12px 9px"><input class="sbox" id="client-search" placeholder="Search clients…" oninput="renderClients()"></div>
-  <div id="client-list"></div>
-</div>
-
-<!-- SYNC -->
-<div class="page" id="pg-sync">
-  <div class="ph"><h1>Sync</h1></div>
-  <div id="sync-status"></div>
-  <div class="sync-banner" id="sync-banner">
-    <div class="sync-dot idle" id="sync-dot"></div>
-    <div id="sync-banner-text" style="font-size:12px;color:var(--t2)">Not configured.</div>
-  </div>
-  <div class="syc">
-    <div class="sy-t">⬇️ Pull from Sheet</div>
-    <div class="sy-d">Manually load latest data from Google Sheet. Also happens automatically on app open.</div>
-    <button class="btn btn-ghost btn-full" style="border-color:var(--blue);color:var(--blue)" onclick="pullFromSheet(true)">Pull from Google Sheet</button>
-    <div style="font-size:10px;color:var(--t3);margin-top:7px" id="pull-meta"></div>
-  </div>
-  <div class="syc">
-    <div class="sy-t">📥 Import from sheet</div>
-    <div class="sy-d">Bulk load your existing MASTER LIST from Google Sheet into the app in one click. Maps Name, Mobile, Email, Country, Status columns automatically.</div>
-    <div class="fg"><label class="fl">Import tab name</label><input class="fi" id="s-import-tab" placeholder="MASTER LIST" value="MASTER LIST"></div>
-    <button class="btn btn-green btn-full" onclick="importFromSheet()">Import leads from sheet</button>
-  </div>
-  <div class="syc">
-    <div class="sy-t">🔗 Apps Script URL</div>
-    <div class="sy-d">Your Google Apps Script Web App URL — the sync engine.</div>
-    <div class="fg"><label class="fl">Web App URL</label><input class="fi" id="s-url" placeholder="https://script.google.com/macros/s/…/exec" oninput="cfg('scriptUrl',this.value);updateSyncBanner()"></div>
-  </div>
-  <div class="syc">
-    <div class="sy-t">📤 Export backup</div>
-    <div class="sy-d">Download all data as JSON file.</div>
-    <button class="btn btn-ghost btn-full" onclick="exportData()">Export JSON backup</button>
-  </div>
-</div>
-
-<!-- SETTINGS -->
-<div class="page" id="pg-settings">
-  <div class="ph"><h1>Settings</h1></div>
-  <div style="padding:0 12px;margin-bottom:7px" class="lbl">Follow-up & stale rules</div>
-  <div class="sg">
-    <div class="si"><span>Follow up after</span>
-      <select class="fi fi-sel" style="width:100px;padding:5px 24px 5px 8px" id="s-fdays" onchange="cfg('followUpDays',this.value);updateFUBadge()">
-        <option value="7">7 days</option><option value="10">10 days</option><option value="14" selected>14 days</option><option value="21">21 days</option><option value="30">30 days</option>
-      </select>
-    </div>
-    <div class="si"><span>Stale lead after</span>
-      <select class="fi fi-sel" style="width:100px;padding:5px 24px 5px 8px" id="s-stale" onchange="cfg('staleDays',this.value)">
-        <option value="21">21 days</option><option value="30" selected>30 days</option><option value="45">45 days</option><option value="60">60 days</option>
-      </select>
-    </div>
-    <div class="si">
-      <span>Browser notifications</span>
-      <label class="toggle"><input type="checkbox" id="notif-toggle" onchange="toggleNotifications(this.checked)"><span class="toggle-slider"></span></label>
-    </div>
-  </div>
-  <div style="padding:0 12px;margin:14px 0 7px" class="lbl">🎯 Monthly goals</div>
-  <div class="sg">
-    <div class="si">
-      <span>New leads per month</span>
-      <input type="number" class="fi" id="g-leads" placeholder="20" min="1"
-        style="width:70px;padding:5px 8px;text-align:center"
-        oninput="cfg('goalLeads',this.value)">
-    </div>
-    <div class="si">
-      <span>Conversions per month</span>
-      <input type="number" class="fi" id="g-conv" placeholder="5" min="1"
-        style="width:70px;padding:5px 8px;text-align:center"
-        oninput="cfg('goalConversions',this.value)">
-    </div>
-    <div class="si">
-      <span>Follow-ups per month</span>
-      <input type="number" class="fi" id="g-fu" placeholder="30" min="1"
-        style="width:70px;padding:5px 8px;text-align:center"
-        oninput="cfg('goalFollowups',this.value)">
-    </div>
-  </div>
-  <div style="padding:0 12px;margin:12px 0 7px" class="lbl">WhatsApp templates</div>
-  <div id="tmpl-section"></div>
-  <div style="padding:0 12px;margin:12px 0 7px" class="lbl">About</div>
-  <div class="sg">
-    <div class="si"><span>Version</span><span style="color:var(--accent);font-weight:700">v1.3</span></div>
-      <div class="si"><span>Total leads</span><span style="color:var(--t2)" id="st-leads">0</span></div>
-    <div class="si"><span>Total clients</span><span style="color:var(--t2)" id="st-clients">0</span></div>
-    <div class="si"><span>Sync status</span><span style="color:var(--t2)" id="st-sync">Not configured</span></div>
-  </div>
-</div>
-
-</div>
-
-<!-- BULK ACTION BAR -->
-<div id="bulk-bar">
-  <span id="bulk-count">0 selected</span>
-  <div style="display:flex;gap:8px">
-    <button class="btn" style="background:rgba(255,255,255,.2);color:#fff;padding:6px 12px;font-size:12px" onclick="bulkChangeStatus()">Change status</button>
-    <button class="btn" style="background:var(--rdim);color:var(--red);padding:6px 12px;font-size:12px" onclick="bulkDelete()">Delete</button>
-    <button class="btn" style="background:rgba(255,255,255,.1);color:#fff;padding:6px 12px;font-size:12px" onclick="clearBulk()">✕</button>
-  </div>
-</div>
-
-<!-- FLOATING ADD BUTTON — shows on leads and clients pages -->
-<button class="fab" id="fab-add" onclick="fabAdd()" title="Add new lead">+</button>
-
-<nav id="nav">
-  <button class="nb" onclick="nav('dash',this)" id="nav-dash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dash</button>
-  <button class="nb active" onclick="nav('leads',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>Leads</button>
-  <button class="nb" onclick="nav('fu',this)" id="nav-fu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>Follow-up</button>
-  <button class="nb" onclick="nav('clients',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Clients</button>
-  <button class="nb" onclick="nav('sync',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg>Sync</button>
-  <button class="nb" onclick="nav('settings',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Settings</button>
-</nav>
 </div>
 
 <!-- LEAD FORM -->
@@ -1624,26 +1426,27 @@ function saveTemplate(status,val){if(!cfg_.msgs)cfg_.msgs={...DEFMSG};cfg_.msgs[
 // ═══════════════════════════════════════════════════
 function hasScript(){return!!(cfg_.scriptUrl&&cfg_.scriptUrl.includes('script.google.com'))}
 
-async function scriptGet(tab, retries=3){
+async function scriptGet(tab, retries=2){
   for(let attempt=1; attempt<=retries; attempt++){
     try{
       const url=cfg_.scriptUrl+'?tab='+encodeURIComponent(tab)+'&t='+Date.now();
       const controller=new AbortController();
-      const timeout=setTimeout(()=>controller.abort(), 15000); // 15s timeout
+      const timeout=setTimeout(()=>controller.abort(), 8000); // 8s per attempt
       const r=await fetch(url, {signal:controller.signal});
       clearTimeout(timeout);
       if(!r.ok) throw new Error('HTTP '+r.status);
       const json=await r.json();
       if(json.error && attempt < retries){
-        await new Promise(res=>setTimeout(res, 1000*attempt)); // backoff
+        await new Promise(res=>setTimeout(res, 800));
         continue;
       }
       return json;
     }catch(err){
+      clearTimeout && clearTimeout();
       if(attempt===retries) throw err;
-      const msg=document.getElementById('loading-msg');
-      if(msg) msg.textContent='Retrying… ('+attempt+'/'+retries+')';
-      await new Promise(res=>setTimeout(res, 1500*attempt));
+      const m=document.getElementById('load-msg');
+      if(m) m.textContent='Retrying connection… ('+attempt+'/'+retries+')';
+      await new Promise(res=>setTimeout(res, 1000));
     }
   }
 }
@@ -1865,23 +1668,11 @@ function setTopSync(state,msg){
 function hideLoading(){
   const ls=document.getElementById('loading-screen');
   if(!ls)return;
-  // Set progress to 100% briefly then fade
-  const prog=document.getElementById('load-progress');
-  if(prog){prog.style.width='100%';}
-  setTimeout(()=>{
-    ls.style.transition='opacity .3s ease';
-    ls.style.opacity='0';
-    setTimeout(()=>{ls.style.display='none';},320);
-  },250);
+  ls.style.transition='opacity .2s ease';
+  ls.style.opacity='0';
+  setTimeout(()=>{ls.style.display='none'},220);
 }
-
 let skipAllowed=false;
-function skipLoad(){
-  skipAllowed=true;
-  // Render with local data and hide
-  renderAll();updateFUBadge();scheduleNotifications();hideLoading();
-  toast('Using local data — tap 🔄 to sync when ready',4000);
-}
 
 // ═══════════════════════════════════════════════════
 // BOOT — pull from sheet first, then render
@@ -1890,40 +1681,30 @@ load();
 applyDarkMode();
 
 async function bootSequence(){
-  const setProgress=(pct,msg)=>{
-    const p=document.getElementById('load-progress');
-    const m=document.getElementById('load-msg');
-    if(p) p.style.width=pct+'%';
-    if(m) m.textContent=msg;
-  };
-
-  // Show skip button after 8 seconds
-  const skipTimer=setTimeout(()=>{
-    const skip=document.getElementById('load-skip');
-    if(skip) skip.style.display='block';
-  },8000);
+  // ── V1.1 STYLE: Show app instantly from local cache ──
+  // Render immediately — no waiting, no spinner blocking
+  renderAll();
+  updateFUBadge();
+  scheduleNotifications();
+  hideLoading(); // hide loading screen right away
 
   if(!hasScript()){
-    setProgress(100,'No sync configured');
-    setTimeout(()=>{
-      clearTimeout(skipTimer);
-      renderAll();updateFUBadge();scheduleNotifications();hideLoading();
-      setTopSync('idle','Not synced — add Apps Script URL in Sync tab');
-      setSyncBanner('idle');
-    },600);
+    setTopSync('idle','Not synced — add Apps Script URL in Sync tab');
+    setSyncBanner('idle');
     return;
   }
 
+  // ── Background sync — silent, doesn't block the UI ──
+  setTopSync('syncing','Syncing in background…');
+
+  // Small delay so UI renders fully first
+  await new Promise(res=>setTimeout(res,500));
+
   try{
     syncInProgress=true;
-    setProgress(10,'Connecting to Google Sheet…');
-    await new Promise(res=>setTimeout(res,200));
 
-    // ── Pull LEADS ──
-    setProgress(30,'Loading leads…');
     const ld=await scriptGet('LEADS');
     if(ld&&ld.rows&&ld.rows.length>1){
-      let added=0,updated=0;
       ld.rows.slice(1).forEach(r=>{
         const mob=String(r[1]||'').trim();if(!mob)return;
         const obj={
@@ -1935,17 +1716,12 @@ async function bootSequence(){
           modifiedDate:String(r[12]||today()),createdDate:String(r[13]||today())
         };
         const idx=leads.findIndex(l=>l.mobile===mob);
-        if(idx>=0){leads[idx]={...leads[idx],...obj,notes:leads[idx].notes||[]};updated++;}
-        else{leads.push({...obj,notes:[]});added++;}
+        if(idx>=0)leads[idx]={...leads[idx],...obj,notes:leads[idx].notes||[]};
+        else leads.push({...obj,notes:[]});
       });
       saveL();
-      setProgress(60,`Leads ready — ${leads.length} records`);
-    } else {
-      setProgress(60,'Leads tab empty');
     }
 
-    // ── Pull CLIENTS ──
-    setProgress(70,'Loading clients…');
     const cd=await scriptGet('CLIENTS');
     if(cd&&cd.rows&&cd.rows.length>1){
       cd.rows.slice(1).forEach(r=>{
@@ -1956,37 +1732,28 @@ async function bootSequence(){
           products:caps(r[7]),remarks:caps(r[8]),convertedDate:String(r[9]||'')
         };
         const idx=clients.findIndex(c=>c.mobile===mob);
-        if(idx>=0) clients[idx]={...clients[idx],...obj};
+        if(idx>=0)clients[idx]={...clients[idx],...obj};
         else clients.push(obj);
       });
       saveC();
     }
 
-    setProgress(90,'Preparing dashboard…');
     cfg_.lastPull=now();saveCfg();
-
     const ts=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
     setTopSync('ok','Synced at '+ts+' · '+leads.length+' leads');
     setSyncBanner('ok');
 
-    await new Promise(res=>setTimeout(res,300));
-    setProgress(100,'All data ready ✓');
+    // Silently refresh UI with fresh data
+    renderAll();
+    updateFUBadge();
 
   }catch(err){
-    console.warn('Boot sync failed:',err.message);
-    setTopSync('err','Sync failed — using local data · tap 🔄 to retry');
+    console.warn('Background sync failed:',err.message);
+    setTopSync('err','Sync failed — tap 🔄 to retry');
     setSyncBanner('err');
-    const m=document.getElementById('load-msg');
-    if(m) m.textContent='Sync failed — loading local data…';
-    const p=document.getElementById('load-progress');
-    if(p){p.style.background='var(--red)';p.style.width='100%';}
-    await new Promise(res=>setTimeout(res,1200));
+    // No toast, no popup — completely silent failure
   }finally{
     syncInProgress=false;
-    clearTimeout(skipTimer);
-    if(!skipAllowed){
-      renderAll();updateFUBadge();scheduleNotifications();hideLoading();
-    }
   }
 }
 
