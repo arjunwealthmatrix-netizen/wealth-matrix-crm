@@ -264,11 +264,27 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 </style>
 </head>
 <body>
+<div id="loading-screen" style="position:fixed;inset:0;background:#000000;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .5s">
+  <div style="text-align:center">
+    <div style="width:72px;height:72px;background:#C0392B;border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;box-shadow:0 0 40px rgba(192,57,43,.5)">
+      <span style="font-size:28px;font-weight:900;color:#fff;letter-spacing:1px">WM</span>
+    </div>
+    <div style="font-size:22px;font-weight:900;color:#fff;letter-spacing:1px">Wealth Matrix</div>
+    <div style="font-size:11px;color:#666;letter-spacing:3px;text-transform:uppercase;margin-top:4px">Prosper With Purpose</div>
+    <div style="margin-top:32px">
+      <div id="ls-count" style="font-size:64px;font-weight:900;color:#C0392B;line-height:1;transition:all .3s">3</div>
+      <div style="font-size:12px;color:#555;margin-top:8px" id="ls-msg">Connecting to sheet…</div>
+    </div>
+    <div style="width:180px;height:3px;background:#111;border-radius:999px;margin:20px auto 0;overflow:hidden">
+      <div id="ls-bar" style="height:100%;width:0%;background:#C0392B;border-radius:999px;transition:width .9s ease"></div>
+    </div>
+  </div>
+</div>
 <div id="app">
 <div id="content">
 
 <!-- LEADS -->
-<div class="page active" id="pg-leads">
+<div class="page" id="pg-leads">
   <div class="ph">
     <div><h1>Leads</h1><div class="sub" id="leads-sub"></div></div>
     <div style="display:flex;gap:7px;align-items:center">
@@ -282,7 +298,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 </div>
 
 <!-- DASHBOARD -->
-<div class="page" id="pg-dash">
+<div class="page active" id="pg-dash">
   <div class="ph">
     <div style="display:flex;align-items:center;gap:8px">
       <div style="width:32px;height:32px;background:var(--accent);border-radius:4px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(192,57,43,.5)"><span style="font-size:12px;font-weight:900;color:#fff;letter-spacing:.5px">WM</span></div>
@@ -309,7 +325,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   <div class="sec"><div class="lbl">Monthly trend (Contacted)</div><div class="card" style="padding:14px"><div class="trend-wrap"><div class="trend-bars" id="trend-bars"></div></div></div></div>
   <div class="sec"><div class="lbl">Source breakdown</div><div class="card" style="padding:12px" id="source-chart"></div></div>
   <div class="sec"><div class="lbl">Top referrers</div><div class="card" style="padding:12px" id="referral-chart"></div></div>
-  <div class="sec"><div class="lbl">Country</div><div class="card" style="padding:12px" id="country-chart"></div></div>
+  <div class="sec"><div class="lbl">Country — Leads breakdown</div><div class="card" style="padding:12px" id="country-chart"></div></div>
+  <div class="sec"><div class="lbl">Country — Lead status map</div><div class="card" style="padding:12px" id="country-leads-chart"></div></div>
   <div class="sec"><div class="lbl">Age groups</div><div class="card" style="padding:12px" id="age-chart"></div></div>
 </div>
 
@@ -404,8 +421,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 </div>
 
 <nav id="nav">
-  <button class="nb active" onclick="nav('leads',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>Leads</button>
-  <button class="nb" onclick="nav('dash',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dash</button>
+  <button class="nb" onclick="nav('leads',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>Leads</button>
+  <button class="nb active" onclick="nav('dash',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dash</button>
   <button class="nb" onclick="nav('fu',this)" id="nav-fu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>Follow-up</button>
   <button class="nb" onclick="nav('clients',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Clients</button>
   <button class="nb" onclick="nav('sync',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg>Sync</button>
@@ -2972,12 +2989,12 @@ async function pullActivityLog(){
 // Referred By(6) AUM/SIP(7) Next Follow-up(8) Products(9) Remarks(10)
 // Modified Date(11) Created Date(12)
 function leadsRows(){
-  var hdr=['Name','Mobile','Email','Age','Status','Source','Referred By',
+  var hdr=['Name','Mobile','Email','Age','Country','Status','Source','Referred By',
            'Estimated AUM/SIP','Next Follow-up','Investment Products','Remarks',
            'Modified Date','Created Date'];
   return [hdr].concat(leads.map(function(l){
     return [
-      l.name||'', l.mobile||'', l.email||'', l.age||'',
+      l.name||'', l.mobile||'', l.email||'', l.age||'', l.country||'',
       l.status||'', l.source||'', l.referral||'',
       l.aum||'', l.nextFollowUp||'', l.products||'', l.remarks||'',
       l.modifiedDate?l.modifiedDate.split('T')[0]:'',
@@ -3325,12 +3342,12 @@ async function bootSequenceV17(){
     if(ld&&ld.rows&&ld.rows.length>1){
       var hdr=ld.rows[0].map(function(h){return (h||'').toLowerCase().trim();});
       var ci=function(keys){for(var ki=0;ki<keys.length;ki++)for(var hi=0;hi<hdr.length;hi++)if(hdr[hi].includes(keys[ki]))return hi;return -1;};
-      var C={name:ci(['name']),mob:ci(['mobile','phone']),email:ci(['email']),age:ci(['age']),status:ci(['status']),source:ci(['source']),ref:ci(['referred','referral']),aum:ci(['aum','sip','estimated']),fu:ci(['follow']),prod:ci(['product','investment']),rem:ci(['remark','note']),mod:ci(['modified']),created:ci(['created'])};
+      var C={name:ci(['name']),mob:ci(['mobile','phone']),email:ci(['email']),age:ci(['age']),country:ci(['country']),status:ci(['status']),source:ci(['source']),ref:ci(['referred','referral']),aum:ci(['aum','sip','estimated']),fu:ci(['follow']),prod:ci(['product','investment']),rem:ci(['remark','note']),mod:ci(['modified']),created:ci(['created'])};
       function g(r,k,fb){var i=C[k]>=0?C[k]:fb;return i>=0&&i<r.length?String(r[i]||''):'';}
       ld.rows.slice(1).forEach(function(r){
         var mob=g(r,'mob',1).trim();if(!mob)return;
         var fu=g(r,'fu',8);if(fu&&!/^\d{4}-\d{2}-\d{2}$/.test(fu))fu='';
-        var obj={name:caps(g(r,'name',0)),mobile:mob,email:g(r,'email',2),age:g(r,'age',3),status:caps(g(r,'status',4))||'PROSPECT',source:caps(g(r,'source',5)),referral:g(r,'ref',6),aum:g(r,'aum',7),nextFollowUp:fu,products:caps(g(r,'prod',9)),remarks:g(r,'rem',10),modifiedDate:g(r,'mod',11)||today(),createdDate:g(r,'created',12)||today()};
+        var obj={name:caps(g(r,'name',0)),mobile:mob,email:g(r,'email',2),age:g(r,'age',3),country:caps(g(r,'country',4)),status:caps(g(r,'status',5))||'PROSPECT',source:caps(g(r,'source',6)),referral:g(r,'ref',7),aum:g(r,'aum',8),nextFollowUp:fu,products:caps(g(r,'prod',10)),remarks:g(r,'rem',11),modifiedDate:g(r,'mod',12)||today(),createdDate:g(r,'created',13)||today()};
         var idx=leads.findIndex(function(l){return l.mobile===mob;});
         if(idx>=0)leads[idx]=Object.assign({},leads[idx],obj);
         else leads.push(Object.assign({notes:[]},obj));
@@ -3359,6 +3376,355 @@ async function bootSequenceV17(){
 
 // Version marker
 var APP_VERSION='1.7';
+
+
+
+// ── V1.7 ADDONS ──
+// ═══════════════════════════════════════════════════
+// V1.7 ADDONS — Loading screen, Country chart,
+//               Reliable push, FU card date button
+// ═══════════════════════════════════════════════════
+
+// ── LOADING SCREEN COUNTDOWN ──
+function runLoadingScreen(onDone){
+  var screen=document.getElementById('loading-screen');
+  if(!screen){onDone();return;}
+  var bar=document.getElementById('ls-bar');
+  var count=document.getElementById('ls-count');
+  var msg=document.getElementById('ls-msg');
+  var steps=[
+    {n:'3',msg:'Connecting to sheet…',w:'33%'},
+    {n:'2',msg:'Loading your data…',w:'66%'},
+    {n:'1',msg:'Almost ready…',w:'90%'},
+    {n:'✓',msg:'Welcome back, Arjun!',w:'100%'}
+  ];
+  var i=0;
+  function tick(){
+    if(i>=steps.length){
+      screen.style.opacity='0';
+      setTimeout(function(){screen.style.display='none';onDone();},500);
+      return;
+    }
+    if(count)count.textContent=steps[i].n;
+    if(msg)msg.textContent=steps[i].msg;
+    if(bar)bar.style.width=steps[i].w;
+    i++;
+    setTimeout(tick, i<steps.length?900:600);
+  }
+  setTimeout(tick,300);
+}
+
+// ── RELIABLE PUSH QUEUE ──
+var _pushQueue=[];
+var _pushRunning=false;
+
+function queuePush(action,rows){
+  _pushQueue.push({action:action,rows:rows,ts:Date.now()});
+  localStorage.setItem('wm_push_queue',JSON.stringify(_pushQueue));
+  drainPushQueue();
+}
+
+async function drainPushQueue(){
+  if(_pushRunning||!_pushQueue.length||!hasScript())return;
+  _pushRunning=true;
+  var item=_pushQueue[0];
+  try{
+    var payload=encodeURIComponent(JSON.stringify({action:item.action,rows:item.rows}));
+    await fetch(cfg_.scriptUrl+'?payload='+payload+'&t='+Date.now(),{method:'GET',mode:'no-cors'});
+    _pushQueue.shift();
+    localStorage.setItem('wm_push_queue',JSON.stringify(_pushQueue));
+    if(_pushQueue.length>0){
+      setTimeout(drainPushQueue,800);
+    } else {
+      showSyncPush('ok');
+    }
+  }catch(e){
+    showSyncPush('err');
+    // Retry after 30s
+    setTimeout(function(){_pushRunning=false;drainPushQueue();},30000);
+    _pushRunning=false;
+    return;
+  }
+  _pushRunning=false;
+}
+
+function reliablePushLeads(){
+  saveL();
+  showSyncPush('leads');
+  queuePush('pushLeads',leadsRows());
+}
+
+function reliablePushClients(){
+  saveC();
+  queuePush('pushClients',clientsRows());
+}
+
+// ── COUNTRY CHART IN DASHBOARD (leads) ──
+function renderCountryLeadsChart(){
+  var el=document.getElementById('country-leads-chart');
+  if(!el)return;
+  var cc={};
+  leads.forEach(function(l){
+    var c=(l.country||'INDIA').toUpperCase().trim()||'INDIA';
+    if(!cc[c])cc[c]={total:0,prospect:0,contacted:0,inprogress:0,converted:0,dropped:0};
+    cc[c].total++;
+    var st=(l.status||'').toUpperCase();
+    if(st==='PROSPECT')cc[c].prospect++;
+    else if(st==='CONTACTED')cc[c].contacted++;
+    else if(st==='IN PROGRESS')cc[c].inprogress++;
+    else if(st==='CONVERTED')cc[c].converted++;
+    else if(st==='DROPPED')cc[c].dropped++;
+  });
+  var sorted=Object.entries(cc).sort(function(a,b){return b[1].total-a[1].total;});
+  if(!sorted.length){el.innerHTML='<div style="color:var(--t3);font-size:12px">No data</div>';return;}
+  el.innerHTML=sorted.map(function(x){
+    var name=x[0];var d=x[1];var pct=Math.round(d.converted/d.total*100);
+    return '<div style="margin-bottom:12px">'
+      +'<div style="display:flex;justify-content:space-between;margin-bottom:4px">'
+      +'<span style="font-size:12px;font-weight:700">'+name+'</span>'
+      +'<span style="font-size:11px;color:var(--t2)">'+d.total+' leads · '+pct+'% conv</span>'
+      +'</div>'
+      +'<div style="display:flex;height:8px;border-radius:999px;overflow:hidden;gap:1px">'
+      +(d.converted?'<div style="flex:'+d.converted+';background:var(--accent)" title="Converted: '+d.converted+'"></div>':'')
+      +(d.inprogress?'<div style="flex:'+d.inprogress+';background:#CCCCCC" title="In Progress: '+d.inprogress+'"></div>':'')
+      +(d.contacted?'<div style="flex:'+d.contacted+';background:#888" title="Contacted: '+d.contacted+'"></div>':'')
+      +(d.prospect?'<div style="flex:'+d.prospect+';background:#444" title="Prospect: '+d.prospect+'"></div>':'')
+      +(d.dropped?'<div style="flex:'+d.dropped+';background:#333" title="Dropped: '+d.dropped+'"></div>':'')
+      +'</div>'
+      +'<div style="display:flex;gap:8px;margin-top:3px;flex-wrap:wrap">'
+      +(d.converted?'<span style="font-size:9px;color:var(--accent)">✓ '+d.converted+' conv</span>':'')
+      +(d.inprogress?'<span style="font-size:9px;color:#CCC">⟳ '+d.inprogress+' prog</span>':'')
+      +(d.contacted?'<span style="font-size:9px;color:#888">✉ '+d.contacted+' cont</span>':'')
+      +(d.prospect?'<span style="font-size:9px;color:#555">◎ '+d.prospect+' pros</span>':'')
+      +'</div>'
+      +'</div>';
+  }).join('');
+}
+
+// ── OVERRIDE renderDash to include country leads chart + last sync ──
+var _v17_origRD=renderDash;
+function renderDash(){
+  _v17_origRD();
+  renderCountryLeadsChart();
+  // Show last sync in date display
+  var lsEl=document.getElementById('last-sync-time');
+  if(lsEl&&cfg_.lastSyncDisplay)lsEl.textContent='Last sync: '+cfg_.lastSyncDisplay;
+}
+
+// ── FOLLOW-UP CARD: Set Date button replaces Open → ──
+// Override makeFuItem to replace "Open →" with "📅 Date" button
+var _v17_origMFI2=makeFuItem;
+function makeFuItem(l,itemType){
+  var d=daysAgo(l.modifiedDate||l.createdDate);
+  var digits=(l.mobile||'').replace(/\D/g,'');
+  var waNum=digits.length===10?'91'+digits:digits;
+  var msg=encodeURIComponent(waMsg(l));
+  var mob=l.mobile;
+  var lastRem='';
+  var entries=getActivity(mob);
+  if(entries.length){
+    var last=entries[entries.length-1];
+    lastRem=(last.activity+(last.notes?' — '+last.notes:'')).substring(0,45)+'…';
+  } else if(l.remarks){
+    var rl=(l.remarks||'').trim().split('\n').filter(function(x){return x.trim();});
+    if(rl.length){var la=rl[rl.length-1];var mm=la.match(/^\[([^\]]+)\]\s*(.*)/);lastRem=mm?mm[2].substring(0,45)+'…':la.substring(0,45)+'…';}
+  }
+  var sc=leadScore(l);var heat=leadHeat(sc);
+  var fuDue=l.nextFollowUp&&daysUntil(l.nextFollowUp)<=0;
+  var sColors={'PROSPECT':'#777','CONTACTED':'#999','IN PROGRESS':'#BBB'};
+  var sColor=sColors[(l.status||'').toUpperCase()]||'#777';
+  var borderStyle=itemType==='overdue'?'border-left:3px solid var(--accent);':itemType==='soon'?'border-left:3px solid #666;':'';
+  var botimUrl='botim://call/'+digits;
+  var heatTag='<span style="font-size:10px;font-weight:700;color:'+heat.color+'">'+heat.emoji+' '+heat.label+'</span>';
+  var aumTag=l.aum?'<span style="font-size:9px;color:var(--accent);font-weight:700;background:var(--accent2);border:1px solid rgba(192,57,43,.25);border-radius:999px;padding:1px 5px">'+l.aum+'</span>':'';
+
+  // Default next date = tomorrow
+  var defDate=(function(){var dn=new Date();dn.setDate(dn.getDate()+1);return dn.toISOString().split('T')[0];})();
+
+  return '<div class="fu-item" style="'+borderStyle+'">'
+    // Top row: name + days (tapping anywhere opens detail)
+    +'<div class="fu-row" data-action="fu-open" data-mob="'+mob+'">'
+    +'<div class="av" style="width:36px;height:36px;min-width:36px;font-size:12px">'+ini(l.name)+'</div>'
+    +'<div style="flex:1;min-width:0">'
+    +'<div style="font-weight:700;font-size:13px">'+toTitle(l.name)+'</div>'
+    +'<div style="display:flex;gap:4px;align-items:center;margin-top:2px;flex-wrap:wrap">'+heatTag+(aumTag?aumTag:'')+'</div>'
+    +'<div style="font-size:10px;font-weight:700;color:'+sColor+';margin-top:2px">'+l.status+'</div>'
+    +(lastRem?'<div style="font-size:10px;color:var(--t3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+lastRem+'</div>':'')
+    +(l.nextFollowUp?'<div style="font-size:10px;color:'+(fuDue?'var(--accent)':'#666')+';margin-top:1px">📅 '+fmt(l.nextFollowUp)+'</div>':'')
+    +'</div>'
+    +'<div style="font-size:11px;color:var(--accent);font-weight:700;flex-shrink:0">'+d+'d</div>'
+    +'</div>'
+    // Action row
+    +'<div class="fu-actions">'
+    +'<a href="whatsapp://send?phone='+waNum+'&text='+msg+'" class="fu-icon-btn wa" data-action="fu-wa-app" data-mob="'+mob+'">'+waIcon()+'</a>'
+    +'<a href="https://web.whatsapp.com/send?phone='+waNum+'&text='+msg+'" target="_blank" class="fu-icon-btn wa">'+waIcon()+'<span style="font-size:9px">W</span></a>'
+    +'<a href="tel:'+mob+'" class="fu-icon-btn call"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg></a>'
+    +'<a href="'+botimUrl+'" class="fu-icon-btn call"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg></a>'
+    // 📅 Date button — replaces "Open →"
+    +'<button class="fu-open-btn" style="background:var(--s2);color:var(--text);border-color:var(--border)" data-action="fu-set-date" data-mob="'+mob+'" data-defdate="'+defDate+'">📅 Date</button>'
+    +'</div>'
+    // Inline date input (hidden by default, shown on 📅 Date tap)
+    +'<div id="fu-inline-date-'+mob+'" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">'
+    +'<div style="font-size:10px;color:var(--t3);margin-bottom:6px">Current: <b style="color:var(--text)">'+(l.nextFollowUp?fmt(l.nextFollowUp):'Not set')+'</b> → Set new:</div>'
+    +'<div style="display:flex;gap:6px;align-items:center">'
+    +'<input type="date" id="fu-inline-input-'+mob+'" class="fi" value="'+defDate+'" style="flex:1;padding:7px 9px;font-size:13px;font-weight:600;background:var(--bg)">'
+    +'<button class="btn btn-gold" style="padding:7px 12px;font-size:12px;flex-shrink:0" data-action="fu-confirm-date" data-mob="'+mob+'">Save</button>'
+    +'<button class="btn btn-ghost" style="padding:7px 10px;font-size:12px" data-action="fu-cancel-date" data-mob="'+mob+'">✕</button>'
+    +'</div>'
+    +'<div style="display:flex;gap:4px;margin-top:6px;flex-wrap:wrap">'
+    +[['Tmrw',1],['3D',3],['10D',10],['2WK',14],['1M',30],['2M',60],['3M',90]].map(function(x){
+      var ds=new Date();ds.setDate(ds.getDate()+x[1]);var val=ds.toISOString().split('T')[0];
+      return '<button class="btn btn-ghost" style="padding:3px 7px;font-size:10px" data-action="fu-sc" data-mob="'+mob+'" data-date="'+val+'">'+x[0]+'</button>';
+    }).join('')
+    +'</div></div>'
+    +'</div>';
+}
+
+// ── FU LIST event delegation (handles new date actions) ──
+var _v17_fuListWired=false;
+function wireFuList(){
+  if(_v17_fuListWired)return;
+  var fuList=document.getElementById('fu-list');
+  if(!fuList)return;
+  _v17_fuListWired=true;
+  fuList.addEventListener('click',function(e){
+    var btn=e.target.closest('[data-action]');if(!btn)return;
+    var mob=btn.dataset.mob;var action=btn.dataset.action;
+    if(action==='fu-open') openFuDetail(mob);
+    if(action==='fu-set-date'){
+      // Toggle inline date picker
+      var panel=document.getElementById('fu-inline-date-'+mob);
+      if(panel){
+        var isOpen=panel.style.display!=='none';
+        // Close all others
+        document.querySelectorAll('[id^="fu-inline-date-"]').forEach(function(p){p.style.display='none';});
+        panel.style.display=isOpen?'none':'block';
+        if(!isOpen){var inp=document.getElementById('fu-inline-input-'+mob);if(inp)inp.focus();}
+      }
+    }
+    if(action==='fu-sc'){
+      // Shortcut fills the input
+      var inp=document.getElementById('fu-inline-input-'+mob);if(inp)inp.value=btn.dataset.date;
+    }
+    if(action==='fu-confirm-date'){
+      var inp2=document.getElementById('fu-inline-input-'+mob);
+      var newDate=inp2?inp2.value:'';
+      if(!newDate){toast('Pick a date');return;}
+      // Log + save
+      saveFuDateV17(mob, newDate);
+      var panel2=document.getElementById('fu-inline-date-'+mob);if(panel2)panel2.style.display='none';
+    }
+    if(action==='fu-cancel-date'){
+      var panel3=document.getElementById('fu-inline-date-'+mob);if(panel3)panel3.style.display='none';
+    }
+    if(action==='fu-wa-app'){bumpM(mob);logActivity(mob,'lead','WhatsApp sent','');}
+  });
+}
+
+// ── OVERRIDE renderFU to wire list after render ──
+var _v17_origRFU2=renderFU;
+function renderFU(){
+  _v17_origRFU2();
+  _v17_fuListWired=false;
+  wireFuList();
+}
+
+// ── OVERRIDE openAddLead + saveLead + editLeadOpen to handle Country ──
+var _v17_origOAL2=openAddLead;
+function openAddLead(pre){
+  _v17_origOAL2(pre);
+  var cEl=document.getElementById('lf-country');
+  if(cEl)cEl.value=(pre&&pre.country)||'';
+}
+
+var _v17_origELO2=editLeadOpen;
+function editLeadOpen(mob){
+  _v17_origELO2(mob);
+  var l=leads.find(function(x){return x.mobile===mob;});
+  var cEl=document.getElementById('lf-country');
+  if(cEl&&l)cEl.value=l.country||'';
+}
+
+var _v17_origSL2=saveLead;
+function saveLead(){
+  // Capture country before calling original
+  var cEl=document.getElementById('lf-country');
+  var country=cEl?cEl.value.trim():'';
+  _v17_origSL2();
+  // Update country on last saved lead
+  if(country){
+    var mob=document.getElementById('lf-mob')?document.getElementById('lf-mob').value.trim():'';
+    if(mob){
+      var l=leads.find(function(x){return x.mobile===mob;});
+      if(l){l.country=country;saveL();}
+    }
+  }
+  // Reliable push
+  reliablePushLeads();
+}
+
+// ── OVERRIDE pushLeads to use reliable queue ──
+var _v17_origPL=pushLeads;
+function pushLeads(){
+  reliablePushLeads();
+}
+
+// ── RELIABLE BOOTSEQUENCE with loading screen + dash landing ──
+var _v17_origBS=bootSequenceV17;
+async function bootSequenceV17(){
+  // Load queued pushes from localStorage
+  try{var q=JSON.parse(localStorage.getItem('wm_push_queue')||'[]');if(q.length){_pushQueue=q;setTimeout(drainPushQueue,5000);}}catch(e){}
+
+  renderDash(); // Show dash immediately with cached data
+  updateFUBadge();
+
+  // Run countdown, sync in parallel
+  runLoadingScreen(function(){
+    // Loading screen done — dash is already visible
+    scheduleNotifications();
+  });
+
+  if(!hasScript()){
+    setTopSync('idle','Not synced — add Apps Script URL in Sync tab');
+    setSyncBanner('idle');
+    return;
+  }
+  setTopSync('syncing','Syncing on startup…');
+  try{
+    syncInProgress=true;
+    var ld=await scriptGet('LEADS');
+    if(ld&&ld.rows&&ld.rows.length>1){
+      var hdr=ld.rows[0].map(function(h){return (h||'').toLowerCase().trim();});
+      var ci=function(keys){for(var ki=0;ki<keys.length;ki++)for(var hi=0;hi<hdr.length;hi++)if(hdr[hi].includes(keys[ki]))return hi;return -1;};
+      var C={name:ci(['name']),mob:ci(['mobile','phone']),email:ci(['email']),age:ci(['age']),country:ci(['country']),status:ci(['status']),source:ci(['source']),ref:ci(['referred','referral']),aum:ci(['aum','sip','estimated']),fu:ci(['follow']),prod:ci(['product','investment']),rem:ci(['remark','note']),mod:ci(['modified']),created:ci(['created'])};
+      function g(r,k,fb){var i=C[k]>=0?C[k]:fb;return i>=0&&i<r.length?String(r[i]||''):'';}
+      ld.rows.slice(1).forEach(function(r){
+        var mob=g(r,'mob',1).trim();if(!mob)return;
+        var fu=g(r,'fu',9);if(fu&&!/^\d{4}-\d{2}-\d{2}$/.test(fu))fu='';
+        var obj={name:caps(g(r,'name',0)),mobile:mob,email:g(r,'email',2),age:g(r,'age',3),country:caps(g(r,'country',4)),status:caps(g(r,'status',5))||'PROSPECT',source:caps(g(r,'source',6)),referral:g(r,'ref',7),aum:g(r,'aum',8),nextFollowUp:fu,products:caps(g(r,'prod',10)),remarks:g(r,'rem',11),modifiedDate:g(r,'mod',12)||today(),createdDate:g(r,'created',13)||today()};
+        var idx=leads.findIndex(function(l){return l.mobile===mob;});
+        if(idx>=0)leads[idx]=Object.assign({},leads[idx],obj);
+        else leads.push(Object.assign({notes:[]},obj));
+      });saveL();
+    }
+    var cd=await scriptGet('CLIENTS');
+    if(cd&&cd.rows&&cd.rows.length>1){
+      var chdr=cd.rows[0].map(function(h){return (h||'').toLowerCase().trim();});
+      var cci=function(keys){for(var ki=0;ki<keys.length;ki++)for(var hi=0;hi<chdr.length;hi++)if(chdr[hi].includes(keys[ki]))return hi;return -1;};
+      var CC={name:cci(['name']),mob:cci(['mobile']),email:cci(['email']),country:cci(['country']),age:cci(['age']),gender:cci(['gender']),pan:cci(['pan']),prod:cci(['product']),rem:cci(['remark']),conv:cci(['converted'])};
+      function gcc(r,k,fb){var i=CC[k]>=0?CC[k]:fb;return i>=0&&i<r.length?String(r[i]||''):'';}
+      cd.rows.slice(1).forEach(function(r){var mob=gcc(r,'mob',1).trim();if(!mob)return;var obj={name:caps(gcc(r,'name',0)),mobile:mob,email:gcc(r,'email',2),country:caps(gcc(r,'country',3)),age:gcc(r,'age',4),gender:caps(gcc(r,'gender',5)),pan:caps(gcc(r,'pan',6)),products:caps(gcc(r,'prod',7)),remarks:gcc(r,'rem',8),convertedDate:gcc(r,'conv',9)};var idx2=clients.findIndex(function(c){return c.mobile===mob;});if(idx2>=0)clients[idx2]=Object.assign({},clients[idx2],obj);else clients.push(obj);});saveC();
+    }
+    await pullActivityLog();
+    cfg_.lastPull=now();saveCfg();
+    var ts=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+    setTopSync('ok','Synced '+ts+' — '+leads.length+' leads');setSyncBanner('ok');
+    renderAll();updateFUBadge();
+  }catch(err){
+    setTopSync('err','Sync failed — tap 🔄');setSyncBanner('err');
+    console.warn('Boot sync:',err.message);
+  }finally{syncInProgress=false;}
+}
 
 
 load();applyDarkMode();loadActivityLog();bootSequenceV17();
