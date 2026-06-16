@@ -264,22 +264,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 </style>
 </head>
 <body>
-<div id="loading-screen" style="position:fixed;inset:0;background:#000000;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .5s">
-  <div style="text-align:center">
-    <div style="width:72px;height:72px;background:#C0392B;border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;box-shadow:0 0 40px rgba(192,57,43,.5)">
-      <span style="font-size:28px;font-weight:900;color:#fff;letter-spacing:1px">WM</span>
-    </div>
-    <div style="font-size:22px;font-weight:900;color:#fff;letter-spacing:1px">Wealth Matrix</div>
-    <div style="font-size:11px;color:#666;letter-spacing:3px;text-transform:uppercase;margin-top:4px">Prosper With Purpose</div>
-    <div style="margin-top:32px">
-      <div id="ls-count" style="font-size:64px;font-weight:900;color:#C0392B;line-height:1;transition:all .3s">3</div>
-      <div style="font-size:12px;color:#555;margin-top:8px" id="ls-msg">Connecting to sheet…</div>
-    </div>
-    <div style="width:180px;height:3px;background:#111;border-radius:999px;margin:20px auto 0;overflow:hidden">
-      <div id="ls-bar" style="height:100%;width:0%;background:#C0392B;border-radius:999px;transition:width .9s ease"></div>
-    </div>
-  </div>
-</div>
+
 <div id="app">
 <div id="content">
 
@@ -3385,34 +3370,7 @@ var APP_VERSION='1.7';
 //               Reliable push, FU card date button
 // ═══════════════════════════════════════════════════
 
-// ── LOADING SCREEN COUNTDOWN ──
-function runLoadingScreen(onDone){
-  var screen=document.getElementById('loading-screen');
-  if(!screen){onDone();return;}
-  var bar=document.getElementById('ls-bar');
-  var count=document.getElementById('ls-count');
-  var msg=document.getElementById('ls-msg');
-  var steps=[
-    {n:'3',msg:'Connecting to sheet…',w:'33%'},
-    {n:'2',msg:'Loading your data…',w:'66%'},
-    {n:'1',msg:'Almost ready…',w:'90%'},
-    {n:'✓',msg:'Welcome back, Arjun!',w:'100%'}
-  ];
-  var i=0;
-  function tick(){
-    if(i>=steps.length){
-      screen.style.opacity='0';
-      setTimeout(function(){screen.style.display='none';onDone();},500);
-      return;
-    }
-    if(count)count.textContent=steps[i].n;
-    if(msg)msg.textContent=steps[i].msg;
-    if(bar)bar.style.width=steps[i].w;
-    i++;
-    setTimeout(tick, i<steps.length?900:600);
-  }
-  setTimeout(tick,300);
-}
+
 
 // ── RELIABLE PUSH QUEUE ──
 var _pushQueue=[];
@@ -3678,11 +3636,7 @@ async function bootSequenceV17(){
   renderDash(); // Show dash immediately with cached data
   updateFUBadge();
 
-  // Run countdown, sync in parallel
-  runLoadingScreen(function(){
-    // Loading screen done — dash is already visible
-    scheduleNotifications();
-  });
+  scheduleNotifications();
 
   if(!hasScript()){
     setTopSync('idle','Not synced — add Apps Script URL in Sync tab');
