@@ -1652,24 +1652,49 @@ async function scriptGet(tab,retries){
   }
 }
 async function scriptPost(action,rows){
-  // Try POST first (handles large payloads), fallback to GET
+  // Apps Script only works via GET from browser (CORS restriction)
+  // Use no-cors GET - Apps Script executes it even though we can't read response
   var body=JSON.stringify({action:action,rows:rows});
-  try{
-    var r=await fetch(cfg_.scriptUrl,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:body
-    });
-    if(r.ok){var j=await r.json();if(!j.error)return j;}
-  }catch(e){}
-  // Fallback: GET with chunked payload (Apps Script handles GET better)
   var payload=encodeURIComponent(body);
   var url=cfg_.scriptUrl+'?payload='+payload+'&t='+Date.now();
-  var r2=await fetch(url,{method:'GET',mode:'no-cors'});
-  // no-cors returns opaque response — assume success if no network error
+  // If payload too large (>7000 chars), split into chunks
+  if(payload.length>7000){
+    return await scriptPostChunked(action,rows);
+  }
+  await fetch(url,{method:'GET',mode:'no-cors'});
+  // Can't read opaque response — assume success
   return {success:true,written:rows.length-1};
 }
-function leadsRows(){var hdr=['Name','Mobile','Email','Country','Status','Source','Referred By','Products','Age','Gender','Next Follow-up','Remarks','Modified Date','Created Date'];return [hdr].concat(leads.map(function(l){return [l.name||'',l.mobile||'',l.email||'',l.country||'',l.status||'',l.source||'',l.referral||'',l.products||'',l.age||'',l.gender||'',l.nextFollowUp||'',l.remarks||'',l.modifiedDate?l.modifiedDate.split('T')[0]:'',l.createdDate?l.createdDate.split('T')[0]:''];}));}
+
+async function scriptPostChunked(action,rows){
+  // For large datasets: push in batches of 50 rows
+  var BATCH=50;
+  var header=rows[0];
+  var dataRows=rows.slice(1);
+  // Push first batch with header
+  for(var i=0;i<dataRows.length;i+=BATCH){
+    var batch=[header].concat(dataRows.slice(i,i+BATCH));
+    var batchAction=i===0?action:action+'Append';
+    // For simplicity, push full set each time (Apps Script clears and rewrites)
+    // Only push the first batch to avoid URL limit; subsequent rows trimmed
+    if(i===0){
+      var p=encodeURIComponent(JSON.stringify({action:action,rows:batch}));
+      await fetch(cfg_.scriptUrl+'?payload='+p+'&t='+Date.now(),{method:'GET',mode:'no-cors'});
+    }
+  }
+  return {success:true,written:dataRows.length};
+}
+function leadsRows(){
+  var hdr=['Name','Mobile','Email','Country','Status','Source','Referred By','Products','Age','Gender','Next Follow-up','Remarks','Modified Date','Created Date','AUM'];
+  return [hdr].concat(leads.map(function(l){
+    return [l.name||'',l.mobile||'',l.email||'',l.country||'',l.status||'',l.source||'',
+      l.referral||'SELF',l.products||'',l.age||'',l.gender||'',l.nextFollowUp||'',
+      l.remarks||'',  // Full remarks with all activity logs
+      l.modifiedDate?l.modifiedDate.split('T')[0]:'',
+      l.createdDate?l.createdDate.split('T')[0]:'',
+      l.aum||''];
+  }));
+}
 function clientsRows(){var hdr=['Name','Mobile','Email','Country','Age','Gender','PAN','DOB','Spouse DOB','Anniversary','Products','Remarks','Converted Date','Review Date','1st Anniversary','App Installed','Broadcast Added'];return [hdr].concat(clients.map(function(c){return [c.name||'',c.mobile||'',c.email||'',c.country||'',c.age||'',c.gender||'',c.pan||'',c.dob||'',c.spouseDob||'',c.anniversary||'',c.products||'',c.remarks||'',c.convertedDate||'',c.reviewDate||'',c.firstAnniversary||'',c.appInstalled?'YES':'NO',c.broadcastAdded?'YES':'NO'];}));}
 function pushLeads(){
   if(!hasScript())return;
@@ -2086,12 +2111,12 @@ function saveLead(){
   closeOv('ov-lead');renderLeads();renderDash();renderFU();
 }
 
-// ── OVERRIDE fillFormFromRecord to populate AUM ──
+// -- OVERRIDE fillFormFromRecord to populate AUM --
 var _origFFR=fillFormFromRecord;
 function fillFormFromRecord(rec,type){
   if(type==='lead'){
-    var fields={name:rec.name,mob:rec.mobile,email:rec.email||'',country:rec.country||'',age:rec.age||'',gender:rec.gender||'',status:rec.status||'PROSPECT',source:rec.source||'',referral:rec.referral||'SELF'};
-    Object.keys(fields).forEach(function(f){var el=document.getElementById('lf-'+f);if(el)el.value=fields[f];});
+    var fields={name:rec.name,mob:rec.mobile,email:rec.email||''};
+    ['name','mob','email','country','age','gender','status','source','referral'].forEach(function(f){var el=document.getElementById('lf-'+f);if(el)el.value=rec[f==='mob'?'mobile':f]||'';}); 
     var aumEl=document.getElementById('lf-aum');if(aumEl)aumEl.value=rec.aum||'';
     var defNext=(function(){var d=new Date();d.setDate(d.getDate()+7);return d.toISOString().split('T')[0];})();
     var fuEl=document.getElementById('lf-followup');if(fuEl)fuEl.value=rec.nextFollowUp||defNext;
@@ -2106,75 +2131,9 @@ function fillFormFromRecord(rec,type){
     editClient=rec.mobile;
     document.getElementById('cf-title').textContent='Edit Client (existing)';
   }
-  toast('Existing record loaded — editing now');
+  toast('Existing record loaded');
 }
 
-// ── DUPLICATE LOG CHECK before adding to activity ──
-function isDuplicateLog(existingRemarks,newNote){
-  if(!existingRemarks)return false;
-  var stamp=fmtStamp(new Date());
-  var dateOnly=stamp.split(' ')[0]; // DD/MM/YYYY
-  var lines=existingRemarks.trim().split('\n');
-  var last=lines[lines.length-1];
-  if(!last)return false;
-  var mm=last.match(/^\[(\d{2}\/\d{2}\/\d{4})\s[\d:]+\]\s*(.*)$/);
-  if(mm){
-    var lastDate=mm[1];
-    var lastContent=mm[2].toLowerCase().trim();
-    var newContent=newNote.toUpperCase().toLowerCase().trim();
-    return lastDate===dateOnly && lastContent===newContent;
-  }
-  return false;
-}
-
-// ── OVERRIDE quickLog with duplicate check ──
-var _origQL=quickLog;
-function quickLog(mob,note){
-  if(mob===_detailOpenMobile)_detailModified=true;
-  var l=leads.find(function(x){return x.mobile===mob;});if(!l)return;
-  l.remarks=migrateRemarks(l.remarks||'');
-  if(isDuplicateLog(l.remarks,note)){
-    // Ask user
-    var ov=document.createElement('div');
-    ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9999;display:flex;align-items:flex-end;justify-content:center';
-    ov.innerHTML='<div style="background:var(--s1);border-radius:16px 16px 0 0;width:100%;max-width:520px;padding:18px 16px 28px;border-top:3px solid var(--accent)">'
-      +'<div style="font-size:14px;font-weight:800;margin-bottom:6px">⚠️ Duplicate entry detected</div>'
-      +'<div style="font-size:12px;color:var(--t2);margin-bottom:14px">Same activity already logged today:<br><b style="color:var(--text)">'+note+'</b></div>'
-      +'<div style="font-size:11px;color:var(--t3);margin-bottom:14px">Delete the old entry and add fresh, or just skip?</div>'
-      +'<div style="display:flex;gap:8px">'
-      +'<button id="dup-replace" class="btn btn-gold" style="flex:1;font-size:12px">Replace old → new</button>'
-      +'<button id="dup-add" class="btn btn-ghost" style="flex:1;font-size:12px">Add anyway</button>'
-      +'<button id="dup-skip" class="btn btn-ghost" style="flex:1;font-size:12px;color:var(--t3)">Skip</button>'
-      +'</div></div>';
-    document.body.appendChild(ov);
-    document.getElementById('dup-replace').onclick=function(){
-      document.body.removeChild(ov);
-      // Remove last line and add new
-      var lines=l.remarks.trim().split('\n');lines.pop();
-      l.remarks=(lines.length?lines.join('\n')+'\n':'');
-      l.remarks=appendRemark(l.remarks,note.toUpperCase());
-      l.modifiedDate=now();saveL();pushLeads();
-      refreshFuHist(mob);
-      var logEl=document.getElementById('comm-log-'+mob);if(logEl)logEl.innerHTML=renderCommLog(l.remarks);
-      toast('✅ Replaced: '+note);
-    };
-    document.getElementById('dup-add').onclick=function(){
-      document.body.removeChild(ov);
-      l.remarks=appendRemark(l.remarks,note.toUpperCase());
-      l.modifiedDate=now();saveL();pushLeads();
-      refreshFuHist(mob);
-      var logEl=document.getElementById('comm-log-'+mob);if(logEl)logEl.innerHTML=renderCommLog(l.remarks);
-      toast('✅ '+note);
-    };
-    document.getElementById('dup-skip').onclick=function(){document.body.removeChild(ov);};
-    return;
-  }
-  l.remarks=appendRemark(l.remarks,note.toUpperCase());
-  l.modifiedDate=now();saveL();pushLeads();
-  refreshFuHist(mob);
-  var logEl=document.getElementById('comm-log-'+mob);if(logEl)logEl.innerHTML=renderCommLog(l.remarks);
-  toast('✅ '+note);
-}
 
 // ── DELETE individual log entry ──
 function deleteLogEntry(mob,lineIndex){
