@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="WM CRM">
-<title>Wealth Matrix CRM v1.6</title>
+<title>Wealth Matrix CRM v1.7</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -291,7 +291,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div style="display:flex;align-items:center;gap:8px">
       <button onclick="toggleDark()" style="background:none;border:none;cursor:pointer;font-size:16px" id="dark-btn">🌙</button>
       <button onclick="manualSync()" style="background:none;border:none;cursor:pointer;font-size:16px">🔄</button>
-      <span style="font-size:9px;font-weight:700;color:var(--accent);background:var(--accent2);padding:2px 7px;border-radius:999px;border:1px solid var(--accent)">v1.6</span>
+      <span style="font-size:9px;font-weight:700;color:var(--accent);background:var(--accent2);padding:2px 7px;border-radius:999px;border:1px solid var(--accent)">v1.7</span>
     </div>
   </div>
   <div class="sub" id="dash-date" style="padding:0 14px 8px;font-size:11px;color:var(--t2)"></div>
@@ -382,7 +382,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   <div id="tmpl-section"></div>
   <div style="padding:0 12px;margin:14px 0 7px" class="lbl">About</div>
   <div class="sg">
-    <div class="si"><span>Version</span><span style="color:var(--accent);font-weight:700">v1.6</span></div>
+    <div class="si"><span>Version</span><span style="color:var(--accent);font-weight:700">v1.7</span></div>
     <div class="si"><span>Total leads</span><span style="color:var(--t2)" id="st-leads">0</span></div>
     <div class="si"><span>Total clients</span><span style="color:var(--t2)" id="st-clients">0</span></div>
   </div>
@@ -1738,7 +1738,7 @@ function showAppsScriptCode(){
   var ov=document.createElement('div');
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:flex-end;justify-content:center;padding:10px';
   ov.innerHTML='<div style="background:var(--s1);border-radius:12px;width:100%;max-width:540px;max-height:90vh;overflow-y:auto;padding:16px">'
-    +'<div style="font-weight:800;font-size:14px;margin-bottom:10px;color:var(--accent)">Apps Script Code (v1.6)</div>'
+    +'<div style="font-weight:800;font-size:14px;margin-bottom:10px;color:var(--accent)">Apps Script Code (v1.7)</div>'
     +'<div style="font-size:11px;color:var(--t2);margin-bottom:8px">Paste this into script.google.com → Deploy as Web App → Execute as: Me → Who has access: Anyone</div>'
     +'<textarea id="as-code-ta" style="width:100%;height:160px;font-family:monospace;font-size:10px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:8px;resize:none;box-sizing:border-box"></textarea>'
     +'<div style="display:flex;gap:8px;margin-top:10px">'
@@ -2912,7 +2912,456 @@ function renderFU(){
 }
 
 
-load();applyDarkMode();bootSequence();
+
+// ── V1.7 CORE ──
+// ═══════════════════════════════════════════════════
+// V1.7 CORE OVERRIDES
+// ═══════════════════════════════════════════════════
+
+// ── ACTIVITY LOG local cache ──
+var activityLog = [];
+
+function loadActivityLog(){
+  try{ activityLog=JSON.parse(localStorage.getItem('wm_activity')||'[]'); }
+  catch(e){ activityLog=[]; }
+}
+function saveActivityLog(){
+  localStorage.setItem('wm_activity', JSON.stringify(activityLog));
+}
+
+// ── Log an activity (local + push to sheet) ──
+function logActivity(mob, type, activity, notes){
+  var rec = type==='lead'
+    ? leads.find(function(x){return x.mobile===mob;})
+    : clients.find(function(x){return x.mobile===mob;});
+  var name = rec ? rec.name : mob;
+  var ts = fmtStamp(new Date());
+  var entry = {ts:ts, name:name, mobile:mob, type:type, activity:activity, notes:notes||''};
+  activityLog.push(entry);
+  saveActivityLog();
+  // Push to ACTIVITY_LOG sheet
+  if(hasScript()){
+    var row = [ts, name, mob, type.toUpperCase(), activity, notes||''];
+    var payload = encodeURIComponent(JSON.stringify({action:'appendLog', row:row}));
+    fetch(cfg_.scriptUrl+'?payload='+payload+'&t='+Date.now(), {method:'GET', mode:'no-cors'})
+      .catch(function(){});
+  }
+}
+
+// Get activity history for a mobile number (local + optional sheet pull)
+function getActivity(mob){
+  return activityLog.filter(function(e){return e.mobile===mob;});
+}
+
+async function pullActivityLog(){
+  if(!hasScript()) return;
+  try{
+    var d = await scriptGet('ACTIVITY_LOG');
+    if(d && d.rows && d.rows.length > 1){
+      // rows[0] is header, rows[1+] are entries
+      activityLog = d.rows.slice(1).map(function(r){
+        return {ts:r[0]||'',name:r[1]||'',mobile:r[2]||'',type:r[3]||'LEAD',activity:r[4]||'',notes:r[5]||''};
+      });
+      saveActivityLog();
+    }
+  }catch(e){ console.warn('pullActivityLog:', e.message); }
+}
+
+// ── NEW LEADS COLUMNS (v1.7): 13 columns ──
+// Name(0) Mobile(1) Email(2) Age(3) Status(4) Source(5)
+// Referred By(6) AUM/SIP(7) Next Follow-up(8) Products(9) Remarks(10)
+// Modified Date(11) Created Date(12)
+function leadsRows(){
+  var hdr=['Name','Mobile','Email','Age','Status','Source','Referred By',
+           'Estimated AUM/SIP','Next Follow-up','Investment Products','Remarks',
+           'Modified Date','Created Date'];
+  return [hdr].concat(leads.map(function(l){
+    return [
+      l.name||'', l.mobile||'', l.email||'', l.age||'',
+      l.status||'', l.source||'', l.referral||'',
+      l.aum||'', l.nextFollowUp||'', l.products||'', l.remarks||'',
+      l.modifiedDate?l.modifiedDate.split('T')[0]:'',
+      l.createdDate?l.createdDate.split('T')[0]:''
+    ];
+  }));
+}
+
+// ── PULL FROM SHEET v1.7 (header-based, new columns) ──
+async function pullFromSheet(manual){
+  if(!hasScript()){if(manual)showSyncMsg('Add Apps Script URL first.',false);return;}
+  if(syncInProgress)return;
+  syncInProgress=true; setSyncBanner('syncing'); setTopSync('syncing','Syncing...');
+  if(manual)toast('Syncing...',3000);
+  try{
+    // Pull LEADS
+    var ld=await scriptGet('LEADS');
+    if(ld&&ld.rows&&ld.rows.length>1){
+      var hdr=ld.rows[0].map(function(h){return (h||'').toLowerCase().trim();});
+      var ci=function(keys){
+        for(var ki=0;ki<keys.length;ki++)
+          for(var hi=0;hi<hdr.length;hi++)
+            if(hdr[hi].includes(keys[ki])) return hi;
+        return -1;
+      };
+      var C={
+        name:ci(['name']), mob:ci(['mobile','phone']), email:ci(['email']),
+        age:ci(['age']), status:ci(['status']), source:ci(['source']),
+        ref:ci(['referred','referral']), aum:ci(['aum','sip','estimated']),
+        fu:ci(['follow']), prod:ci(['product','investment']),
+        rem:ci(['remark','note']), mod:ci(['modified']), created:ci(['created'])
+      };
+      function g(r,k,fb){var i=C[k]>=0?C[k]:fb;return i>=0&&i<r.length?String(r[i]||''):'';}
+      ld.rows.slice(1).forEach(function(r){
+        var mob=g(r,'mob',1).trim(); if(!mob)return;
+        var fu=g(r,'fu',8);
+        if(fu&&!/^\d{4}-\d{2}-\d{2}$/.test(fu)) fu='';
+        var obj={
+          name:caps(g(r,'name',0)), mobile:mob,
+          email:g(r,'email',2), age:g(r,'age',3),
+          status:caps(g(r,'status',4))||'PROSPECT',
+          source:caps(g(r,'source',5)),
+          referral:g(r,'ref',6),
+          aum:g(r,'aum',7),
+          nextFollowUp:fu,
+          products:caps(g(r,'prod',9)),
+          remarks:g(r,'rem',10),
+          modifiedDate:g(r,'mod',11)||today(),
+          createdDate:g(r,'created',12)||today()
+        };
+        var idx=leads.findIndex(function(l){return l.mobile===mob;});
+        if(idx>=0) leads[idx]=Object.assign({},leads[idx],obj);
+        else leads.push(Object.assign({notes:[]},obj));
+      });
+      saveL();
+    }
+    // Pull CLIENTS
+    var cd=await scriptGet('CLIENTS');
+    if(cd&&cd.rows&&cd.rows.length>1){
+      var chdr=cd.rows[0].map(function(h){return (h||'').toLowerCase().trim();});
+      var cci=function(keys){for(var ki=0;ki<keys.length;ki++)for(var hi=0;hi<chdr.length;hi++)if(chdr[hi].includes(keys[ki]))return hi;return -1;};
+      var CC={name:cci(['name']),mob:cci(['mobile']),email:cci(['email']),country:cci(['country']),age:cci(['age']),gender:cci(['gender']),pan:cci(['pan']),prod:cci(['product']),rem:cci(['remark']),conv:cci(['converted'])};
+      function gc(r,k,fb){var i=CC[k]>=0?CC[k]:fb;return i>=0&&i<r.length?String(r[i]||''):'';}
+      cd.rows.slice(1).forEach(function(r){
+        var mob=gc(r,'mob',1).trim();if(!mob)return;
+        var obj={name:caps(gc(r,'name',0)),mobile:mob,email:gc(r,'email',2),country:caps(gc(r,'country',3)),age:gc(r,'age',4),gender:caps(gc(r,'gender',5)),pan:caps(gc(r,'pan',6)),products:caps(gc(r,'prod',7)),remarks:gc(r,'rem',8),convertedDate:gc(r,'conv',9)};
+        var idx2=clients.findIndex(function(c){return c.mobile===mob;});
+        if(idx2>=0) clients[idx2]=Object.assign({},clients[idx2],obj);
+        else clients.push(obj);
+      });
+      saveC();
+    }
+    // Pull Activity Log
+    await pullActivityLog();
+    cfg_.lastPull=now(); saveCfg();
+    var ts=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+    setSyncBanner('ok'); setTopSync('ok','Synced '+ts+' - '+leads.length+' leads');
+    renderAll();
+    if(manual)showSyncMsg('Synced: '+leads.length+' leads, '+clients.length+' clients',true);
+  }catch(err){
+    setSyncBanner('err'); setTopSync('err','Sync failed');
+    if(manual)showSyncMsg('Error: '+err.message,false);
+    console.warn('pullFromSheet:', err.message);
+  }finally{syncInProgress=false;}
+}
+
+// ── ACTIVITY LOG DISPLAY (replaces renderCommLog) ──
+function buildHistoryHtml(mob, type){
+  var entries = getActivity(mob);
+  // Also check remarks for legacy data
+  var rec = type==='client'
+    ? clients.find(function(x){return x.mobile===mob;})
+    : leads.find(function(x){return x.mobile===mob;});
+  // Parse legacy remarks into activity entries for display
+  var legacyEntries = [];
+  if(rec && rec.remarks){
+    var lines = rec.remarks.trim().split('\n').filter(function(l){return l.trim();});
+    lines.forEach(function(line){
+      var mm = line.match(/^\[(\d{2}\/\d{2}\/\d{4}(?:\s\d{2}:\d{2})?)\]\s*(.*)$/);
+      if(mm) legacyEntries.push({ts:mm[1], activity:mm[2], notes:'', isLegacy:true});
+    });
+  }
+  // Combine: activity log entries first, then legacy
+  var allEntries = entries.concat(legacyEntries);
+  // Sort chronologically (oldest first)
+  allEntries.sort(function(a,b){ return (a.ts||'').localeCompare(b.ts||''); });
+  if(!allEntries.length) return '<div style="color:var(--t3);font-size:12px;padding:10px 0;text-align:center">No activity yet. Log your first interaction below.</div>';
+  return allEntries.map(function(e,idx){
+    var txt=e.activity+(e.notes?' — '+e.notes:'');
+    var lo=(txt||'').toLowerCase();
+    var ico=lo.includes('whatsapp')?'💬':lo.includes('call')?'📞':lo.includes('meet')?'📹':lo.includes('visit')?'🏢':lo.includes('proposal')?'📄':lo.includes('brochure')?'📋':lo.includes('status')||lo.includes('→')?'🔄':lo.includes('follow-up')||lo.includes('followup')?'📅':lo.includes('created')?'⭐':'📝';
+    return '<div style="padding:6px 0;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:8px">'
+      +'<div style="flex:1">'
+      +'<div style="font-size:10px;font-weight:700;color:var(--accent)">'+ico+' '+e.ts+'</div>'
+      +'<div style="font-size:12px;color:var(--text);margin-top:2px">'+txt+'</div>'
+      +'</div>'
+      +(e.isLegacy?''
+        :'<button onclick="deleteActivityEntry(\''+mob+'\',\''+e.ts+'\')" style="background:none;border:none;cursor:pointer;color:var(--t3);font-size:15px;padding:2px 4px;flex-shrink:0" title="Delete">×</button>')
+      +'</div>';
+  }).join('');
+}
+
+function deleteActivityEntry(mob, ts){
+  if(!confirm('Delete this activity entry?'))return;
+  activityLog = activityLog.filter(function(e){return !(e.mobile===mob && e.ts===ts);});
+  saveActivityLog();
+  // Refresh open panel
+  var el=document.getElementById('fu-hist-'+mob)||document.getElementById('comm-log-'+mob);
+  var type=_detailOpenType||'lead';
+  if(el) el.innerHTML=buildHistoryHtml(mob,type);
+  toast('Entry deleted');
+}
+
+// ── NEW CHIPS (v1.7) ──
+var V17_CHIPS = [
+  ['📋','Brochure Send'],
+  ['💬','WhatsApp msg Send'],
+  ['📵','Called - not picking'],
+  ['🔄','Will call back'],
+  ['📵','Called twice no reply'],
+  ['📄','Proposal to be send'],
+  ['🤝','Will meet one day'],
+  ['🏢','Will visit office']
+];
+
+function chipHtml(mob){
+  return V17_CHIPS.map(function(c){
+    return '<div class="qlog-chip" style="padding:5px 9px;font-size:11px" data-action="fu-qlog" data-mob="'+mob+'" data-note="'+c[0]+' '+c[1]+'">'+c[0]+' '+c[1]+'</div>';
+  }).join('');
+}
+
+// ── SAVE FOLLOW-UP DATE with activity log entry ──
+function saveFuDateV17(mob, newDate){
+  if(!newDate||!/^\d{4}-\d{2}-\d{2}$/.test(newDate)){toast('Pick a valid date');return;}
+  // Check 15 per day limit
+  var sameDay=leads.filter(function(x){return x.nextFollowUp===newDate&&x.mobile!==mob;}).length;
+  if(sameDay>=15){toast('Already 15 leads on '+fmt(newDate)+'! Postpone.',4000);return;}
+  var l=leads.find(function(x){return x.mobile===mob;});if(!l)return;
+  var oldDate=l.nextFollowUp||'';
+  // Log to activity
+  var logMsg='Follow-up date '+(oldDate?'changed: '+fmt(oldDate)+' → '+fmt(newDate):'set to '+fmt(newDate));
+  logActivity(mob,'lead',logMsg,'');
+  // Update lead
+  l.nextFollowUp=newDate;
+  l.modifiedDate=now();
+  saveL(); pushLeads();
+  toast('Follow-up set: '+fmt(newDate));
+  // Re-render detail panel
+  if(_detailOpenMobile===mob) renderFuDetailInner(mob);
+  setTimeout(function(){renderFU();},300);
+}
+
+// ── OVERRIDE renderFuDetailInner (v1.7 unified popup) ──
+function renderFuDetailInner(mob){
+  var l=leads.find(function(x){return x.mobile===mob;});if(!l)return;
+  var d=daysAgo(l.modifiedDate||l.createdDate);
+  var defNext=(function(){var dn=new Date();dn.setDate(dn.getDate()+7);return dn.toISOString().split('T')[0];})();
+  var hasCurrent=!!(l.nextFollowUp&&/^\d{4}-\d{2}-\d{2}$/.test(l.nextFollowUp));
+  var fuDays=hasCurrent?daysUntil(l.nextFollowUp):null;
+  var fuLabel=hasCurrent?(fuDays<0?Math.abs(fuDays)+' days overdue':fuDays===0?'Due today':fuDays+' days away'):'Not set';
+  var fuColor=!hasCurrent?'var(--t3)':fuDays<=0?'var(--accent)':fuDays<=3?'#AAA':'#888';
+
+  // Score
+  var sc=leadScore(l); var heat=leadHeat(sc);
+  var ref=(l.referral||'').toUpperCase().trim();
+  var age=parseInt(l.age||0);
+  var country=(l.country||l.aum||'').toUpperCase();
+  var rem=(l.remarks||'').toUpperCase();
+  var aum_sc=AUM_SCORE_MAP[l.aum||'']||0;
+
+  var scoreHtml='<div style="display:flex;align-items:center;gap:10px;margin:10px 14px 0">'
+    +'<div style="flex:1;background:'+heat.color+'14;border:1px solid '+heat.color+'30;border-radius:var(--r);padding:10px 12px">'
+    +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
+    +'<span style="font-size:20px">'+heat.emoji+'</span>'
+    +'<div><div style="font-size:14px;font-weight:900;color:'+heat.color+'">'+heat.label+' Lead</div>'
+    +'<div style="font-size:11px;color:'+heat.color+'">'+sc+' pts'+(l.aum?' · '+l.aum:'')+'</div></div>'
+    +'</div>'
+    +'<div style="display:flex;flex-wrap:wrap;gap:3px">'
+    +(ref&&ref!=='SELF'?'<span style="font-size:9px;background:var(--s2);color:var(--t2);border-radius:999px;padding:2px 7px;border:1px solid var(--border)">Referral +30</span>':'')
+    +(age>=35&&age<=55?'<span style="font-size:9px;background:var(--s2);color:var(--t2);border-radius:999px;padding:2px 7px;border:1px solid var(--border)">Age 35-55 +15</span>':'')
+    +(aum_sc>0?'<span style="font-size:9px;background:var(--s2);color:var(--t2);border-radius:999px;padding:2px 7px;border:1px solid var(--border)">AUM +'+aum_sc+'</span>':'')
+    +(sc===0?'<span style="font-size:9px;color:var(--t3)">No qualifying factors yet</span>':'')
+    +'</div></div></div>';
+
+  // Activity history
+  var histHtml=buildHistoryHtml(mob,'lead');
+
+  // Date shortcuts — Tmrw, 3D, 10D, 2WK, 1M, 2M, 3M
+  var shortcuts=[['Tmrw',1],['3D',3],['10D',10],['2WK',14],['1M',30],['2M',60],['3M',90]];
+  var shortHtml='<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:8px">'
+    +shortcuts.map(function(x){
+      var ds=new Date();ds.setDate(ds.getDate()+x[1]);
+      var val=ds.toISOString().split('T')[0];
+      // Use onclick directly with the mob variable baked in to avoid data-mob issue
+      return '<button class="btn btn-ghost" style="padding:5px 9px;font-size:11px" onclick="document.getElementById(\'fnd-'+mob+'\').value=\''+val+'\'">'
+        +x[0]+'</button>';
+    }).join('')+'</div>';
+
+  // Status tabs
+  var statusOpts=[['PROSPECT','#777'],['CONTACTED','#999'],['IN PROGRESS','#BBB'],['CONVERTED','var(--accent)'],['DROPPED','#555']];
+  var statusHtml='<div style="display:flex;overflow-x:auto;scrollbar-width:none;border-bottom:2px solid var(--border);padding:0 14px">'
+    +statusOpts.map(function(x){
+      var active=(l.status||'').toUpperCase()===x[0];
+      return '<button style="flex-shrink:0;border:none;padding:9px 10px;font-size:10px;font-weight:700;cursor:pointer;border-bottom:2px solid '+(active?x[1]:'transparent')+';margin-bottom:-2px;background:transparent;color:'+(active?x[1]:'var(--t3)')+';transition:all .15s" data-action="fu-status" data-mob="'+mob+'" data-status="'+x[0]+'">'+x[0].charAt(0)+x[0].slice(1).toLowerCase()+'</button>';
+    }).join('')+'</div>';
+
+  // Contact buttons
+  var digits=(l.mobile||'').replace(/\D/g,'');
+  var waNum=digits.length===10?'91'+digits:digits;
+  var wmsg=encodeURIComponent(waMsg(l));
+  var meetTitle=encodeURIComponent('Meeting: '+toTitle(l.name)+' - Wealth Matrix');
+  var ms2=new Date();ms2.setDate(ms2.getDate()+1);ms2.setHours(10,0,0,0);
+  var me2=new Date(ms2.getTime()+3600000);
+  var fcc=function(dd){return dd.toISOString().replace(/[-:]/g,'').split('.')[0]+'Z';};
+  var meetUrl='https://calendar.google.com/calendar/render?action=TEMPLATE&text='+meetTitle+'&dates='+fcc(ms2)+'/'+fcc(me2)+'&add=meet';
+
+  var html=
+    '<div class="sh-handle"></div>'
+    +'<div style="padding:12px 14px 8px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)">'
+    +'<div><div style="font-size:16px;font-weight:800">'+toTitle(l.name)+'</div>'
+    +'<div style="font-size:10px;color:var(--accent);font-weight:700;margin-top:2px">'+d+' days since last activity</div></div>'
+    +'<button class="sh-x" onclick="checkUnsavedNoteAndClose()">✕</button></div>'
+    +statusHtml
+    +scoreHtml
+    // Contact buttons
+    +'<div style="display:flex;gap:5px;padding:10px 14px 0">'
+    +'<a href="whatsapp://send?phone='+waNum+'&text='+wmsg+'" class="btn btn-wa" style="flex:1;text-decoration:none;font-size:10px;padding:7px 3px;justify-content:center;gap:3px" data-action="fu-wa-app" data-mob="'+mob+'">'+waIcon()+' App</a>'
+    +'<a href="https://web.whatsapp.com/send?phone='+waNum+'&text='+wmsg+'" target="_blank" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:10px;padding:7px 3px;justify-content:center;gap:3px;border-color:#25D366;color:#25D366">'+waIcon()+' Web</a>'
+    +'<a href="tel:'+l.mobile+'" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:10px;padding:7px 3px;justify-content:center" data-action="fu-call" data-mob="'+mob+'">📞 Call</a>'
+    +'<a href="botim://call/'+digits+'" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:10px;padding:7px 3px;justify-content:center">📱 Botim</a>'
+    +'<a href="'+meetUrl+'" target="_blank" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:10px;padding:7px 3px;justify-content:center" data-action="fu-meet" data-mob="'+mob+'">📹 Meet</a>'
+    +'</div>'
+    // Follow-up date
+    +'<div style="margin:10px 14px 0;border:1px solid var(--border);border-radius:var(--r);overflow:hidden">'
+    +'<div style="background:var(--s2);padding:10px 12px;border-bottom:1px solid var(--border)">'
+    +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin-bottom:4px">📅 Current follow-up date</div>'
+    +'<div style="font-size:18px;font-weight:900;color:'+fuColor+'">'+(hasCurrent?fmt(l.nextFollowUp):'Not set')+'</div>'
+    +'<div style="font-size:11px;color:'+fuColor+';margin-top:2px;font-weight:600">'+fuLabel+'</div>'
+    +'</div>'
+    +'<div style="background:var(--s1);padding:10px 12px">'
+    +'<div style="font-size:10px;font-weight:700;color:var(--t3);margin-bottom:7px">Set new date</div>'
+    +'<div style="display:flex;gap:6px">'
+    +'<input type="date" id="fnd-'+mob+'" class="fi" value="'+defNext+'" style="flex:1;padding:9px 11px;font-size:14px;font-weight:700;color:var(--text);background:var(--bg)">'
+    +'<button class="btn btn-gold" style="padding:9px 14px;font-size:12px;flex-shrink:0;font-weight:700" onclick="saveFuDateV17(\''+mob+'\',document.getElementById(\'fnd-'+mob+'\').value)">💾 Save</button>'
+    +'</div>'
+    +shortHtml
+    +'</div></div>'
+    // Activity log
+    +'<div style="padding:10px 14px 0">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">'
+    +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3)">📋 Activity log <span style="font-weight:400;font-size:9px;text-transform:none">(oldest→newest · × to delete)</span></div>'
+    +'</div>'
+    +'<div id="fu-hist-'+mob+'" style="max-height:160px;overflow-y:auto;background:var(--bg);border:1px solid var(--border);border-radius:var(--r2);padding:8px 10px">'+histHtml+'</div>'
+    +'</div>'
+    // Log now
+    +'<div style="padding:10px 14px 0">'
+    +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin-bottom:7px">⚡ Log now</div>'
+    +'<div class="qlog-grid" style="margin-bottom:8px">'+chipHtml(mob)+'</div>'
+    +'<div style="display:flex;gap:6px">'
+    +'<input class="fi" id="fu-note-input-'+mob+'" placeholder="Custom note..." style="flex:1;padding:8px 10px;font-size:13px;background:var(--bg)">'
+    +'<button class="btn btn-gold" style="padding:8px 12px;font-size:12px;flex-shrink:0" data-action="fu-save-note" data-mob="'+mob+'">Log →</button>'
+    +'</div></div>'
+    // Delete
+    +'<div style="padding:10px 14px 20px">'
+    +'<button class="btn btn-red" style="width:100%;font-size:12px" data-action="fu-delete" data-mob="'+mob+'">🗑️ Delete this lead</button>'
+    +'</div>';
+
+  document.getElementById('fu-detail-sh').innerHTML=html;
+  var histEl=document.getElementById('fu-hist-'+mob);
+  if(histEl) histEl.scrollTop=histEl.scrollHeight;
+
+  // Event delegation
+  document.getElementById('fu-detail-sh').onclick=function(e){
+    var btn=e.target.closest('[data-action]');if(!btn)return;
+    var action=btn.dataset.action;var m=btn.dataset.mob;
+    if(action==='fu-wa-app'){
+      bumpM(m);_detailModified=true;
+      logActivity(m,'lead','WhatsApp sent','');
+      setTimeout(function(){var el=document.getElementById('fu-hist-'+m);if(el){el.innerHTML=buildHistoryHtml(m,'lead');el.scrollTop=el.scrollHeight;}},400);
+    }
+    if(action==='fu-call'){
+      bumpM(m);_detailModified=true;
+      logActivity(m,'lead','Called','');
+      setTimeout(function(){var el=document.getElementById('fu-hist-'+m);if(el){el.innerHTML=buildHistoryHtml(m,'lead');el.scrollTop=el.scrollHeight;}},400);
+    }
+    if(action==='fu-meet'){
+      logActivity(m,'lead','Google Meet scheduled','');_detailModified=true;
+      setTimeout(function(){var el=document.getElementById('fu-hist-'+m);if(el){el.innerHTML=buildHistoryHtml(m,'lead');el.scrollTop=el.scrollHeight;}},400);
+    }
+    if(action==='fu-qlog'){
+      var note=btn.dataset.note;
+      logActivity(m,'lead',note,'');_detailModified=true;
+      btn.style.background='var(--accent)';btn.style.color='#fff';btn.style.borderColor='var(--accent)';
+      setTimeout(function(){btn.style.background='';btn.style.color='';btn.style.borderColor='';},900);
+      setTimeout(function(){var el=document.getElementById('fu-hist-'+m);if(el){el.innerHTML=buildHistoryHtml(m,'lead');el.scrollTop=el.scrollHeight;}},350);
+    }
+    if(action==='fu-save-note'){
+      var inp=document.getElementById('fu-note-input-'+m);
+      var txt=(inp?inp.value:'').trim();if(!txt){toast('Type a note first');return;}
+      logActivity(m,'lead',txt,'');_detailModified=true;
+      if(inp)inp.value='';
+      var l2=leads.find(function(x){return x.mobile===m;});
+      if(l2){l2.modifiedDate=now();saveL();pushLeads();}
+      setTimeout(function(){var el=document.getElementById('fu-hist-'+m);if(el){el.innerHTML=buildHistoryHtml(m,'lead');el.scrollTop=el.scrollHeight;}},350);
+    }
+    if(action==='fu-status') quickStatus(m,btn.dataset.status);
+    if(action==='fu-delete'){
+      var ln=leads.find(function(x){return x.mobile===m;});
+      if(ln&&confirm('Delete '+toTitle(ln.name)+'?')){deleteLead(m);closeFuDetail();}
+    }
+  };
+}
+
+// ── BOOTSEQUENCE v1.7 (load activity log on startup) ──
+async function bootSequenceV17(){
+  loadActivityLog();
+  renderAll();updateFUBadge();scheduleNotifications();
+  if(!hasScript()){setTopSync('idle','Not synced - add Apps Script URL in Sync tab');setSyncBanner('idle');return;}
+  setTopSync('syncing','Syncing on startup...');
+  await new Promise(function(res){setTimeout(res,300);});
+  try{
+    syncInProgress=true;
+    // Pull LEADS
+    var ld=await scriptGet('LEADS');
+    if(ld&&ld.rows&&ld.rows.length>1){
+      var hdr=ld.rows[0].map(function(h){return (h||'').toLowerCase().trim();});
+      var ci=function(keys){for(var ki=0;ki<keys.length;ki++)for(var hi=0;hi<hdr.length;hi++)if(hdr[hi].includes(keys[ki]))return hi;return -1;};
+      var C={name:ci(['name']),mob:ci(['mobile','phone']),email:ci(['email']),age:ci(['age']),status:ci(['status']),source:ci(['source']),ref:ci(['referred','referral']),aum:ci(['aum','sip','estimated']),fu:ci(['follow']),prod:ci(['product','investment']),rem:ci(['remark','note']),mod:ci(['modified']),created:ci(['created'])};
+      function g(r,k,fb){var i=C[k]>=0?C[k]:fb;return i>=0&&i<r.length?String(r[i]||''):'';}
+      ld.rows.slice(1).forEach(function(r){
+        var mob=g(r,'mob',1).trim();if(!mob)return;
+        var fu=g(r,'fu',8);if(fu&&!/^\d{4}-\d{2}-\d{2}$/.test(fu))fu='';
+        var obj={name:caps(g(r,'name',0)),mobile:mob,email:g(r,'email',2),age:g(r,'age',3),status:caps(g(r,'status',4))||'PROSPECT',source:caps(g(r,'source',5)),referral:g(r,'ref',6),aum:g(r,'aum',7),nextFollowUp:fu,products:caps(g(r,'prod',9)),remarks:g(r,'rem',10),modifiedDate:g(r,'mod',11)||today(),createdDate:g(r,'created',12)||today()};
+        var idx=leads.findIndex(function(l){return l.mobile===mob;});
+        if(idx>=0)leads[idx]=Object.assign({},leads[idx],obj);
+        else leads.push(Object.assign({notes:[]},obj));
+      });saveL();
+    }
+    // Pull CLIENTS
+    var cd=await scriptGet('CLIENTS');
+    if(cd&&cd.rows&&cd.rows.length>1){
+      var chdr=cd.rows[0].map(function(h){return (h||'').toLowerCase().trim();});
+      var cci=function(keys){for(var ki=0;ki<keys.length;ki++)for(var hi=0;hi<chdr.length;hi++)if(chdr[hi].includes(keys[ki]))return hi;return -1;};
+      var CC={name:cci(['name']),mob:cci(['mobile']),email:cci(['email']),country:cci(['country']),age:cci(['age']),gender:cci(['gender']),pan:cci(['pan']),prod:cci(['product']),rem:cci(['remark']),conv:cci(['converted'])};
+      function gcc(r,k,fb){var i=CC[k]>=0?CC[k]:fb;return i>=0&&i<r.length?String(r[i]||''):'';}
+      cd.rows.slice(1).forEach(function(r){var mob=gcc(r,'mob',1).trim();if(!mob)return;var obj={name:caps(gcc(r,'name',0)),mobile:mob,email:gcc(r,'email',2),country:caps(gcc(r,'country',3)),age:gcc(r,'age',4),gender:caps(gcc(r,'gender',5)),pan:caps(gcc(r,'pan',6)),products:caps(gcc(r,'prod',7)),remarks:gcc(r,'rem',8),convertedDate:gcc(r,'conv',9)};var idx2=clients.findIndex(function(c){return c.mobile===mob;});if(idx2>=0)clients[idx2]=Object.assign({},clients[idx2],obj);else clients.push(obj);});saveC();
+    }
+    // Pull Activity Log
+    await pullActivityLog();
+    cfg_.lastPull=now();saveCfg();
+    var ts=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+    setTopSync('ok','Synced '+ts+' - '+leads.length+' leads');setSyncBanner('ok');
+    renderAll();updateFUBadge();
+  }catch(err){
+    setTopSync('err','Startup sync failed - tap sync');setSyncBanner('err');
+    console.warn('Boot sync:',err.message);
+  }finally{syncInProgress=false;}
+}
+
+// Version marker
+var APP_VERSION='1.7';
+
+
+load();applyDarkMode();loadActivityLog();bootSequenceV17();
 
 </script>
 </body>
