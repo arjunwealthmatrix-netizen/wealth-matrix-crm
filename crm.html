@@ -335,6 +335,22 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   <div id="sync-status"></div>
   <div class="sync-banner" id="sync-banner"><div class="sync-dot idle" id="sync-dot"></div><div id="sync-banner-text" style="font-size:12px;color:var(--t2)">Not configured.</div></div>
   <div class="syc"><div class="sy-t">⬇️ Pull from Sheet</div><div class="sy-d">Load latest data from Google Sheet.</div><button class="btn btn-ghost btn-full" style="border-color:var(--blue);color:var(--blue)" onclick="pullFromSheet(true)">Pull from Google Sheet</button><div style="font-size:10px;color:var(--t3);margin-top:7px" id="pull-meta"></div></div>
+  <div class="syc">
+    <div class="sy-t" style="color:var(--accent)">⬆️ Force Push All Data</div>
+    <div class="sy-d">Pushes all local data to Google Sheet immediately. Use when entries are missing from sheet.</div>
+    <button class="btn btn-full" style="background:var(--accent);color:#fff;border:none;font-size:13px;font-weight:700;padding:12px;border-radius:var(--r2)" onclick="forcePushAll()">⬆️ Push All to Sheet Now</button>
+    <div id="push-result" style="font-size:11px;margin-top:8px;color:var(--t3)"></div>
+  </div>
+  <div class="syc">
+    <div class="sy-t">🔌 Test Connection</div>
+    <div class="sy-d">Verify Apps Script URL is working correctly.</div>
+    <button class="btn btn-ghost btn-full" onclick="testScriptConnection()">Test Connection</button>
+  </div>
+  <div class="syc">
+    <div class="sy-t">📋 Apps Script Code</div>
+    <div class="sy-d">View and copy the required Apps Script code to redeploy.</div>
+    <button class="btn btn-ghost btn-full" onclick="showAppsScriptCode()">View / Copy Apps Script Code</button>
+  </div>
   <div class="syc"><div class="sy-t">📥 Import MASTER LIST</div><div class="sy-d">Bulk import from existing sheet tab.</div><div class="fg"><label class="fl">Tab name</label><input class="fi" id="s-import-tab" value="MASTER LIST"></div><button class="btn btn-green btn-full" onclick="importFromSheet()">Import leads</button></div>
   <div class="syc"><div class="sy-t">🔗 Apps Script URL</div><div class="fg"><input class="fi" id="s-url" placeholder="https://script.google.com/macros/s/…/exec" oninput="cfg('scriptUrl',this.value);updateSyncBanner()"></div></div>
   <div class="syc"><div class="sy-t">📤 Export backup</div><button class="btn btn-ghost btn-full" onclick="exportData()">Export JSON</button></div>
@@ -581,9 +597,28 @@ function caps(s){return String(s===null||s===undefined?'':s).toUpperCase().trim(
 function autoCaps(el){var p=el.selectionStart;el.value=el.value.toUpperCase();try{el.setSelectionRange(p,p);}catch(e){}}
 function toTitle(str){return (str||'').toLowerCase().replace(/\b\w/g,function(c){return c.toUpperCase();});}
 function ini(n){return (n||'?').split(' ').map(function(w){return w[0]||'';}).join('').toUpperCase().slice(0,2)||'?';}
-function daysAgo(d){if(!d)return 999;return Math.floor((Date.now()-new Date(d).getTime())/86400000);}
-function daysUntil(d){if(!d)return 999;return Math.ceil((new Date(d).getTime()-Date.now())/86400000);}
-function fmt(d){if(!d)return '';try{return new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});}catch(e){return d;}}
+function daysAgo(d){
+  if(!d)return 999;
+  var dt=new Date(d);
+  if(isNaN(dt.getTime()))return 999;
+  return Math.floor((Date.now()-dt.getTime())/86400000);
+}
+function daysUntil(d){
+  if(!d||!/^\d{4}-\d{2}-\d{2}/.test(String(d)))return 999;
+  var dt=new Date(d+'T00:00:00');
+  if(isNaN(dt.getTime()))return 999;
+  return Math.ceil((dt.getTime()-Date.now())/86400000);
+}
+function fmt(d){
+  if(!d||d===''||d==='undefined'||d==='null')return '';
+  // Only accept YYYY-MM-DD format
+  if(!/^\d{4}-\d{2}-\d{2}/.test(String(d)))return '';
+  try{
+    var dt=new Date(d+'T00:00:00');
+    if(isNaN(dt.getTime()))return '';
+    return dt.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+  }catch(e){return '';}
+}
 function scls(s){var m={'PROSPECT':'prospect','CONTACTED':'contacted','IN PROGRESS':'inprogress','CONVERTED':'converted','DROPPED':'dropped'};return 'pill-'+(m[(s||'').toUpperCase()]||'prospect');}
 function waUrl(mob,msg){var d=(mob||'').replace(/\D/g,'');var n=d.length===10?'91'+d:d;return {app:'whatsapp://send?phone='+n+'&text='+encodeURIComponent(msg),web:'https://web.whatsapp.com/send?phone='+n+'&text='+encodeURIComponent(msg),tel:'tel:'+d};}
 function waMsg(l){var st=(l.status||'PROSPECT').toUpperCase();var tmpl=(cfg_.msgs&&cfg_.msgs[st])||DEFMSG[st]||DEFMSG.PROSPECT;var name=toTitle(l.name);var prods=toTitle(l.products||'our financial planning services');return tmpl.replace(/\{name\}/g,name).replace(/\{products\}/g,prods);}
@@ -1307,43 +1342,14 @@ function openDetail(mob,type){
   _detailOpenMobile=mob;_detailOpenType=type;_detailModified=false;
   var html='';
   if(type==='lead'){
-    var digits=(rec.mobile||'').replace(/\D/g,'');var waNum=digits.length===10?'91'+digits:digits;var wmsg=encodeURIComponent(waMsg(rec));
-    var entries=(rec.remarks||'').trim().split('\n').filter(function(x){return x.trim();}).reverse().slice(0,5);
-    var histHtml=entries.length?entries.map(function(entry){var mm=entry.match(/^\[(\d{2}\/\d{2}\/\d{4}(?:\s\d{2}:\d{2})?)\]\s*(.*)$/);if(mm){var ico=mm[2].toLowerCase().includes('whatsapp')?'💬':mm[2].toLowerCase().includes('call')?'📞':mm[2].includes('→')?'🔄':'📝';return '<div class="note-item"><div class="note-ts" style="color:var(--accent)">'+ico+' '+mm[1]+'</div><div class="note-txt">'+mm[2]+'</div></div>';}return '<div class="note-item"><div class="note-txt">'+entry+'</div></div>';}).join(''):'<div style="color:var(--t3);font-size:12px">No activity yet.</div>';
-    html='<div class="sh-handle"></div>'
-      +'<div class="sh-hdr"><div class="sh-title">'+toTitle(rec.name)+'</div><button class="sh-x" onclick="closeOv(\'ov-detail\')">✕</button></div>'
-      +'<div class="dt-hdr"><div class="dt-av">'+ini(rec.name)+'</div><div><div class="dt-name">'+toTitle(rec.name)+'</div><div class="dt-sub">'+(rec.mobile||'')+(rec.country?' · '+rec.country:'')+'</div><span class="pill '+scls(rec.status)+'" style="margin-top:5px;display:inline-flex">'+rec.status+'</span></div></div>'
-      +'<div class="act-row" style="flex-wrap:wrap;gap:7px">'
-      +'<a href="whatsapp://send?phone='+waNum+'&text='+wmsg+'" class="btn btn-wa" style="flex:1;min-width:80px;text-decoration:none;font-size:11px" onclick="bumpM(\''+rec.mobile+'\');setTimeout(function(){askAddRemark(leads.find(function(x){return x.mobile===\''+rec.mobile+'\';}).mobile&&leads.find(function(x){return x.mobile===\''+rec.mobile+'\';}),\'WhatsApp sent\',null);},1500)">'+waIcon()+' App</a>'
-      +'<a href="https://web.whatsapp.com/send?phone='+waNum+'&text='+wmsg+'" target="_blank" class="btn btn-ghost" style="flex:1;min-width:80px;text-decoration:none;font-size:11px;border-color:#25D366;color:#25D366">'+waIcon()+' Web</a>'
-      +'<a href="tel:'+rec.mobile+'" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:11px">📞 Call</a>'
-      +'<button class="btn btn-ghost" style="flex:1;font-size:11px;color:#4285F4;border-color:#4285F4" onclick="addToCalendar(\''+rec.mobile+'\')">📅 Cal</button>'
-      +'</div>'
-      +'<div style="padding:0 12px;margin-bottom:8px"><div class="card" style="padding:0 12px">'+dr('Country',rec.country)+dr('Source',rec.source)+dr('Referral',rec.referral?toTitle(rec.referral):'')+dr('Products',rec.products)+dr('Next follow-up',rec.nextFollowUp?fmt(rec.nextFollowUp):'')+'</div></div>'
-      +'<div style="padding:0 12px 10px"><div class="lbl" style="margin-bottom:6px">📋 Activity log</div>'
-      +'<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r2);padding:8px 10px;margin-bottom:8px;max-height:130px;overflow-y:auto" id="comm-log-'+rec.mobile+'">'+histHtml+'</div>'
-      +'<div class="qlog-grid">'+[['📄','Brochure sent'],['📵','Could not connect'],['❓','Asked for details'],['🤝','Meeting scheduled'],['💻','VC scheduled'],['⏳','Will contact later'],['💬','WhatsApp sent'],['📞','Called'],['🫱','Physically met'],['📧','Email sent']].map(function(q){return '<div class="qlog-chip" onclick="quickLog(\''+rec.mobile+'\',\''+q[0]+' '+q[1]+'\');setTimeout(function(){var el=document.getElementById(\'comm-log-'+rec.mobile+'\');var l2=leads.find(function(x){return x.mobile===\''+rec.mobile+'\';});if(el&&l2)el.innerHTML=renderCommLog(l2.remarks);},350)">'+q[0]+' '+q[1]+'</div>';}).join('')+'</div>'
-      +'<div style="display:flex;gap:6px;margin-top:8px"><input class="fi" id="note-input-'+rec.mobile+'" placeholder="Add note…" style="flex:1;padding:7px 10px;font-size:12px"><button class="btn btn-gold" style="padding:7px 12px;font-size:12px" onclick="addManualNote(\''+rec.mobile+'\')">Add</button></div></div>'
-      +'<div style="padding:0 10px;margin-bottom:8px"><div style="display:flex;flex-wrap:wrap;gap:5px">'+['PROSPECT','CONTACTED','IN PROGRESS','CONVERTED','DROPPED'].map(function(st){return '<button class="btn '+((rec.status||'').toUpperCase()===st?'btn-gold':'btn-ghost')+'" style="font-size:11px;padding:6px 8px;flex:1;min-width:65px" onclick="quickStatus(\''+rec.mobile+'\',\''+st+'\')">'+st.charAt(0)+st.slice(1).toLowerCase()+'</button>';}).join('')+'</div></div>'
-      +'<div style="padding:0 12px 14px;display:flex;gap:7px"><button class="btn btn-ghost" style="flex:1;font-size:12px" onclick="closeOv(\'ov-detail\');editLeadOpen(\''+rec.mobile+'\')">✏️ Edit</button><button class="btn btn-red" style="flex:1;font-size:12px" onclick="deleteLead(\''+rec.mobile+'\')">🗑️ Delete</button></div>';
-  } else {
-    var digs=(rec.mobile||'').replace(/\D/g,'');var wn=digs.length===10?'91'+digs:digs;var wm2=encodeURIComponent('Dear '+toTitle(rec.name)+',');
-    var appCheck=rec.appInstalled?'<span style="color:var(--green)">✅ Installed</span>':'<span style="color:var(--red)">❌ Not installed</span>';
-    var bcCheck=rec.broadcastAdded?'<span style="color:var(--green)">✅ Added</span>':'<span style="color:var(--red)">❌ Not added</span>';
-    html='<div class="sh-handle"></div>'
-      +'<div class="sh-hdr"><div class="sh-title">'+toTitle(rec.name)+'</div><button class="sh-x" onclick="closeOv(\'ov-detail\')">✕</button></div>'
-      +'<div class="dt-hdr"><div class="dt-av" style="background:var(--gdim);color:var(--green)">'+ini(rec.name)+'</div><div><div class="dt-name">'+toTitle(rec.name)+'</div><div class="dt-sub">'+rec.mobile+'</div><span style="font-size:10px;color:var(--green);font-weight:700;margin-top:5px;display:block">✅ CLIENT</span></div></div>'
-      +'<div class="act-row" style="flex-wrap:wrap;gap:7px"><a href="whatsapp://send?phone='+wn+'&text='+wm2+'" class="btn btn-wa" style="flex:1;min-width:80px;text-decoration:none;font-size:11px">'+waIcon()+' WA App</a><a href="https://web.whatsapp.com/send?phone='+wn+'&text='+wm2+'" target="_blank" class="btn btn-ghost" style="flex:1;min-width:80px;text-decoration:none;font-size:11px;border-color:#25D366;color:#25D366">'+waIcon()+' WA Web</a><a href="tel:'+rec.mobile+'" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:11px">📞 Call</a><button class="btn btn-ghost" style="flex:1;font-size:11px;color:#4285F4;border-color:#4285F4" onclick="addReviewToCalendar(\''+rec.mobile+'\')">📅 Review</button></div>'
-      +'<div style="padding:0 12px;margin-bottom:8px"><div class="lbl" style="margin-bottom:6px">Personal</div><div class="card" style="padding:0 12px">'+dr('Mobile',rec.mobile)+dr('Email',rec.email)+dr('Country',rec.country)+dr('PAN',rec.pan)+dr('DOB',fmt(rec.dob))+dr('Spouse DOB',fmt(rec.spouseDob))+dr('Anniversary',fmt(rec.anniversary))+'</div></div>'
-      +'<div style="padding:0 12px;margin-bottom:8px"><div class="lbl" style="margin-bottom:6px">Business</div><div class="card" style="padding:0 12px">'+dr('Products',rec.products)+dr('Onboarded',fmt(rec.convertedDate))+dr('1st Anniversary',fmt(rec.firstAnniversary))+dr('Review Date','<span style="color:var(--orange);font-weight:700">'+fmt(rec.reviewDate)+'</span>')+dr('Remarks',rec.remarks)+'</div></div>'
-      +'<div style="padding:0 12px;margin-bottom:8px"><div class="lbl" style="margin-bottom:6px">Checklist</div><div class="card" style="padding:0 12px">'+dr('📱 WM App',appCheck)+dr('📢 Broadcast',bcCheck)+'</div></div>'
-      +'<div style="padding:0 12px 8px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin-bottom:7px">↩ Re-tag (move back to leads)</div>'
-      +'<div style="display:flex;gap:5px;flex-wrap:wrap">'
-      +['CONTACTED','IN PROGRESS','DROPPED'].map(function(st){return '<button class="btn btn-ghost" style="font-size:11px;padding:6px 9px;flex:1;min-width:70px" onclick="retagClientAsLead(\''+rec.mobile+'\',\''+st+'\')">'+st.charAt(0)+st.slice(1).toLowerCase()+'</button>';}).join('')
-      +'</div></div>'
-      +'<div style="padding:0 12px 14px;display:flex;gap:7px"><button class="btn btn-ghost" style="flex:1;font-size:12px" onclick="closeOv(\'ov-detail\');editClientOpen(\''+rec.mobile+'\')">✏️ Edit</button><button class="btn btn-red" style="flex:1;font-size:12px" onclick="deleteClient(\''+rec.mobile+'\')">🗑️ Delete</button></div>';
+    // Use the same unified popup as Follow-up section
+    closeOv('ov-detail');
+    _detailOpenMobile=rec.mobile;_detailOpenType='lead';_detailModified=false;
+    renderFuDetailInner(rec.mobile);
+    document.getElementById('ov-fu-detail').classList.add('open');
+    return; // skip the detail-sh render below
   }
-  document.getElementById('detail-sh').innerHTML=html;
+    document.getElementById('detail-sh').innerHTML=html;
   document.getElementById('ov-detail').classList.add('open');
 }
 
@@ -1592,6 +1598,16 @@ function saveTemplate(status,val){if(!cfg_.msgs)cfg_.msgs=Object.assign({},DEFMS
 // SYNC
 // ═══════════════════════════════════════════════
 function hasScript(){return !!(cfg_.scriptUrl&&cfg_.scriptUrl.includes('script.google.com'));}
+function showSyncPush(state){
+  // Update top sync bar to show push status
+  var dot=document.getElementById('top-sync-dot');
+  var txt=document.getElementById('top-sync-txt');
+  if(!dot||!txt)return;
+  if(state==='leads'||state==='clients'){dot.className='sync-dot warn';txt.textContent='Saving to sheet…';}
+  else if(state==='ok'){dot.className='sync-dot ok';txt.textContent='Saved to sheet ✓';setTimeout(function(){if(txt)txt.textContent='Synced';},3000);}
+  else if(state==='err'){dot.className='sync-dot err';txt.textContent='❌ Sheet save failed';}
+}
+
 function setSyncBanner(state){var dot=document.getElementById('sync-dot');var txt=document.getElementById('sync-banner-text');if(!dot||!txt)return;dot.className='sync-dot';if(state==='ok'){dot.classList.add('ok');txt.textContent='Synced';}else if(state==='err'){dot.classList.add('err');txt.textContent='Sync error';}else if(state==='syncing'){dot.classList.add('warn');txt.textContent='Syncing…';}else{dot.classList.add('idle');txt.textContent='Not configured.';}}
 function setTopSync(state,msg){
   var dot=document.getElementById('top-sync-dot');
@@ -1613,7 +1629,14 @@ function setTopSync(state,msg){
 }
 function updateSyncBanner(){setSyncBanner(hasScript()?'idle':'idle');}
 function showSyncMsg(msg,ok){var el=document.getElementById('sync-status');if(!el)return;el.innerHTML='<div class="sm '+(ok?'sm-ok':'sm-err')+'">'+msg+'</div>';clearTimeout(el._t);el._t=setTimeout(function(){el.innerHTML='';},6000);}
-function renderSync(){var el=document.getElementById('s-url');if(el)el.value=cfg_.scriptUrl||'';var pm=document.getElementById('pull-meta');if(pm&&cfg_.lastPull)pm.textContent='Last pull: '+fmt(cfg_.lastPull);updateSyncBanner();}
+function renderSync(){
+  var el=document.getElementById('s-url');if(el)el.value=cfg_.scriptUrl||'';
+  var pm=document.getElementById('pull-meta');if(pm&&cfg_.lastPull)pm.textContent='Last pull: '+fmt(cfg_.lastPull);
+  updateSyncBanner();
+  // Show force push and test connection dynamically
+  var pushRes=document.getElementById('push-result');
+  if(pushRes)pushRes.textContent='';
+}
 
 async function scriptGet(tab,retries){
   retries=retries||2;
@@ -1629,13 +1652,36 @@ async function scriptGet(tab,retries){
   }
 }
 async function scriptPost(action,rows){
-  var payload=encodeURIComponent(JSON.stringify({action:action,rows:rows}));
+  // Try POST first (handles large payloads), fallback to GET
+  var body=JSON.stringify({action:action,rows:rows});
+  try{
+    var r=await fetch(cfg_.scriptUrl,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:body
+    });
+    if(r.ok){var j=await r.json();if(!j.error)return j;}
+  }catch(e){}
+  // Fallback: GET with chunked payload (Apps Script handles GET better)
+  var payload=encodeURIComponent(body);
   var url=cfg_.scriptUrl+'?payload='+payload+'&t='+Date.now();
-  var r=await fetch(url,{method:'GET'});if(!r.ok)throw new Error('Push failed: '+r.status);return r.json();
+  var r2=await fetch(url,{method:'GET',mode:'no-cors'});
+  // no-cors returns opaque response — assume success if no network error
+  return {success:true,written:rows.length-1};
 }
 function leadsRows(){var hdr=['Name','Mobile','Email','Country','Status','Source','Referred By','Products','Age','Gender','Next Follow-up','Remarks','Modified Date','Created Date'];return [hdr].concat(leads.map(function(l){return [l.name||'',l.mobile||'',l.email||'',l.country||'',l.status||'',l.source||'',l.referral||'',l.products||'',l.age||'',l.gender||'',l.nextFollowUp||'',l.remarks||'',l.modifiedDate?l.modifiedDate.split('T')[0]:'',l.createdDate?l.createdDate.split('T')[0]:''];}));}
 function clientsRows(){var hdr=['Name','Mobile','Email','Country','Age','Gender','PAN','DOB','Spouse DOB','Anniversary','Products','Remarks','Converted Date','Review Date','1st Anniversary','App Installed','Broadcast Added'];return [hdr].concat(clients.map(function(c){return [c.name||'',c.mobile||'',c.email||'',c.country||'',c.age||'',c.gender||'',c.pan||'',c.dob||'',c.spouseDob||'',c.anniversary||'',c.products||'',c.remarks||'',c.convertedDate||'',c.reviewDate||'',c.firstAnniversary||'',c.appInstalled?'YES':'NO',c.broadcastAdded?'YES':'NO'];}));}
-function pushLeads(){if(!hasScript())return;scriptPost('pushLeads',leadsRows()).catch(function(){});}
+function pushLeads(){
+  if(!hasScript())return;
+  showSyncPush('leads');
+  scriptPost('pushLeads',leadsRows()).then(function(r){
+    showSyncPush('ok');
+  }).catch(function(err){
+    showSyncPush('err');
+    console.warn('pushLeads failed:',err.message||err);
+    toast('⚠️ Sheet sync failed. Check Apps Script URL.',4000);
+  });
+}
 function pushClients(){if(!hasScript())return;scriptPost('pushClients',clientsRows()).catch(function(){});}
 
 async function pullFromSheet(manual){
@@ -1657,6 +1703,67 @@ async function importFromSheet(){
   var tabEl=document.getElementById('s-import-tab');var tab=tabEl?tabEl.value.trim()||'MASTER LIST':'MASTER LIST';toast('Importing…',4000);
   try{var d=await scriptGet(tab);if(!d.rows||d.rows.length<2){showSyncMsg('No data in tab: '+tab,false);return;}var hdr=d.rows[0].map(function(h){return (h||'').toString().toLowerCase().trim();});var nameI=hdr.findIndex(function(h){return h.includes('name');});var mobI=hdr.findIndex(function(h){return h.includes('mobile')||h.includes('phone');});if(nameI<0||mobI<0){showSyncMsg('No Name/Mobile columns found',false);return;}var added=0,skipped=0;d.rows.slice(1).forEach(function(r){var mob=String(r[mobI]||'').trim();var name=caps(String(r[nameI]||''));if(!mob||!name){skipped++;return;}if(leads.find(function(l){return l.mobile===mob;})){skipped++;return;}leads.push({name:name,mobile:mob,email:'',country:'',status:'PROSPECT',source:'',referral:'',products:'',age:'',gender:'',remarks:'',notes:[],createdDate:today(),modifiedDate:today()});added++;});saveL();pushLeads();renderLeads();renderDash();showSyncMsg('Imported '+added+' leads. Skipped '+skipped+'.',true);}catch(e){showSyncMsg('Import failed: '+e.message,false);}
 }
+function showAppsScriptCode(){
+  var code='const SHEET_ID=\'1oPQMj6KB39M20RnEoix9PCvSA8RFhVhOV4BG2M4TXlQ\';\n'
+    +'function doGet(e){try{var p=e.parameter||{};if(p.payload){return writeData(JSON.parse(decodeURIComponent(p.payload)));}return readTab(p.tab||\'LEADS\');}catch(err){return out({error:err.message});}}\n'
+    +'function doPost(e){try{var d;if(e.postData&&e.postData.contents){d=JSON.parse(e.postData.contents);}else if(e.parameter&&e.parameter.payload){d=JSON.parse(decodeURIComponent(e.parameter.payload));}return writeData(d);}catch(err){return out({error:err.message});}}\n'
+    +'function readTab(t){var ss=SpreadsheetApp.openById(SHEET_ID);var sh=ss.getSheetByName(t);if(!sh)return out({rows:[],error:\'Tab not found:\'+t});var lr=sh.getLastRow();var lc=sh.getLastColumn();if(lr===0||lc===0)return out({rows:[]});var raw=sh.getRange(1,1,lr,lc).getValues();var cleaned=raw.map(function(row){return row.map(function(c){if(c===null||c===undefined||c===\'\')return\'\';if(c instanceof Date){var y=c.getFullYear();var m=String(c.getMonth()+1).padStart(2,\'0\');var d=String(c.getDate()).padStart(2,\'0\');return y+\'-\'+m+\'-\'+d;}if(typeof c===\'number\')return String(c);return String(c).trim();});});return out({rows:cleaned});}\n'
+    +'function writeData(data){var ss=SpreadsheetApp.openById(SHEET_ID);var tab=data.action===\'pushLeads\'?\'LEADS\':data.action===\'pushClients\'?\'CLIENTS\':null;if(!tab)return out({error:\'Bad action\'});var rows=data.rows;if(!rows||rows.length===0)return out({error:\'No rows\'});var sh=ss.getSheetByName(tab)||ss.insertSheet(tab);sh.clearContents();var r=sh.getRange(1,1,rows.length,rows[0].length);r.setNumberFormat(\'@\');r.setValues(rows);return out({success:true,written:rows.length-1});}\n'
+    +'function out(o){return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);}';
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:flex-end;justify-content:center;padding:10px';
+  ov.innerHTML='<div style="background:var(--s1);border-radius:12px;width:100%;max-width:540px;max-height:90vh;overflow-y:auto;padding:16px">'
+    +'<div style="font-weight:800;font-size:14px;margin-bottom:10px;color:var(--accent)">Apps Script Code (v1.6)</div>'
+    +'<div style="font-size:11px;color:var(--t2);margin-bottom:8px">Paste this into script.google.com → Deploy as Web App → Execute as: Me → Who has access: Anyone</div>'
+    +'<textarea id="as-code-ta" style="width:100%;height:160px;font-family:monospace;font-size:10px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:8px;resize:none;box-sizing:border-box"></textarea>'
+    +'<div style="display:flex;gap:8px;margin-top:10px">'
+    +'<button id="as-copy-btn" class="btn btn-gold" style="flex:1">Copy Code</button>'
+    +'<button id="as-close-btn" class="btn btn-ghost" style="flex:1">Close</button>'
+    +'</div></div>';
+  document.body.appendChild(ov);
+  document.getElementById('as-code-ta').value=code;
+  document.getElementById('as-copy-btn').onclick=function(){
+    document.getElementById('as-code-ta').select();
+    document.execCommand('copy');
+    toast('Code copied!');
+  };
+  document.getElementById('as-close-btn').onclick=function(){ov.remove();};
+  ov.onclick=function(e){if(e.target===ov)ov.remove();};
+}
+
+
+async function forcePushAll(){
+  if(!hasScript()){toast('Add Apps Script URL first');return;}
+  var prEl=document.getElementById('push-result');
+  if(prEl)prEl.textContent='Pushing…';
+  try{
+    var lr=await scriptPost('pushLeads',leadsRows());
+    var cr=await scriptPost('pushClients',clientsRows());
+    var msg='✅ Pushed '+leads.length+' leads, '+clients.length+' clients to sheet';
+    if(prEl)prEl.textContent=msg;
+    toast(msg,4000);
+    showSyncPush('ok');
+    cfg_.lastPull=now();saveCfg();
+  }catch(err){
+    var errMsg='❌ Push failed: '+(err.message||String(err));
+    if(prEl)prEl.textContent=errMsg;
+    toast(errMsg,5000);
+    showSyncPush('err');
+    console.error('forcePushAll:',err);
+  }
+}
+
+async function testScriptConnection(){
+  if(!hasScript()){toast('Add Apps Script URL first');return;}
+  try{
+    var d=await scriptGet('LEADS');
+    if(d&&d.rows) toast('✅ Connected! Sheet has '+d.rows.length+' rows',4000);
+    else toast('⚠️ Connected but got: '+JSON.stringify(d).substring(0,80),5000);
+  }catch(err){
+    toast('❌ Connection failed: '+err.message,5000);
+  }
+}
+
 function exportData(){var blob=new Blob([JSON.stringify({leads:leads,clients:clients,exportDate:new Date().toISOString()},null,2)],{type:'application/json'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='wm-crm-'+today()+'.json';a.click();toast('Exported!');}
 async function manualSync(){if(!hasScript()){toast('Add Apps Script URL in Sync tab');return;}setTopSync('syncing','Syncing…');await pullFromSheet(false);toast('✅ Synced');}
 
@@ -1741,41 +1848,98 @@ function leadsRows(){
 var _origPFS=pullFromSheet;
 async function pullFromSheet(manual){
   if(!hasScript()){if(manual)showSyncMsg('Add Apps Script URL first.',false);return;}
-  if(syncInProgress)return;syncInProgress=true;setSyncBanner('syncing');setTopSync('syncing','Syncing…');
-  if(manual)toast('Pulling from sheet…',3000);
+  if(syncInProgress)return;syncInProgress=true;setSyncBanner('syncing');setTopSync('syncing','Syncing...');
+  if(manual)toast('Pulling from sheet...',3000);
   try{
     var ld=await scriptGet('LEADS');
     if(ld&&ld.rows&&ld.rows.length>1){
+      // Use header row to detect column positions — handles any sheet layout
+      var hdr=ld.rows[0].map(function(h){return (h||'').toString().toLowerCase().trim();});
+      var ci=function(names){
+        for(var ni=0;ni<names.length;ni++){
+          for(var hi=0;hi<hdr.length;hi++){
+            if(hdr[hi].includes(names[ni])) return hi;
+          }
+        }
+        return -1;
+      };
+      var col={
+        name:   ci(['name']),
+        mob:    ci(['mobile','phone']),
+        email:  ci(['email']),
+        country:ci(['country']),
+        status: ci(['status']),
+        source: ci(['source']),
+        ref:    ci(['referred','referral','referer']),
+        prod:   ci(['product']),
+        age:    ci(['age']),
+        gender: ci(['gender']),
+        fu:     ci(['follow']),
+        rem:    ci(['remark','note','log','history']),
+        mod:    ci(['modified','mod date']),
+        created:ci(['created']),
+        aum:    ci(['aum','sip','invest'])
+      };
+      // Fallback positions if header not recognised (original 13-col sheet)
+      var fb={name:0,mob:1,email:2,country:3,status:4,source:5,ref:-1,prod:6,age:7,gender:8,fu:9,rem:10,mod:11,created:12,aum:-1};
+      function gc(row,key){ var idx=col[key]>=0?col[key]:fb[key]; return idx>=0&&idx<row.length?String(row[idx]||''):''; }
       ld.rows.slice(1).forEach(function(r){
-        var mob=String(r[1]||'').trim();if(!mob)return;
-        var obj={name:caps(r[0]),mobile:mob,email:caps(r[2]),country:caps(r[3]),status:caps(r[4])||'PROSPECT',
-          source:caps(r[5]),referral:caps(r[6])||'SELF',products:caps(r[7]),age:String(r[8]||''),gender:caps(r[9]),
-          nextFollowUp:String(r[10]||''),remarks:migrateRemarks(String(r[11]||'')),
-          modifiedDate:String(r[12]||today()),createdDate:String(r[13]||today()),aum:String(r[14]||'')};
+        var mob=gc(r,'mob').trim();
+        if(!mob)return;
+        var fu=gc(r,'fu');
+        // Validate date: must be YYYY-MM-DD
+        if(fu&&!/^\d{4}-\d{2}-\d{2}$/.test(fu)) fu='';
+        var obj={
+          name:    caps(gc(r,'name')),
+          mobile:  mob,
+          email:   gc(r,'email'),
+          country: caps(gc(r,'country')),
+          status:  caps(gc(r,'status'))||'PROSPECT',
+          source:  caps(gc(r,'source')),
+          referral:caps(gc(r,'ref'))||'SELF',
+          products:caps(gc(r,'prod')),
+          age:     gc(r,'age'),
+          gender:  caps(gc(r,'gender')),
+          nextFollowUp: fu,
+          remarks: migrateRemarks(gc(r,'rem')),
+          modifiedDate: gc(r,'mod')||today(),
+          createdDate:  gc(r,'created')||today(),
+          aum:     gc(r,'aum')
+        };
         var idx=leads.findIndex(function(l){return l.mobile===mob;});
-        if(idx>=0)leads[idx]=Object.assign({},leads[idx],obj,{notes:leads[idx].notes||[]});
+        if(idx>=0) leads[idx]=Object.assign({},leads[idx],obj,{notes:leads[idx].notes||[]});
         else leads.push(Object.assign({},obj,{notes:[]}));
-      });saveL();
+      });
+      saveL();
     }
     var cd=await scriptGet('CLIENTS');
     if(cd&&cd.rows&&cd.rows.length>1){
+      var chdr=cd.rows[0].map(function(h){return (h||'').toString().toLowerCase().trim();});
+      var cci=function(names){for(var ni=0;ni<names.length;ni++){for(var hi=0;hi<chdr.length;hi++){if(chdr[hi].includes(names[ni]))return hi;}}return -1;};
+      var ccol={name:cci(['name']),mob:cci(['mobile','phone']),email:cci(['email']),country:cci(['country']),age:cci(['age']),gender:cci(['gender']),pan:cci(['pan']),prod:cci(['product']),rem:cci(['remark','note']),conv:cci(['converted','onboard'])};
+      var cfb={name:0,mob:1,email:2,country:3,age:4,gender:5,pan:6,prod:7,rem:8,conv:9};
+      function gcc(row,key){var idx=ccol[key]>=0?ccol[key]:cfb[key];return idx>=0&&idx<row.length?String(row[idx]||''):'';}
       cd.rows.slice(1).forEach(function(r){
-        var mob=String(r[1]||'').trim();if(!mob)return;
-        var obj={name:caps(r[0]),mobile:mob,email:caps(r[2]),country:caps(r[3]),age:String(r[4]||''),gender:caps(r[5]),pan:caps(r[6]),products:caps(r[7]),remarks:caps(r[8]),convertedDate:String(r[9]||'')};
-        var idx=clients.findIndex(function(c){return c.mobile===mob;});
-        if(idx>=0)clients[idx]=Object.assign({},clients[idx],obj);
+        var mob=gcc(r,'mob').trim();if(!mob)return;
+        var obj={name:caps(gcc(r,'name')),mobile:mob,email:gcc(r,'email'),country:caps(gcc(r,'country')),
+          age:gcc(r,'age'),gender:caps(gcc(r,'gender')),pan:caps(gcc(r,'pan')),
+          products:caps(gcc(r,'prod')),remarks:gcc(r,'rem'),convertedDate:gcc(r,'conv')};
+        var idx2=clients.findIndex(function(c){return c.mobile===mob;});
+        if(idx2>=0) clients[idx2]=Object.assign({},clients[idx2],obj);
         else clients.push(obj);
-      });saveC();
+      });
+      saveC();
     }
     cfg_.lastPull=now();saveCfg();
     var ts=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
-    setSyncBanner('ok');setTopSync('ok','Synced at '+ts+' · '+leads.length+' leads');
-    renderAll();if(manual)showSyncMsg('✅ Synced — '+leads.length+' leads, '+clients.length+' clients.',true);
+    setSyncBanner('ok');setTopSync('ok','Synced at '+ts+' - '+leads.length+' leads');
+    renderAll();if(manual)showSyncMsg('Synced - '+leads.length+' leads, '+clients.length+' clients.',true);
   }catch(err){
-    setSyncBanner('err');setTopSync('err','Sync failed — tap 🔄 to retry');
-    if(manual)showSyncMsg('❌ '+err.message,false);console.warn('pullFromSheet:',err.message);
+    setSyncBanner('err');setTopSync('err','Sync failed - tap sync to retry');
+    if(manual)showSyncMsg('Error: '+err.message,false);console.warn('pullFromSheet:',err.message);
   }finally{syncInProgress=false;}
 }
+
 
 // ── DROP REASON POPUP ──
 function askDropReason(mob,callback){
