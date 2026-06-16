@@ -877,7 +877,8 @@ function fillFormFromRecord(rec,type){
 // ═══════════════════════════════════════════════
 function updateFUBadge(){
   var fd=parseInt(cfg_.followUpDays)||14;
-  var count=leads.filter(function(l){return ['PROSPECT','CONTACTED','IN PROGRESS'].includes((l.status||'').toUpperCase())&&(daysAgo(l.modifiedDate||l.createdDate)>=fd||(l.nextFollowUp&&daysUntil(l.nextFollowUp)<=0));}).length;
+  // Badge shows total active leads (all that need following up)
+  var count=leads.filter(function(l){return ['PROSPECT','CONTACTED','IN PROGRESS'].includes((l.status||'').toUpperCase());}).length;
   var navFu=document.getElementById('nav-fu');if(!navFu)return;
   var badge=navFu.querySelector('.nb-badge');
   if(count>0){if(!badge){badge=document.createElement('span');badge.className='nb-badge';navFu.insertBefore(badge,navFu.firstChild);}badge.textContent=count>9?'9+':count;}
@@ -887,28 +888,78 @@ function updateFUBadge(){
 function renderFU(){
   var fd=parseInt(cfg_.followUpDays)||14;
   var staleDays=parseInt(cfg_.staleDays)||30;
-  var overdue=leads.filter(function(l){return ['PROSPECT','CONTACTED','IN PROGRESS'].includes((l.status||'').toUpperCase())&&daysAgo(l.modifiedDate||l.createdDate)>=fd;});
-  var dueDate=leads.filter(function(l){return l.nextFollowUp&&daysUntil(l.nextFollowUp)<=0&&['PROSPECT','CONTACTED','IN PROGRESS'].includes((l.status||'').toUpperCase())&&!overdue.find(function(x){return x.mobile===l.mobile;});});
-  var stale=leads.filter(function(l){return ['CONTACTED','IN PROGRESS'].includes((l.status||'').toUpperCase())&&daysAgo(l.modifiedDate||l.createdDate)>=staleDays&&!overdue.find(function(x){return x.mobile===l.mobile;})&&!dueDate.find(function(x){return x.mobile===l.mobile;});});
-  var arr=[].concat(overdue,dueDate).sort(function(a,b){return daysAgo(a.modifiedDate||a.createdDate)-daysAgo(b.modifiedDate||b.createdDate);});
+  var active=leads.filter(function(l){return ['PROSPECT','CONTACTED','IN PROGRESS'].includes((l.status||'').toUpperCase());});
+
+  // Group into: overdue (next date passed OR no activity for fd+ days), due soon, all others
+  var overdue=active.filter(function(l){
+    var overdueByDate=l.nextFollowUp&&daysUntil(l.nextFollowUp)<=0;
+    var overdueByAge=daysAgo(l.modifiedDate||l.createdDate)>=fd;
+    return overdueByDate||overdueByAge;
+  });
+  var dueSoon=active.filter(function(l){
+    var days=l.nextFollowUp?daysUntil(l.nextFollowUp):null;
+    return days!==null&&days>0&&days<=3&&!overdue.find(function(x){return x.mobile===l.mobile;});
+  });
+  var rest=active.filter(function(l){
+    return !overdue.find(function(x){return x.mobile===l.mobile;})
+      &&!dueSoon.find(function(x){return x.mobile===l.mobile;});
+  });
+  var stale=active.filter(function(l){
+    return ['CONTACTED','IN PROGRESS'].includes((l.status||'').toUpperCase())
+      &&daysAgo(l.modifiedDate||l.createdDate)>=staleDays;
+  });
+
+  var total=active.length;
   var sub=document.getElementById('fu-sub');
-  if(sub)sub.textContent=arr.length+' pending'+(stale.length?' · '+stale.length+' stale':'');
+  if(sub)sub.textContent=total+' active leads'+(overdue.length?' · '+overdue.length+' overdue':'');
+
   var html='';
-  if(stale.length){
-    html+='<div style="padding:8px 14px 6px;background:var(--rdim);border-bottom:1px solid var(--border)"><div style="font-size:10px;font-weight:700;color:var(--red);text-transform:uppercase">⚠️ Stale — '+staleDays+'+ days no activity</div></div>';
-    html+=stale.map(function(l){return makeFuItem(l,true);}).join('');
+
+  // Overdue section
+  if(overdue.length){
+    html+='<div style="padding:7px 14px 5px;background:rgba(192,57,43,.08);border-bottom:1px solid var(--border)">'
+      +'<div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px">🔴 Overdue follow-ups ('+overdue.length+')</div></div>';
+    html+=overdue.sort(function(a,b){return daysAgo(a.modifiedDate||a.createdDate)-daysAgo(b.modifiedDate||b.createdDate);}).map(function(l){return makeFuItem(l,'overdue');}).join('');
   }
-  if(arr.length){html+=arr.map(function(l){return makeFuItem(l,false);}).join('');}
-  else if(!stale.length){html='<div class="empty"><div class="empty-ico">🎉</div><div class="empty-t">All caught up!</div><div class="empty-s">No overdue follow-ups.</div></div>';}
-  var fuList=document.getElementById('fu-list');if(fuList)fuList.innerHTML=html;
-  // Event delegation
+
+  // Due soon section
+  if(dueSoon.length){
+    html+='<div style="padding:7px 14px 5px;background:rgba(255,255,255,.04);border-bottom:1px solid var(--border)">'
+      +'<div style="font-size:10px;font-weight:700;color:#AAAAAA;text-transform:uppercase;letter-spacing:.5px">🟡 Due soon — next 3 days ('+dueSoon.length+')</div></div>';
+    html+=dueSoon.sort(function(a,b){return daysUntil(a.nextFollowUp)-daysUntil(b.nextFollowUp);}).map(function(l){return makeFuItem(l,'soon');}).join('');
+  }
+
+  // All other active leads
+  if(rest.length){
+    html+='<div style="padding:7px 14px 5px;background:rgba(255,255,255,.02);border-bottom:1px solid var(--border)">'
+      +'<div style="font-size:10px;font-weight:700;color:#666666;text-transform:uppercase;letter-spacing:.5px">Active leads ('+rest.length+')</div></div>';
+    html+=rest.sort(function(a,b){
+      var da=a.nextFollowUp?daysUntil(a.nextFollowUp):999;
+      var db=b.nextFollowUp?daysUntil(b.nextFollowUp):999;
+      return da-db;
+    }).map(function(l){return makeFuItem(l,'normal');}).join('');
+  }
+
+  // Stale notice (at bottom)
+  if(stale.length){
+    html+='<div style="padding:7px 14px 5px;background:rgba(192,57,43,.05);border-top:1px solid var(--border)">'
+      +'<div style="font-size:10px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:.5px">🧊 Stale — '+staleDays+'+ days no activity ('+stale.length+')</div></div>';
+    html+=stale.map(function(l){return makeFuItem(l,'stale');}).join('');
+  }
+
+  if(!total){
+    html='<div class="empty"><div class="empty-ico">🎉</div><div class="empty-t">No active leads</div><div class="empty-s">All leads are converted or dropped. Add new leads from the Leads tab.</div></div>';
+  }
+
+  var fuList=document.getElementById('fu-list');
   if(fuList){
+    fuList.innerHTML=html;
     fuList.onclick=function(e){
       var btn=e.target.closest('[data-action]');if(!btn)return;
       var mob=btn.dataset.mob;var action=btn.dataset.action;
       if(action==='fu-open')openFuDetail(mob);
       if(action==='fu-wa-app'){bumpM(mob);setTimeout(function(){askAddRemark(leads.find(function(x){return x.mobile===mob;}),'WhatsApp sent',null);},1500);}
-      if(action==='fu-call'){bumpM(mob);setTimeout(function(){askAddRemark(leads.find(function(x){return x.mobile===mob;}),'Called',null);},2000);}
+      if(action==='fu-meet'){quickLog(mob,'📹 Google Meet scheduled');}
       if(action==='fu-drop'){quickStatus(mob,'DROPPED');}
     };
   }
@@ -925,7 +976,8 @@ function makeFuItem(l,isStale){
   if(l.remarks){var rl=(l.remarks||'').trim().split('\n').filter(function(x){return x.trim();});if(rl.length){var la=rl[rl.length-1];var mm=la.match(/^\[([^\]]+)\]\s*(.*)/);lastRem=mm?mm[2]:la;if(lastRem.length>50)lastRem=lastRem.substring(0,50)+'…';}}
   var statusColors={'PROSPECT':'#666666','CONTACTED':'#999999','IN PROGRESS':'#BBBBBB'};
   var sColor=statusColors[(l.status||'').toUpperCase()]||'var(--t2)';
-  return '<div class="fu-item" style="'+(isStale?'border-left:3px solid var(--red);':'')+'">'
+  var borderStyle=isStale==='overdue'?'border-left:3px solid var(--accent);':isStale==='soon'?'border-left:3px solid #888;':'';
+  return '<div class="fu-item" style="'+borderStyle+'">'
     +'<div class="fu-row" data-action="fu-open" data-mob="'+mob+'">'
     +'<div class="av" style="width:36px;height:36px;min-width:36px;font-size:12px">'+ini(l.name)+'</div>'
     +'<div style="flex:1;min-width:0">'
@@ -940,7 +992,7 @@ function makeFuItem(l,isStale){
     +'<a href="whatsapp://send?phone='+waNum+'&text='+msg+'" class="fu-icon-btn wa" data-action="fu-wa-app" data-mob="'+mob+'" title="WA App">'+waIcon()+'</a>'
     +'<a href="https://web.whatsapp.com/send?phone='+waNum+'&text='+msg+'" target="_blank" class="fu-icon-btn wa" title="WA Web">'+waIcon()+'<span style="font-size:9px;margin-left:2px">W</span></a>'
     +'<a href="tel:'+mob+'" class="fu-icon-btn call" data-action="fu-call" data-mob="'+mob+'" title="Call">'+callIcon()+'</a>'
-    +(isStale?'<button class="fu-icon-btn" data-action="fu-drop" data-mob="'+mob+'" style="border-color:var(--red);color:var(--red);background:var(--rdim);font-size:11px;font-weight:700">Drop</button>':'')
+    +(isStale==='stale'||isStale==='overdue'?'<button class="fu-icon-btn" data-action="fu-drop" data-mob="'+mob+'" style="border-color:var(--accent);color:var(--accent);background:var(--accent2);font-size:11px;font-weight:700">Drop</button>':'')
     +'<div class="fu-open-btn" data-action="fu-open" data-mob="'+mob+'">Open →</div>'
     +'</div>'
     +'</div>';
@@ -956,76 +1008,155 @@ function openFuDetail(mob){
   var defNext=(function(){var dn=new Date();dn.setDate(dn.getDate()+7);return dn.toISOString().split('T')[0];})();
   var fuDays=l.nextFollowUp?daysUntil(l.nextFollowUp):null;
   var fuLabel=l.nextFollowUp?(fuDays<0?Math.abs(fuDays)+' days overdue':fuDays===0?'Due today':fuDays+' days away'):'Not set';
-  var fuColor=!l.nextFollowUp?'var(--t3)':fuDays<=0?'var(--red)':fuDays<=3?'var(--orange)':'var(--green)';
+  var fuColor=!l.nextFollowUp?'var(--t3)':fuDays<=0?'var(--accent)':fuDays<=3?'#AAAAAA':'#666666';
+
+  // History entries
   var entries=(l.remarks||'').trim().split('\n').filter(function(x){return x.trim();}).reverse();
   var histHtml=entries.length?entries.map(function(entry){
     var mm=entry.match(/^\[(\d{2}\/\d{2}\/\d{4}(?:\s\d{2}:\d{2})?)\]\s*(.*)$/);
-    if(mm){var txt=mm[2];var lo=txt.toLowerCase();var ico=lo.includes('whatsapp')?'💬':lo.includes('call')?'📞':(lo.includes('status')||lo.includes('→'))?'🔄':lo.includes('created')?'⭐':'📝';
+    if(mm){var txt=mm[2];var lo=txt.toLowerCase();
+      var ico=lo.includes('whatsapp')?'💬':lo.includes('call')?'📞':lo.includes('meet')?'📹':(lo.includes('status')||lo.includes('\u2192'))?'🔄':lo.includes('created')?'⭐':lo.includes('follow-up')||lo.includes('followup')?'📅':'📝';
       return '<div style="padding:6px 0;border-bottom:1px solid var(--border)"><div style="font-size:10px;font-weight:700;color:var(--accent)">'+ico+' '+mm[1]+'</div><div style="font-size:12px;color:var(--text);margin-top:1px">'+txt+'</div></div>';}
     return '<div style="font-size:12px;color:var(--t2);padding:4px 0;border-bottom:1px solid var(--border)">'+entry+'</div>';
   }).join(''):'<div style="font-size:12px;color:var(--t3);padding:8px 0">No activity yet.</div>';
-  var chips=[['📄','Brochure sent'],['📵','Could not connect'],['❓','Asked for details'],['🤝','Meeting scheduled'],['💻','VC scheduled'],['⏳','Will contact later'],['💬','WhatsApp sent'],['📞','Called'],['🫱','Physically met'],['📧','Email sent']];
+
+  // Quick chips
+  var chips=[['📄','Brochure sent'],['📵','Could not connect'],['❓','Asked for details'],['🤝','Meeting scheduled'],['📹','Google Meet scheduled'],['⏳','Will contact later'],['💬','WhatsApp sent'],['📞','Called'],['🫱','Physically met'],['📧','Email sent']];
   var chipsHtml=chips.map(function(c){return '<div class="qlog-chip" style="padding:5px 8px;font-size:11px" data-action="fu-qlog" data-mob="'+mob+'" data-note="'+c[0]+' '+c[1]+'">'+c[0]+' '+c[1]+'</div>';}).join('');
+
+  // Date shortcuts
   var shortcuts=[['Tmrw',1],['3d',3],['1wk',7],['2wk',14],['1mo',30]];
   var shortHtml=shortcuts.map(function(x){var ds=new Date();ds.setDate(ds.getDate()+x[1]);return '<button class="btn btn-ghost" style="padding:4px 7px;font-size:11px" data-action="fu-shortcut" data-date="'+ds.toISOString().split('T')[0]+'">'+x[0]+'</button>';}).join('');
-  var statuses=[['PROSPECT','#888888'],['CONTACTED','#AAAAAA'],['IN PROGRESS','#CCCCCC'],['CONVERTED','var(--accent)'],['DROPPED','#555555']];
-  var statusHtml='<div style="display:flex;border-bottom:2px solid var(--border);padding:0 14px;overflow-x:auto;scrollbar-width:none">'+statuses.map(function(x){var active=(l.status||'').toUpperCase()===x[0];return '<button style="flex-shrink:0;border:none;padding:9px 10px;font-size:10px;font-weight:700;cursor:pointer;border-bottom:2px solid '+(active?x[1]:'transparent')+';margin-bottom:-2px;background:transparent;color:'+(active?x[1]:'var(--t3)')+';transition:all .15s;white-space:nowrap" data-action="fu-status" data-mob="'+mob+'" data-status="'+x[0]+'">'+x[0].charAt(0)+x[0].slice(1).toLowerCase()+'</button>';}).join('')+'</div>';
+
+  // Status tabs
+  var statusOpts=[['PROSPECT','#888888'],['CONTACTED','#AAAAAA'],['IN PROGRESS','#CCCCCC'],['CONVERTED','var(--accent)'],['DROPPED','#555555']];
+  var statusHtml='<div style="display:flex;overflow-x:auto;scrollbar-width:none;border-bottom:2px solid var(--border)">'+statusOpts.map(function(x){
+    var active=(l.status||'').toUpperCase()===x[0];
+    return '<button style="flex-shrink:0;border:none;padding:9px 10px;font-size:10px;font-weight:700;cursor:pointer;border-bottom:2px solid '+(active?x[1]:'transparent')+';margin-bottom:-2px;background:transparent;color:'+(active?x[1]:'var(--t3)')+';transition:all .15s;white-space:nowrap" data-action="fu-status" data-mob="'+mob+'" data-status="'+x[0]+'">'+x[0].charAt(0)+x[0].slice(1).toLowerCase()+'</button>';
+  }).join('')+'</div>';
+
+  // Contact buttons: WA App | WA Web | Call | Meet
+  var digits=(l.mobile||'').replace(/\D/g,'');
+  var waNum=digits.length===10?'91'+digits:digits;
+  var msg=encodeURIComponent(waMsg(l));
+  // Google Meet link
+  var meetTitle=encodeURIComponent('Meeting with '+toTitle(l.name)+' — Wealth Matrix');
+  var meetStart=new Date();meetStart.setDate(meetStart.getDate()+1);meetStart.setHours(10,0,0,0);
+  var meetEnd=new Date(meetStart.getTime()+3600000);
+  var fmtCal=function(d){return d.toISOString().replace(/[-:]/g,'').split('.')[0]+'Z';};
+  var meetUrl='https://calendar.google.com/calendar/render?action=TEMPLATE&text='+meetTitle+'&dates='+fmtCal(meetStart)+'/'+fmtCal(meetEnd)+'&add=meet&location='+encodeURIComponent('Google Meet');
+
+  var contactBtns=
+    '<div style="display:flex;gap:7px;padding:10px 14px 0">'
+    +'<a href="whatsapp://send?phone='+waNum+'&text='+msg+'" class="btn btn-wa" style="flex:1;text-decoration:none;padding:8px;justify-content:center;font-size:11px;gap:5px" data-action="fu-wa-app" data-mob="'+mob+'"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg> App</a>'
+    +'<a href="https://web.whatsapp.com/send?phone='+waNum+'&text='+msg+'" target="_blank" class="btn btn-ghost" style="flex:1;text-decoration:none;padding:8px;justify-content:center;font-size:11px;gap:5px;border-color:#25D366;color:#25D366"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg> Web</a>'
+    +'<a href="tel:'+l.mobile+'" class="btn btn-ghost" style="flex:1;text-decoration:none;padding:8px;justify-content:center;font-size:11px;gap:5px" data-action="fu-call" data-mob="'+mob+'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg> Call</a>'
+    +'<a href="'+meetUrl+'" target="_blank" class="btn btn-ghost" style="flex:1;text-decoration:none;padding:8px;justify-content:center;font-size:11px;gap:5px" data-action="fu-meet" data-mob="'+mob+'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg> Meet</a>'
+    +'</div>';
+
   var html=
     '<div class="sh-handle"></div>'
+    // Header
     +'<div style="padding:12px 14px 8px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)">'
     +'<div><div style="font-size:16px;font-weight:800">'+toTitle(l.name)+'</div>'
-    +'<div style="font-size:10px;color:var(--red);font-weight:700;margin-top:2px">🔴 '+d+' days overdue · '+l.status+'</div></div>'
+    +'<div style="font-size:10px;color:var(--accent);font-weight:700;margin-top:2px">🔴 '+d+' days overdue</div></div>'
     +'<button class="sh-x" onclick="closeFuDetail()">✕</button></div>'
+    // Status tabs
     +statusHtml
-    // HISTORY
-    +'<div style="padding:10px 14px 0"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin-bottom:6px">📋 Remarks & history</div>'
-    +'<div id="fu-hist-'+mob+'" style="max-height:160px;overflow-y:auto;background:var(--bg);border:1px solid var(--border);border-radius:var(--r2);padding:8px 10px">'+histHtml+'</div></div>'
-    // LOG NOW
-    +'<div style="padding:10px 14px 0"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin-bottom:6px">⚡ Log now</div>'
-    +'<div class="qlog-grid" style="margin-bottom:8px">'+chipsHtml+'</div>'
-    +'<div style="display:flex;gap:6px"><input class="fi" id="fu-note-input-'+mob+'" placeholder="Custom note…" style="flex:1;padding:8px 10px;font-size:13px;background:var(--bg)">'
-    +'<button class="btn btn-gold" style="padding:8px 12px;font-size:12px;flex-shrink:0" data-action="fu-save-note" data-mob="'+mob+'">Log</button></div></div>'
-    // NEXT FOLLOWUP
-    +'<div style="padding:10px 14px 0"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin-bottom:6px">📅 Next follow-up date</div>'
-    +'<div style="display:flex;gap:6px;margin-bottom:6px"><input type="date" id="fu-next-date-'+mob+'" class="fi" value="'+(l.nextFollowUp||defNext)+'" style="flex:1;padding:8px 10px;font-size:13px;font-weight:600">'
-    +'<button class="btn btn-gold" style="padding:8px 12px;font-size:12px;flex-shrink:0" data-action="fu-save-date" data-mob="'+mob+'">Save</button></div>'
+    // Contact buttons
+    +contactBtns
+    // Next follow-up date
+    +'<div style="margin:10px 14px 0;background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:12px">'
+    +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin-bottom:8px">📅 Next follow-up date</div>'
+    +'<div style="display:flex;gap:6px;margin-bottom:6px">'
+    +'<input type="date" id="fu-next-date-'+mob+'" class="fi" value="'+(l.nextFollowUp||defNext)+'" style="flex:1;padding:9px 11px;font-size:14px;font-weight:700;color:var(--text)">'
+    +'<button class="btn btn-gold" style="padding:9px 14px;font-size:12px;flex-shrink:0" data-action="fu-save-date" data-mob="'+mob+'">Save</button>'
+    +'</div>'
     +'<div style="font-size:11px;font-weight:700;color:'+fuColor+';margin-bottom:8px">'+fuLabel+'</div>'
-    +'<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px">'+shortHtml+'</div></div>'
-    // DELETE
-    +'<div style="padding:10px 14px 20px">'
+    +'<div style="display:flex;gap:5px;flex-wrap:wrap">'+shortHtml+'</div>'
+    +'</div>'
+    // Activity history
+    +'<div style="padding:10px 14px 0">'
+    +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin-bottom:6px">📋 Activity history</div>'
+    +'<div id="fu-hist-'+mob+'" style="max-height:160px;overflow-y:auto;background:var(--bg);border:1px solid var(--border);border-radius:var(--r2);padding:8px 10px">'+histHtml+'</div>'
+    +'</div>'
+    // Log now
+    +'<div style="padding:10px 14px 0">'
+    +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin-bottom:6px">⚡ Log now</div>'
+    +'<div class="qlog-grid" style="margin-bottom:8px">'+chipsHtml+'</div>'
+    +'<div style="display:flex;gap:6px">'
+    +'<input class="fi" id="fu-note-input-'+mob+'" placeholder="Custom note…" style="flex:1;padding:8px 10px;font-size:13px;background:var(--bg)">'
+    +'<button class="btn btn-gold" style="padding:8px 12px;font-size:12px;flex-shrink:0" data-action="fu-save-note" data-mob="'+mob+'">Log</button>'
+    +'</div></div>'
+    // Delete
+    +'<div style="padding:10px 14px 20px;margin-top:4px">'
     +'<button class="btn btn-red" style="width:100%;font-size:12px" data-action="fu-delete" data-mob="'+mob+'">🗑️ Delete this lead</button>'
     +'</div>';
+
   document.getElementById('fu-detail-sh').innerHTML=html;
   document.getElementById('ov-fu-detail').classList.add('open');
+
   document.getElementById('fu-detail-sh').onclick=function(e){
     var btn=e.target.closest('[data-action]');if(!btn)return;
     var action=btn.dataset.action;var m=btn.dataset.mob;
+    if(action==='fu-wa-app'||action==='fu-wa-web'){
+      bumpM(m);_detailModified=true;
+      setTimeout(function(){askAddRemark(leads.find(function(x){return x.mobile===m;}),'WhatsApp sent',null);},1500);
+    }
+    if(action==='fu-call'){
+      bumpM(m);_detailModified=true;
+      setTimeout(function(){askAddRemark(leads.find(function(x){return x.mobile===m;}),'Called',null);},2000);
+    }
+    if(action==='fu-meet'){
+      _detailModified=true;
+      quickLog(m,'📹 Google Meet scheduled');
+      setTimeout(function(){refreshFuHist(m);},350);
+    }
     if(action==='fu-qlog'){
       quickLog(m,btn.dataset.note);_detailModified=true;
-      btn.style.background='var(--green)';btn.style.color='#fff';btn.style.borderColor='var(--green)';
+      btn.style.background='var(--accent)';btn.style.color='#fff';btn.style.borderColor='var(--accent)';
       setTimeout(function(){btn.style.background='';btn.style.color='';btn.style.borderColor='';},900);
       setTimeout(function(){refreshFuHist(m);},350);
     }
     if(action==='fu-save-note'){
       var inp=document.getElementById('fu-note-input-'+m);
-      var txt=(inp?inp.value:'').trim();
-      if(!txt){toast('Type a note first');return;}
+      var txt=(inp?inp.value:'').trim();if(!txt){toast('Type a note first');return;}
       quickLog(m,txt.toUpperCase());_detailModified=true;
       if(inp)inp.value='';
       setTimeout(function(){refreshFuHist(m);},350);
     }
     if(action==='fu-save-date'){
       var dateInp=document.getElementById('fu-next-date-'+m);
-      var val=dateInp?dateInp.value:'';
-      if(!val){toast('Pick a date');return;}
-      var l2=leads.find(function(x){return x.mobile===m;});
-      if(l2){l2.nextFollowUp=val;l2.modifiedDate=now();_detailModified=true;saveL();pushLeads();toast('✅ Follow-up set: '+fmt(val));}
+      var newDate=dateInp?dateInp.value:'';if(!newDate){toast('Pick a date');return;}
+      var l2=leads.find(function(x){return x.mobile===m;});if(!l2)return;
+      var oldDate=l2.nextFollowUp;
+      // Log the change with old and new date in activity log
+      var logMsg='Follow-up date '+(oldDate?'changed from '+fmt(oldDate)+' to ':' set to ')+fmt(newDate);
+      l2.nextFollowUp=newDate;
+      l2.modifiedDate=now();
+      l2.remarks=migrateRemarks(l2.remarks||'');
+      l2.remarks=appendRemark(l2.remarks,logMsg);
+      _detailModified=true;
+      saveL();pushLeads();
+      toast('✅ Follow-up set: '+fmt(newDate));
+      // Update the label
+      var fd2=daysUntil(newDate);
+      var lbl=fd2<0?Math.abs(fd2)+' days overdue':fd2===0?'Due today':fd2+' days away';
+      var fc=fd2<=0?'var(--accent)':fd2<=3?'#AAAAAA':'#666666';
+      var labelEl=dateInp?dateInp.parentElement.nextElementSibling:null;
+      if(labelEl&&labelEl.tagName!=='DIV'){labelEl=null;}
+      // Refresh history to show the log
+      setTimeout(function(){refreshFuHist(m);},350);
     }
     if(action==='fu-shortcut'){var di=document.getElementById('fu-next-date-'+m);if(di)di.value=btn.dataset.date;}
     if(action==='fu-status'){quickStatus(m,btn.dataset.status);closeFuDetail();}
-    if(action==='fu-delete'){var ln=leads.find(function(x){return x.mobile===m;});if(ln&&confirm('Delete '+toTitle(ln.name)+'?')){deleteLead(m);closeFuDetail();}}
+    if(action==='fu-delete'){
+      var ln=leads.find(function(x){return x.mobile===m;});
+      if(ln&&confirm('Delete '+toTitle(ln.name)+'?')){deleteLead(m);closeFuDetail();}
+    }
   };
 }
+
 function refreshFuHist(mob){
   var l=leads.find(function(x){return x.mobile===mob;});if(!l)return;
   var entries=(l.remarks||'').trim().split('\n').filter(function(x){return x.trim();}).reverse();
