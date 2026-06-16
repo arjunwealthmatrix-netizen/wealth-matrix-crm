@@ -728,94 +728,7 @@ function nsCount(arr,sf,bucket){
 // ═══════════════════════════════════════════════
 // DASHBOARD
 // ═══════════════════════════════════════════════
-function renderDash(){
-  var el=document.getElementById('dash-date');
-  if(el)el.textContent='📅 '+new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  // Restore last sync time
-  var lsEl=document.getElementById('last-sync-time');
-  if(lsEl&&cfg_.lastSyncDisplay)lsEl.textContent='Last sync: '+cfg_.lastSyncDisplay;
-  renderGoals();
-  var fd=parseInt(cfg_.followUpDays)||14;
-  var overdue=leads.filter(function(l){return ['PROSPECT','CONTACTED','IN PROGRESS'].includes((l.status||'').toUpperCase())&&(daysAgo(l.modifiedDate||l.createdDate)>=fd||(l.nextFollowUp&&daysUntil(l.nextFollowUp)<=0));}).length;
-  var alertEl=document.getElementById('dash-alert');
-  if(alertEl)alertEl.innerHTML=overdue>0?'<div class="alert" onclick="nav(\'fu\',document.querySelectorAll(\'.nb\')[2])"><div style="font-size:17px">🔔</div><div><div style="font-weight:700;font-size:12px;color:var(--orange)">'+overdue+' lead'+(overdue>1?'s':'')+' need follow-up</div><div style="font-size:11px;color:var(--t2)">Tap to open Follow-ups →</div></div></div>':'';
 
-  // North Star
-  var total=leads.length;
-  var conv=leads.filter(function(l){return (l.status||'').toUpperCase()==='CONVERTED';}).length;
-  var drop=leads.filter(function(l){return (l.status||'').toUpperCase()==='DROPPED';}).length;
-  var nsRows=[
-    {l:'Total Leads',s:'Total',c:'var(--accent)',cl:'row-total'},
-    {l:'Prospect',s:'PROSPECT',c:'#888888',cl:''},
-    {l:'Contacted',s:'CONTACTED',c:'#AAAAAA',cl:'row-contacted'},
-    {l:'In Progress',s:'IN PROGRESS',c:'#AAAAAA',cl:'row-inprogress'},
-    {l:'Converted',s:'CONVERTED',c:'var(--green)',cl:'row-converted'},
-    {l:'Dropped',s:'DROPPED',c:'var(--dropped)',cl:''}
-  ];
-  var cols=[{k:'total',h:'Total'},{k:'ftd',h:'FTD'},{k:'wtd',h:'WTD'},{k:'mtd',h:'MTD'},{k:'ytd',h:'YTD'}];
-  var nt='<thead><tr><th></th>'+cols.map(function(c){return '<th>'+c.h+'</th>';}).join('')+'</tr></thead><tbody>';
-  nsRows.forEach(function(r){
-    nt+='<tr class="'+r.cl+'"><td style="color:'+r.c+'">'+r.l+'</td>';
-    cols.forEach(function(c){var n=nsCount(leads,r.s,c.k);nt+='<td><span class="ns-num'+(n===0?' zero':'')+'">'+n+'</span></td>';});
-    nt+='</tr>';
-  });
-  // Avg conversion cycle row
-  var convLeads=leads.filter(function(l){return (l.status||'').toUpperCase()==='CONVERTED'&&l.createdDate;});
-  var avgCycle=convLeads.length?Math.round(convLeads.reduce(function(sum,l){var created=new Date(l.createdDate);var convD=new Date(l.modifiedDate||l.createdDate);return sum+Math.max(0,Math.floor((convD-created)/86400000));},0)/convLeads.length):null;
-  nt+='<tr style="border-top:2px solid var(--border)"><td style="color:var(--green);font-weight:700">⏱ Avg Cycle</td><td colspan="5" style="text-align:center;color:var(--green);font-size:15px;font-weight:900">'+(avgCycle!==null?avgCycle+' days':'—')+'<span style="font-size:10px;color:var(--t3);font-weight:400;margin-left:6px">'+(convLeads.length?'('+convLeads.length+' converted)':'')+'</span></td></tr>';
-  var nsEl=document.getElementById('ns-table');if(nsEl)nsEl.innerHTML=nt+'</tbody>';
-
-  // Monthly trend - CONTACTED per calendar month
-  var months=[];for(var i=5;i>=0;i--){var d=new Date();d.setMonth(d.getMonth()-i);months.push({y:d.getFullYear(),m:d.getMonth(),lbl:d.toLocaleDateString('en-IN',{month:'short'})});}
-  var mCounts=months.map(function(mo){return leads.filter(function(l){var d2=new Date(l.createdDate||'');return (l.status||'').toUpperCase()==='CONTACTED'&&d2.getFullYear()===mo.y&&d2.getMonth()===mo.m;}).length;});
-  var maxM=Math.max.apply(null,mCounts.concat([1]));
-  var tbEl=document.getElementById('trend-bars');
-  if(tbEl)tbEl.innerHTML=months.map(function(mo,i){return '<div class="trend-col"><div class="trend-n">'+(mCounts[i]||'')+'</div><div class="trend-bar" style="height:'+Math.max(mCounts[i]/maxM*68,mCounts[i]>0?4:0)+'px"></div><div class="trend-lbl">'+mo.lbl+'</div></div>';}).join('');
-
-  // Analytics - insightful only
-  var convRate=total?Math.round(conv/total*100):0;
-  var dropRate=total?Math.round(drop/total*100):0;
-  // Contacted per week (last 30 days)
-  var thirtyDaysAgo=new Date();thirtyDaysAgo.setDate(thirtyDaysAgo.getDate()-30);
-  var recentContacted=leads.filter(function(l){return (l.status||'').toUpperCase()==='CONTACTED'&&new Date(l.modifiedDate||l.createdDate)>=thirtyDaysAgo;}).length;
-  var avgContactedPerWeek=(recentContacted/4.3).toFixed(1);
-  var anaEl=document.getElementById('analytics');
-  if(anaEl)anaEl.innerHTML='<div class="ana-card"><div class="ana-val" style="color:var(--accent)">'+avgContactedPerWeek+'</div><div class="ana-lbl">Contacted/week (avg)</div></div>'
-    +'<div class="ana-card"><div class="ana-val" style="color:var(--green)">'+convRate+'%</div><div class="ana-lbl">Conversion rate</div></div>'
-    +'<div class="ana-card"><div class="ana-val" style="color:var(--red)">'+dropRate+'%</div><div class="ana-lbl">Drop rate</div></div>'
-    +'<div class="ana-card"><div class="ana-val" style="color:var(--orange)">'+(avgCycle!==null?avgCycle+'d':'—')+'</div><div class="ana-lbl">Avg conversion cycle</div></div>';
-
-  // Source chart
-  var sources=['REFERRAL','FRIENDS','SOCIAL MEDIA','WALK-IN','SEMINAR','SIB','COLD CALL','WEBSITE','OTHER'];
-  var scols=['#C0392B','#888888','#AAAAAA','#666666','#999999','#777777','#555555','#BBBBBB','#444444'];
-  var sc=sources.map(function(s){return leads.filter(function(l){return (l.source||'').toUpperCase()===s;}).length;});
-  var mxS=Math.max.apply(null,sc.concat([1]));
-  var srcEl=document.getElementById('source-chart');
-  if(srcEl)srcEl.innerHTML=sources.map(function(s,i){return sc[i]>0?'<div class="fn-row"><div class="fn-lbl" style="font-size:10px">'+s.charAt(0)+s.slice(1).toLowerCase()+'</div><div class="fn-track"><div class="fn-bar" style="width:'+sc[i]/mxS*100+'%;background:'+scols[i]+'">&nbsp;</div></div><div class="fn-n" style="color:'+scols[i]+'">'+sc[i]+'</div></div>':'';}).join('')||'<div style="color:var(--t3);font-size:11px">No source data.</div>';
-
-  // Referral chart
-  var refCounts={};leads.filter(function(l){return l.referral;}).forEach(function(l){var k=l.referral.trim();if(k)refCounts[k]=(refCounts[k]||0)+1;});
-  var topRefs=Object.entries(refCounts).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
-  var refEl=document.getElementById('referral-chart');
-  if(refEl)refEl.innerHTML=topRefs.length?topRefs.map(function(x){return '<div class="fn-row"><div class="fn-lbl" style="font-size:10px">'+toTitle(x[0])+'</div><div class="fn-track"><div class="fn-bar" style="width:'+x[1]/(topRefs[0][1]||1)*100+'%;background:var(--accent)">&nbsp;</div></div><div class="fn-n" style="color:var(--accent)">'+x[1]+'</div></div>';}).join(''):'<div style="color:var(--t3);font-size:11px">No referral data.</div>';
-
-  // Country chart
-  var cc={};leads.forEach(function(l){if(l.country){var k=l.country.toUpperCase().trim();cc[k]=(cc[k]||0)+1;}});
-  var sortedC=Object.entries(cc).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
-  var mxC=sortedC[0]?sortedC[0][1]:1;
-  var ctEl=document.getElementById('country-chart');
-  if(ctEl)ctEl.innerHTML=sortedC.length?sortedC.map(function(x){return '<div class="fn-row"><div class="fn-lbl" style="font-size:10px">'+x[0]+'</div><div class="fn-track"><div class="fn-bar" style="width:'+x[1]/mxC*100+'%;background:var(--t2)">&nbsp;</div></div><div class="fn-n" style="color:var(--t2)">'+x[1]+'</div></div>';}).join(''):'<div style="color:var(--t3);font-size:11px">No country data.</div>';
-
-  // Age chart
-  var ageGroups=[['<25',0,24],['25-34',25,34],['35-44',35,44],['45-54',45,54],['55+',55,120]];
-  var ageCols=['#C0392B','#888888','#AAAAAA','#666666','#999999'];
-  var ageCounts=ageGroups.map(function(g){return leads.filter(function(l){var a=parseInt(l.age||0);return a>=g[1]&&a<=g[2];}).length;});
-  var mxA=Math.max.apply(null,ageCounts.concat([1]));
-  var ageEl=document.getElementById('age-chart');
-  if(ageEl)ageEl.innerHTML=ageGroups.map(function(g,i){return '<div class="fn-row"><div class="fn-lbl" style="font-size:10px">'+g[0]+' yrs</div><div class="fn-track"><div class="fn-bar" style="width:'+ageCounts[i]/mxA*100+'%;background:'+ageCols[i]+'">&nbsp;</div></div><div class="fn-n" style="color:'+ageCols[i]+'">'+ageCounts[i]+'</div></div>';}).join('');
-
-  updateFUBadge();
-}
 
 // ═══════════════════════════════════════════════
 // GOALS
@@ -842,50 +755,7 @@ function renderGoals(){
 // ═══════════════════════════════════════════════
 // LEADS
 // ═══════════════════════════════════════════════
-function renderLeads(){
-  var statuses=['All','PROSPECT','CONTACTED','IN PROGRESS','CONVERTED','DROPPED'];
-  var chipsEl=document.getElementById('status-chips');
-  if(chipsEl)chipsEl.innerHTML=statuses.map(function(s){
-    var n=s==='All'?leads.length:leads.filter(function(l){return (l.status||'').toUpperCase()===s;}).length;
-    var disp=s==='All'?'All':s.charAt(0)+s.slice(1).toLowerCase();
-    return '<div class="chip'+(filterStatus===s?' active':'')+'" onclick="setF(\''+s+'\')">'+disp+' ('+n+')</div>';
-  }).join('');
-  var q=(document.getElementById('lead-search')?document.getElementById('lead-search').value||'':'').toLowerCase();
-  var fd=parseInt(cfg_.followUpDays)||14;
-  var arr=leads.filter(function(l){
-    var st=(l.status||'').toUpperCase();
-    var ok=filterStatus==='All'
-      ||filterStatus==='Active'?!['CONVERTED','DROPPED'].includes(st)
-      :(st===filterStatus);
-    var sq=!q||l.name.toLowerCase().includes(q)||(l.mobile||'').includes(q)||(l.country||'').toLowerCase().includes(q)||(l.products||'').toLowerCase().includes(q)||(l.source||'').toLowerCase().includes(q);
-    return ok&&sq;
-  }).sort(function(a,b){return new Date(b.modifiedDate||0)-new Date(a.modifiedDate||0);});
-  var clientResults=[];
-  if(q)clientResults=clients.filter(function(c){return c.name.toLowerCase().includes(q)||(c.mobile||'').includes(q);});
-  var subEl=document.getElementById('leads-sub');
-  if(subEl)subEl.textContent=arr.length+' '+(filterStatus==='Active'?'active leads':filterStatus==='All'?'leads':filterStatus.toLowerCase()+' leads')+(clientResults.length?', '+clientResults.length+' clients':'');
-  var html=arr.length?arr.map(function(l){
-    var d=daysAgo(l.modifiedDate||l.createdDate);
-    var hot=['PROSPECT','CONTACTED','IN PROGRESS'].includes((l.status||'').toUpperCase())&&d>=fd;
-    var sel=selectedLeads.has(l.mobile);
-    var lastRem=lastRemarkSummary(l.remarks);
-    return '<div class="li'+(sel?' selected':'')+'" onclick="'+(bulkMode?'toggleSelect(\''+l.mobile+'\')':'openDetail(\''+l.mobile+'\',\'lead\')')+'">'
-      +(bulkMode?'<div style="width:20px;height:20px;border-radius:50%;border:2px solid var(--blue);background:'+(sel?'var(--blue)':'transparent')+';display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:8px">'+(sel?'<svg width="10" height="10" viewBox="0 0 24 24" fill="white"><path d="M20 6L9 17l-5-5"/></svg>':'')+'</div>':'')
-      +'<div class="av">'+ini(l.name)+'</div>'
-      +'<div class="li-info"><div class="li-name">'+toTitle(l.name)+'</div>'
-      +'<div class="li-meta">'+(l.mobile||'')+(l.country?' · '+l.country:'')+(l.source?' · '+l.source.charAt(0)+l.source.slice(1).toLowerCase():'')+'</div>'
-      +(l.products?'<div class="li-prod">'+l.products+'</div>':'')
-      +(lastRem?'<div style="font-size:10px;color:var(--t3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+lastRem+'</div>':'')
-      +'</div>'
-      +'<div class="li-right"><span class="pill '+scls(l.status)+'">'+(l.status||'').charAt(0)+(l.status||'').slice(1).toLowerCase()+'</span><span class="days'+(hot?' hot':'')+'">'+(d===0?'Today':d+'d ago')+'</span></div>'
-      +'</div>';
-  }).join(''):'<div class="empty"><div class="empty-ico">🔍</div><div class="empty-t">No leads found</div></div>';
-  if(clientResults.length){
-    html+='<div style="padding:8px 12px;font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;background:var(--s2)">Clients ('+clientResults.length+')</div>';
-    html+=clientResults.map(function(c){return '<div class="ci" onclick="openDetail(\''+c.mobile+'\',\'client\')"><div class="ci-av" style="background:rgba(192,57,43,.1);color:var(--accent)">'+ini(c.name)+'</div><div class="li-info"><div class="li-name">'+toTitle(c.name)+'</div><div class="li-meta">'+c.mobile+(c.country?' · '+c.country:'')+'</div></div><div class="li-right"><span style="font-size:9px;color:var(--green);font-weight:700">CLIENT</span></div></div>';}).join('');
-  }
-  var ll=document.getElementById('lead-list');if(ll)ll.innerHTML=html;
-}
+
 function setF(s){filterStatus=s;renderLeads();}
 
 // ═══════════════════════════════════════════════
@@ -919,151 +789,16 @@ function setupAutocomplete(inputId,listId,type){
   });
   document.addEventListener('click',function(e){if(!input.contains(e.target)&&!list.contains(e.target))list.classList.remove('show');});
 }
-function fillFormFromRecord(rec,type){
-  if(type==='lead'){
-    var fields={name:rec.name,mob:rec.mobile,email:rec.email||'',country:rec.country||'',age:rec.age||'',gender:rec.gender||'',status:rec.status||'PROSPECT',source:rec.source||'',referral:rec.referral||''};
-    Object.keys(fields).forEach(function(f){var el=document.getElementById('lf-'+f);if(el)el.value=fields[f];});
-    var defNext=(function(){var d=new Date();d.setDate(d.getDate()+7);return d.toISOString().split('T')[0];})();
-    var fuEl=document.getElementById('lf-followup');if(fuEl)fuEl.value=rec.nextFollowUp||defNext;
-    document.querySelectorAll('#ov-lead .pt').forEach(function(t){t.classList.toggle('on',!!(rec.products&&rec.products.toUpperCase().includes(t.dataset.p)));});
-    var remEl=document.getElementById('lf-rem');if(remEl)remEl.value='';
-    editLead=rec.mobile;
-    document.getElementById('lf-title').textContent='Edit Lead (existing)';
-  } else {
-    var cf={name:rec.name,mob:rec.mobile,email:rec.email||'',country:rec.country||'',age:rec.age||'',gender:rec.gender||'',pan:rec.pan||''};
-    Object.keys(cf).forEach(function(f){var el=document.getElementById('cf-'+f);if(el)el.value=cf[f];});
-    document.querySelectorAll('#cf-products .pt').forEach(function(t){t.classList.toggle('on',!!(rec.products&&rec.products.toUpperCase().includes(t.dataset.p)));});
-    editClient=rec.mobile;
-    document.getElementById('cf-title').textContent='Edit Client (existing)';
-  }
-  toast('Existing record loaded — editing now');
-}
+
 
 // ═══════════════════════════════════════════════
 // FOLLOW-UPS
 // ═══════════════════════════════════════════════
-function updateFUBadge(){
-  var fd=parseInt(cfg_.followUpDays)||14;
-  // Badge shows total active leads (all that need following up)
-  var count=leads.filter(function(l){return ['PROSPECT','CONTACTED','IN PROGRESS'].includes((l.status||'').toUpperCase());}).length;
-  var navFu=document.getElementById('nav-fu');if(!navFu)return;
-  var badge=navFu.querySelector('.nb-badge');
-  if(count>0){if(!badge){badge=document.createElement('span');badge.className='nb-badge';navFu.insertBefore(badge,navFu.firstChild);}badge.textContent=count>9?'9+':count;}
-  else if(badge)badge.remove();
-}
 
-function renderFU(){
-  var fd=parseInt(cfg_.followUpDays)||14;
-  var staleDays=parseInt(cfg_.staleDays)||30;
-  var active=leads.filter(function(l){return ['PROSPECT','CONTACTED','IN PROGRESS'].includes((l.status||'').toUpperCase());});
 
-  // Group into: overdue (next date passed OR no activity for fd+ days), due soon, all others
-  var overdue=active.filter(function(l){
-    var overdueByDate=l.nextFollowUp&&daysUntil(l.nextFollowUp)<=0;
-    var overdueByAge=daysAgo(l.modifiedDate||l.createdDate)>=fd;
-    return overdueByDate||overdueByAge;
-  });
-  var dueSoon=active.filter(function(l){
-    var days=l.nextFollowUp?daysUntil(l.nextFollowUp):null;
-    return days!==null&&days>0&&days<=3&&!overdue.find(function(x){return x.mobile===l.mobile;});
-  });
-  var rest=active.filter(function(l){
-    return !overdue.find(function(x){return x.mobile===l.mobile;})
-      &&!dueSoon.find(function(x){return x.mobile===l.mobile;});
-  });
-  var stale=active.filter(function(l){
-    return ['CONTACTED','IN PROGRESS'].includes((l.status||'').toUpperCase())
-      &&daysAgo(l.modifiedDate||l.createdDate)>=staleDays;
-  });
 
-  var total=active.length;
-  var sub=document.getElementById('fu-sub');
-  if(sub)sub.textContent=total+' active leads'+(overdue.length?' · '+overdue.length+' overdue':'');
 
-  var html='';
 
-  // Overdue section
-  if(overdue.length){
-    html+='<div style="padding:7px 14px 5px;background:rgba(192,57,43,.08);border-bottom:1px solid var(--border)">'
-      +'<div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px">🔴 Overdue follow-ups ('+overdue.length+')</div></div>';
-    html+=overdue.sort(function(a,b){return daysAgo(a.modifiedDate||a.createdDate)-daysAgo(b.modifiedDate||b.createdDate);}).map(function(l){return makeFuItem(l,'overdue');}).join('');
-  }
-
-  // Due soon section
-  if(dueSoon.length){
-    html+='<div style="padding:7px 14px 5px;background:rgba(255,255,255,.04);border-bottom:1px solid var(--border)">'
-      +'<div style="font-size:10px;font-weight:700;color:#AAAAAA;text-transform:uppercase;letter-spacing:.5px">🟡 Due soon — next 3 days ('+dueSoon.length+')</div></div>';
-    html+=dueSoon.sort(function(a,b){return daysUntil(a.nextFollowUp)-daysUntil(b.nextFollowUp);}).map(function(l){return makeFuItem(l,'soon');}).join('');
-  }
-
-  // All other active leads
-  if(rest.length){
-    html+='<div style="padding:7px 14px 5px;background:rgba(255,255,255,.02);border-bottom:1px solid var(--border)">'
-      +'<div style="font-size:10px;font-weight:700;color:#666666;text-transform:uppercase;letter-spacing:.5px">Active leads ('+rest.length+')</div></div>';
-    html+=rest.sort(function(a,b){
-      var da=a.nextFollowUp?daysUntil(a.nextFollowUp):999;
-      var db=b.nextFollowUp?daysUntil(b.nextFollowUp):999;
-      return da-db;
-    }).map(function(l){return makeFuItem(l,'normal');}).join('');
-  }
-
-  // Stale notice (at bottom)
-  if(stale.length){
-    html+='<div style="padding:7px 14px 5px;background:rgba(192,57,43,.05);border-top:1px solid var(--border)">'
-      +'<div style="font-size:10px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:.5px">🧊 Stale — '+staleDays+'+ days no activity ('+stale.length+')</div></div>';
-    html+=stale.map(function(l){return makeFuItem(l,'stale');}).join('');
-  }
-
-  if(!total){
-    html='<div class="empty"><div class="empty-ico">🎉</div><div class="empty-t">No active leads</div><div class="empty-s">All leads are converted or dropped. Add new leads from the Leads tab.</div></div>';
-  }
-
-  var fuList=document.getElementById('fu-list');
-  if(fuList){
-    fuList.innerHTML=html;
-    fuList.onclick=function(e){
-      var btn=e.target.closest('[data-action]');if(!btn)return;
-      var mob=btn.dataset.mob;var action=btn.dataset.action;
-      if(action==='fu-open')openFuDetail(mob);
-      if(action==='fu-wa-app'){bumpM(mob);setTimeout(function(){askAddRemark(leads.find(function(x){return x.mobile===mob;}),'WhatsApp sent',null);},1500);}
-      if(action==='fu-meet'){quickLog(mob,'📹 Google Meet scheduled');}
-      if(action==='fu-drop'){quickStatus(mob,'DROPPED');}
-    };
-  }
-  updateFUBadge();
-}
-
-function makeFuItem(l,isStale){
-  var d=daysAgo(l.modifiedDate||l.createdDate);
-  var digits=(l.mobile||'').replace(/\D/g,'');
-  var waNum=digits.length===10?'91'+digits:digits;
-  var msg=encodeURIComponent(waMsg(l));
-  var mob=l.mobile;
-  var lastRem='';
-  if(l.remarks){var rl=(l.remarks||'').trim().split('\n').filter(function(x){return x.trim();});if(rl.length){var la=rl[rl.length-1];var mm=la.match(/^\[([^\]]+)\]\s*(.*)/);lastRem=mm?mm[2]:la;if(lastRem.length>50)lastRem=lastRem.substring(0,50)+'…';}}
-  var statusColors={'PROSPECT':'#666666','CONTACTED':'#999999','IN PROGRESS':'#BBBBBB'};
-  var sColor=statusColors[(l.status||'').toUpperCase()]||'var(--t2)';
-  var borderStyle=isStale==='overdue'?'border-left:3px solid var(--accent);':isStale==='soon'?'border-left:3px solid #888;':'';
-  return '<div class="fu-item" style="'+borderStyle+'">'
-    +'<div class="fu-row" data-action="fu-open" data-mob="'+mob+'">'
-    +'<div class="av" style="width:36px;height:36px;min-width:36px;font-size:12px">'+ini(l.name)+'</div>'
-    +'<div style="flex:1;min-width:0">'
-    +'<div style="font-weight:700;font-size:13px">'+toTitle(l.name)+'</div>'
-    +'<div style="font-size:10px;font-weight:700;color:'+sColor+';margin-top:1px">'+l.status+(l.country?' · '+l.country:'')+'</div>'
-    +(lastRem?'<div style="font-size:10px;color:var(--t3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+lastRem+'</div>':'')
-    +(l.nextFollowUp?'<div style="font-size:10px;color:'+(daysUntil(l.nextFollowUp)<=0?'var(--red)':'var(--t3)')+';margin-top:1px">📅 '+fmt(l.nextFollowUp)+'</div>':'')
-    +'</div>'
-    +'<div style="font-size:11px;color:var(--red);font-weight:700;flex-shrink:0">'+d+'d</div>'
-    +'</div>'
-    +'<div class="fu-actions">'
-    +'<a href="whatsapp://send?phone='+waNum+'&text='+msg+'" class="fu-icon-btn wa" data-action="fu-wa-app" data-mob="'+mob+'" title="WA App">'+waIcon()+'</a>'
-    +'<a href="https://web.whatsapp.com/send?phone='+waNum+'&text='+msg+'" target="_blank" class="fu-icon-btn wa" title="WA Web">'+waIcon()+'<span style="font-size:9px;margin-left:2px">W</span></a>'
-    +'<a href="tel:'+mob+'" class="fu-icon-btn call" data-action="fu-call" data-mob="'+mob+'" title="Call">'+callIcon()+'</a>'
-    +(isStale==='stale'||isStale==='overdue'?'<button class="fu-icon-btn" data-action="fu-drop" data-mob="'+mob+'" style="border-color:var(--accent);color:var(--accent);background:var(--accent2);font-size:11px;font-weight:700">Drop</button>':'')
-    +'<div class="fu-open-btn" data-action="fu-open" data-mob="'+mob+'">Open →</div>'
-    +'</div>'
-    +'</div>';
-}
 
 // ═══════════════════════════════════════════════
 // FOLLOW-UP DETAIL POPUP
@@ -1075,191 +810,7 @@ function openFuDetail(mob){
   document.getElementById('ov-fu-detail').classList.add('open');
 }
 
-function renderFuDetailInner(mob){
-  var l=leads.find(function(x){return x.mobile===mob;});if(!l)return;
-  var d=daysAgo(l.modifiedDate||l.createdDate);
-  var defNext=(function(){var dn=new Date();dn.setDate(dn.getDate()+7);return dn.toISOString().split('T')[0];})();
-  var hasCurrent=!!(l.nextFollowUp);
-  var fuDays=hasCurrent?daysUntil(l.nextFollowUp):null;
-  var fuLabel=hasCurrent?(fuDays<0?Math.abs(fuDays)+' days overdue':fuDays===0?'Due today':fuDays+' days away'):'Not set';
-  var fuColor=!hasCurrent?'var(--t3)':fuDays<=0?'var(--accent)':fuDays<=3?'#AAAAAA':'#888';
 
-  // Build activity log HTML - CHRONOLOGICAL (oldest first)
-  var remText=migrateRemarks(l.remarks||'');
-  var entries=remText.trim().split('\n').filter(function(x){return x.trim();});
-  var histHtml=entries.length?entries.map(function(entry){
-    var mm=entry.match(/^\[(\d{2}\/\d{2}\/\d{4}(?:\s\d{2}:\d{2})?)\]\s*(.*)$/);
-    if(mm){var ts=mm[1];var txt=mm[2];var lo=txt.toLowerCase();
-      var ico=lo.includes('whatsapp')?'💬':lo.includes('meet')?'📹':lo.includes('call')?'📞':(lo.includes('follow-up')||lo.includes('followup'))?'📅':(lo.includes('status')||lo.includes('\u2192'))?'🔄':lo.includes('created')?'⭐':'📝';
-      return '<div style="padding:6px 0;border-bottom:1px solid var(--border)"><div style="font-size:10px;font-weight:700;color:var(--accent)">'+ico+' '+ts+'</div><div style="font-size:12px;color:var(--text);margin-top:2px">'+txt+'</div></div>';
-    }
-    return '<div style="font-size:12px;color:var(--t2);padding:4px 0;border-bottom:1px solid var(--border)">'+entry+'</div>';
-  }).join(''):'<div style="font-size:12px;color:var(--t3);padding:8px 0;text-align:center">No activity yet. Log your first interaction below.</div>';
-
-  // Quick chips
-  var chips=[['📄','Brochure sent'],['📵','Could not connect'],['❓','Asked for details'],['🤝','Meeting scheduled'],['📹','Google Meet scheduled'],['⏳','Will contact later'],['💬','WhatsApp sent'],['📞','Called'],['🫱','Physically met'],['📧','Email sent']];
-  var chipsHtml=chips.map(function(c){
-    return '<div class="qlog-chip" style="padding:5px 8px;font-size:11px" data-action="fu-qlog" data-mob="'+mob+'" data-note="'+c[0]+' '+c[1]+'">'+c[0]+' '+c[1]+'</div>';
-  }).join('');
-
-  // Date shortcuts
-  var scDates=[['Tmrw',1],['3d',3],['1wk',7],['2wk',14],['1mo',30]];
-  var shortHtml=scDates.map(function(x){
-    var ds=new Date();ds.setDate(ds.getDate()+x[1]);
-    return '<button class="btn btn-ghost" style="padding:4px 7px;font-size:11px" data-action="fu-shortcut" data-date="'+ds.toISOString().split('T')[0]+'">'+x[0]+'</button>';
-  }).join('');
-
-  // Status tabs
-  var statusOpts=[['PROSPECT','#777'],['CONTACTED','#999'],['IN PROGRESS','#BBB'],['CONVERTED','var(--accent)'],['DROPPED','#555']];
-  var statusHtml='<div style="display:flex;overflow-x:auto;scrollbar-width:none;border-bottom:2px solid var(--border);padding:0 14px">'+statusOpts.map(function(x){
-    var active=(l.status||'').toUpperCase()===x[0];
-    return '<button style="flex-shrink:0;border:none;padding:9px 10px;font-size:10px;font-weight:700;cursor:pointer;border-bottom:2px solid '+(active?x[1]:'transparent')+';margin-bottom:-2px;background:transparent;color:'+(active?x[1]:'var(--t3)')+';transition:all .15s" data-action="fu-status" data-mob="'+mob+'" data-status="'+x[0]+'">'+x[0].charAt(0)+x[0].slice(1).toLowerCase()+'</button>';
-  }).join('')+'</div>';
-
-  // Contact buttons
-  var digits=(l.mobile||'').replace(/\D/g,'');
-  var waNum=digits.length===10?'91'+digits:digits;
-  var wmsg=encodeURIComponent(waMsg(l));
-  var meetTitle=encodeURIComponent('Meeting with '+toTitle(l.name)+' — Wealth Matrix');
-  var ms2=new Date();ms2.setDate(ms2.getDate()+1);ms2.setHours(10,0,0,0);
-  var me2=new Date(ms2.getTime()+3600000);
-  var fc=function(dd){return dd.toISOString().replace(/[-:]/g,'').split('.')[0]+'Z';};
-  var meetUrl='https://calendar.google.com/calendar/render?action=TEMPLATE&text='+meetTitle+'&dates='+fc(ms2)+'/'+fc(me2)+'&add=meet&location='+encodeURIComponent('Google Meet');
-
-  var html=
-    '<div class="sh-handle"></div>'
-    // Header
-    +'<div style="padding:12px 14px 8px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)">'
-    +'<div><div style="font-size:16px;font-weight:800">'+toTitle(l.name)+'</div>'
-    +'<div style="font-size:10px;color:var(--accent);font-weight:700;margin-top:2px">'+d+' days since last activity</div></div>'
-    +'<button class="sh-x" onclick="checkUnsavedNoteAndClose()">✕</button></div>'
-    // Status tabs
-    +statusHtml
-    // Contact buttons row
-    +'<div style="display:flex;gap:6px;padding:10px 14px 0">'
-    +'<a href="whatsapp://send?phone='+waNum+'&text='+wmsg+'" class="btn btn-wa" style="flex:1;text-decoration:none;font-size:11px;padding:8px 4px;justify-content:center" data-action="fu-wa-app" data-mob="'+mob+'">'+waIcon()+' App</a>'
-    +'<a href="https://web.whatsapp.com/send?phone='+waNum+'&text='+wmsg+'" target="_blank" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:11px;padding:8px 4px;justify-content:center;border-color:#25D366;color:#25D366">'+waIcon()+' Web</a>'
-    +'<a href="tel:'+l.mobile+'" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:11px;padding:8px 4px;justify-content:center" data-action="fu-call" data-mob="'+mob+'"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg> Call</a>'
-    +'<a href="'+meetUrl+'" target="_blank" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:11px;padding:8px 4px;justify-content:center" data-action="fu-meet" data-mob="'+mob+'"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg> Meet</a>'
-    +'</div>'
-    // ── FOLLOW-UP DATE SECTION ──
-    +'<div style="margin:10px 14px 0;border:1px solid var(--border);border-radius:var(--r);overflow:hidden">'
-    // Current date — shown prominently
-    +'<div style="background:var(--s2);padding:10px 12px;border-bottom:1px solid var(--border)">'
-    +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin-bottom:4px">📅 Current follow-up date</div>'
-    +'<div style="font-size:18px;font-weight:900;color:'+fuColor+'">'+( hasCurrent?fmt(l.nextFollowUp):'Not set' )+'</div>'
-    +'<div style="font-size:11px;color:'+fuColor+';margin-top:2px;font-weight:600">'+fuLabel+'</div>'
-    +'</div>'
-    // New date picker
-    +'<div style="background:var(--s1);padding:10px 12px">'
-    +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin-bottom:7px">Set new follow-up date</div>'
-    +'<div style="display:flex;gap:6px;margin-bottom:8px">'
-    +'<input type="date" id="fu-next-date-'+mob+'" class="fi" value="'+defNext+'" style="flex:1;padding:9px 11px;font-size:14px;font-weight:700;color:var(--text);background:var(--bg)">'
-    +'<button class="btn btn-gold" style="padding:9px 14px;font-size:12px;flex-shrink:0;font-weight:700" data-action="fu-save-date" data-mob="'+mob+'">💾 Save</button>'
-    +'</div>'
-    +'<div style="display:flex;gap:5px;flex-wrap:wrap">'+shortHtml+'</div>'
-    +'</div>'
-    +'</div>'
-    // ── ACTIVITY LOG (chronological - oldest first) ──
-    +'<div style="padding:10px 14px 0">'
-    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">'
-    +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3)">📋 Activity log (oldest → newest)</div>'
-    +'<div style="font-size:10px;color:var(--t3)">'+entries.length+' entries</div>'
-    +'</div>'
-    +'<div id="fu-hist-'+mob+'" style="max-height:180px;overflow-y:auto;background:var(--bg);border:1px solid var(--border);border-radius:var(--r2);padding:8px 10px">'+histHtml+'</div>'
-    +'</div>'
-    // ── LOG NOW ──
-    +'<div style="padding:10px 14px 0">'
-    +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin-bottom:7px">⚡ Log now</div>'
-    +'<div class="qlog-grid" style="margin-bottom:8px">'+chipsHtml+'</div>'
-    +'<div style="display:flex;gap:6px">'
-    +'<input class="fi" id="fu-note-input-'+mob+'" placeholder="Type custom note…" style="flex:1;padding:8px 10px;font-size:13px;background:var(--bg)">'
-    +'<button class="btn btn-gold" style="padding:8px 12px;font-size:12px;flex-shrink:0" data-action="fu-save-note" data-mob="'+mob+'">Log →</button>'
-    +'</div></div>'
-    // ── DELETE ──
-    +'<div style="padding:12px 14px 22px">'
-    +'<button class="btn btn-red" style="width:100%;font-size:12px" data-action="fu-delete" data-mob="'+mob+'">🗑️ Delete this lead</button>'
-    +'</div>';
-
-  document.getElementById('fu-detail-sh').innerHTML=html;
-
-  // Scroll activity log to bottom (most recent) — but entries are oldest-first so scroll to bottom shows newest
-  var histEl=document.getElementById('fu-hist-'+mob);
-  if(histEl)histEl.scrollTop=histEl.scrollHeight;
-
-  // Event delegation
-  document.getElementById('fu-detail-sh').onclick=function(e){
-    var btn=e.target.closest('[data-action]');if(!btn)return;
-    var action=btn.dataset.action;var m=btn.dataset.mob;
-    var lead=leads.find(function(x){return x.mobile===m;});
-
-    if(action==='fu-wa-app'||action==='fu-wa-web'){
-      bumpM(m);_detailModified=true;
-      setTimeout(function(){
-        var l2=leads.find(function(x){return x.mobile===m;});
-        if(l2)askAddRemark(l2,'WhatsApp sent',function(){refreshFuHist(m);});
-      },1500);
-    }
-    if(action==='fu-call'){
-      bumpM(m);_detailModified=true;
-      setTimeout(function(){
-        var l2=leads.find(function(x){return x.mobile===m;});
-        if(l2)askAddRemark(l2,'Called',function(){refreshFuHist(m);});
-      },2000);
-    }
-    if(action==='fu-meet'){
-      quickLog(m,'📹 Google Meet scheduled');_detailModified=true;
-      setTimeout(function(){refreshFuHist(m);},350);
-    }
-    if(action==='fu-qlog'){
-      quickLog(m,btn.dataset.note);_detailModified=true;
-      btn.style.background='var(--accent)';btn.style.color='#fff';btn.style.borderColor='var(--accent)';
-      setTimeout(function(){btn.style.background='';btn.style.color='';btn.style.borderColor='';},900);
-      setTimeout(function(){refreshFuHist(m);},350);
-    }
-    if(action==='fu-save-note'){
-      var inp=document.getElementById('fu-note-input-'+m);
-      var txt=(inp?inp.value:'').trim();
-      if(!txt){toast('Type a note first');return;}
-      quickLog(m,txt.toUpperCase());_detailModified=true;
-      if(inp)inp.value='';
-      setTimeout(function(){refreshFuHist(m);},350);
-    }
-    if(action==='fu-save-date'){
-      var dateInp=document.getElementById('fu-next-date-'+m);
-      var newDate=dateInp?dateInp.value:'';
-      if(!newDate){toast('Pick a date first');return;}
-      var l3=leads.find(function(x){return x.mobile===m;});if(!l3)return;
-      var oldDate=l3.nextFollowUp;
-      // Log the old date to activity log BEFORE saving new one
-      var logMsg='Follow-up date '+(oldDate?'changed from '+fmt(oldDate)+' → ':' set to ')+fmt(newDate);
-      l3.nextFollowUp=newDate;
-      l3.modifiedDate=now();
-      l3.remarks=migrateRemarks(l3.remarks||'');
-      l3.remarks=appendRemark(l3.remarks,logMsg);
-      _detailModified=true;
-      saveL();
-      pushLeads();  // Save to Google Sheet immediately
-      toast('✅ Saved: '+fmt(newDate));
-      // Re-render the detail panel so current date updates
-      renderFuDetailInner(m);
-      // Refresh follow-up list so new dates reflect
-      setTimeout(function(){renderFU();},300);
-    }
-    if(action==='fu-shortcut'){
-      var di=document.getElementById('fu-next-date-'+m);if(di)di.value=btn.dataset.date;
-    }
-    if(action==='fu-status'){
-      quickStatus(m,btn.dataset.status);
-      // Re-render panel with updated status
-      setTimeout(function(){renderFuDetailInner(m);},200);
-    }
-    if(action==='fu-delete'){
-      var ln=leads.find(function(x){return x.mobile===m;});
-      if(ln&&confirm('Delete '+toTitle(ln.name)+'?')){deleteLead(m);closeFuDetail();}
-    }
-  };
-}
 
 
 function refreshFuHist(mob){
@@ -1358,64 +909,9 @@ function openDetail(mob,type){
 // ═══════════════════════════════════════════════
 // LEAD FORM
 // ═══════════════════════════════════════════════
-function openAddLead(pre){
-  editLead=null;
-  document.getElementById('lf-title').textContent='New Lead';
-  ['name','mob','email','country','age','rem'].forEach(function(f){var el=document.getElementById('lf-'+f);if(el)el.value=(pre&&pre[f])||'';});
-  var gEl=document.getElementById('lf-gender');if(gEl)gEl.value=(pre&&pre.gender)||'';
-  var sEl=document.getElementById('lf-status');if(sEl)sEl.value=(pre&&pre.status)||'PROSPECT';
-  var srcEl=document.getElementById('lf-source');if(srcEl)srcEl.value=(pre&&pre.source)||'';
-  var refEl=document.getElementById('lf-referral');if(refEl)refEl.value=(pre&&pre.referral)||'';
-  var defNext=(function(){var d=new Date();d.setDate(d.getDate()+7);return d.toISOString().split('T')[0];})();
-  var fuEl=document.getElementById('lf-followup');if(fuEl)fuEl.value=(pre&&pre.nextFollowUp)||defNext;
-  document.querySelectorAll('#ov-lead .pt').forEach(function(t){t.classList.remove('on');});
-  if(pre&&pre.products)pre.products.split(',').forEach(function(p){var t=document.querySelector('#ov-lead .pt[data-p="'+p.trim().toUpperCase()+'"]');if(t)t.classList.add('on');});
-  document.getElementById('ov-lead').classList.add('open');
-  setupAutocomplete('lf-name','lf-ac-list','lead');
-}
-function editLeadOpen(mob){
-  var l=leads.find(function(x){return x.mobile===mob;});if(!l)return;
-  editLead=mob;
-  document.getElementById('lf-title').textContent='Edit Lead';
-  document.getElementById('lf-name').value=l.name;document.getElementById('lf-mob').value=l.mobile;
-  document.getElementById('lf-email').value=l.email||'';document.getElementById('lf-country').value=l.country||'';
-  document.getElementById('lf-age').value=l.age||'';
-  var gEl=document.getElementById('lf-gender');if(gEl)gEl.value=l.gender||'';
-  var sEl=document.getElementById('lf-status');if(sEl)sEl.value=l.status||'PROSPECT';
-  var srcEl=document.getElementById('lf-source');if(srcEl)srcEl.value=l.source||'';
-  var refEl=document.getElementById('lf-referral');if(refEl)refEl.value=l.referral||'';
-  var defNext=(function(){var d=new Date();d.setDate(d.getDate()+7);return d.toISOString().split('T')[0];})();
-  var fuEl=document.getElementById('lf-followup');if(fuEl)fuEl.value=l.nextFollowUp||defNext;
-  var remEl=document.getElementById('lf-rem');if(remEl)remEl.value='';
-  document.querySelectorAll('#ov-lead .pt').forEach(function(t){t.classList.toggle('on',!!(l.products&&l.products.toUpperCase().includes(t.dataset.p)));});
-  document.getElementById('ov-lead').classList.add('open');
-}
-function saveLead(){
-  var name=caps(document.getElementById('lf-name').value);
-  var mob=document.getElementById('lf-mob').value.trim();
-  if(!name||!mob){toast('Name and mobile required');return;}
-  var prods=[].slice.call(document.querySelectorAll('#ov-lead .pt.on')).map(function(t){return t.dataset.p;}).join(', ');
-  var status=caps(document.getElementById('lf-status').value);
-  var source=caps(document.getElementById('lf-source').value);
-  var referral=caps(document.getElementById('lf-referral')?document.getElementById('lf-referral').value:'');
-  var nextFU=document.getElementById('lf-followup')?document.getElementById('lf-followup').value:'';
-  var noteText=caps(document.getElementById('lf-rem')?document.getElementById('lf-rem').value.trim():'');
-  if(editLead){
-    var idx=leads.findIndex(function(l){return l.mobile===editLead;});if(idx<0)return;
-    var prev=(leads[idx].status||'PROSPECT').toUpperCase();
-    leads[idx]=Object.assign({},leads[idx],{name:name,mobile:mob,email:caps(document.getElementById('lf-email').value),country:caps(document.getElementById('lf-country').value),age:document.getElementById('lf-age').value,gender:caps(document.getElementById('lf-gender')?document.getElementById('lf-gender').value:''),status:status,source:source,referral:referral,products:prods,nextFollowUp:nextFU,modifiedDate:now()});
-    if(prev!==status)leads[idx].remarks=appendRemark(migrateRemarks(leads[idx].remarks||''),'Status changed: '+prev+' → '+status);
-    if(noteText)leads[idx].remarks=appendRemark(leads[idx].remarks||'',noteText);
-    saveL();if(status==='CONVERTED'&&prev!=='CONVERTED')autoConvert(leads[idx]);pushLeads();toast('Lead updated');
-  } else {
-    if(leads.find(function(l){return l.mobile===mob;})){toast('Mobile already exists');return;}
-    var newLead={name:name,mobile:mob,email:caps(document.getElementById('lf-email').value),country:caps(document.getElementById('lf-country').value),age:document.getElementById('lf-age').value,gender:caps(document.getElementById('lf-gender')?document.getElementById('lf-gender').value:''),status:status,source:source,referral:referral,products:prods,nextFollowUp:nextFU,remarks:'',notes:[],createdDate:now(),modifiedDate:now()};
-    newLead.remarks=appendRemark('','Lead created as '+status);
-    if(noteText)newLead.remarks=appendRemark(newLead.remarks,noteText);
-    leads.push(newLead);saveL();pushLeads();if(status==='CONVERTED')autoConvert(newLead);toast('✅ Lead added');
-  }
-  closeOv('ov-lead');renderLeads();renderDash();renderFU();
-}
+
+
+
 
 // ═══════════════════════════════════════════════
 // CLIENT FORM
@@ -1496,20 +992,7 @@ function showConvertedBanner(name){
 // ═══════════════════════════════════════════════
 // QUICK STATUS & DELETE
 // ═══════════════════════════════════════════════
-function quickStatus(mob,status){
-  var l=leads.find(function(x){return x.mobile===mob;});if(!l)return;
-  var prev=(l.status||'PROSPECT').toUpperCase();
-  if(prev===status.toUpperCase()){closeOv('ov-detail');return;}
-  l.status=status;l.modifiedDate=now();
-  l.remarks=migrateRemarks(l.remarks||'');
-  l.remarks=appendRemark(l.remarks,'Status changed: '+prev+' → '+status);
-  saveL();pushLeads();
-  if(status==='CONVERTED'&&prev!=='CONVERTED') autoConvert(l);
-  closeOv('ov-detail');
-  closeFuDetail();
-  renderLeads();renderDash();renderFU();
-  if(status!=='CONVERTED') toast('Status → '+status);
-}
+
 function deleteLead(mob){if(!confirm('Delete this lead?'))return;leads=leads.filter(function(x){return x.mobile!==mob;});saveL();closeOv('ov-detail');renderLeads();renderDash();renderFU();toast('Lead deleted');pushLeads();}
 function deleteClient(mob){if(!confirm('Delete this client?'))return;clients=clients.filter(function(x){return x.mobile!==mob;});saveC();closeOv('ov-detail');renderClients();toast('Client deleted');pushClients();}
 
@@ -1686,45 +1169,12 @@ async function scriptPostChunked(action,rows){
   }
   return {success:true,written:dataRows.length};
 }
-function leadsRows(){
-  var hdr=['Name','Mobile','Email','Country','Status','Source','Referred By','Products','Age','Gender','Next Follow-up','Remarks','Modified Date','Created Date','AUM'];
-  return [hdr].concat(leads.map(function(l){
-    return [l.name||'',l.mobile||'',l.email||'',l.country||'',l.status||'',l.source||'',
-      l.referral||'SELF',l.products||'',l.age||'',l.gender||'',l.nextFollowUp||'',
-      l.remarks||'',  // Full remarks with all activity logs
-      l.modifiedDate?l.modifiedDate.split('T')[0]:'',
-      l.createdDate?l.createdDate.split('T')[0]:'',
-      l.aum||''];
-  }));
-}
+
 function clientsRows(){var hdr=['Name','Mobile','Email','Country','Age','Gender','PAN','DOB','Spouse DOB','Anniversary','Products','Remarks','Converted Date','Review Date','1st Anniversary','App Installed','Broadcast Added'];return [hdr].concat(clients.map(function(c){return [c.name||'',c.mobile||'',c.email||'',c.country||'',c.age||'',c.gender||'',c.pan||'',c.dob||'',c.spouseDob||'',c.anniversary||'',c.products||'',c.remarks||'',c.convertedDate||'',c.reviewDate||'',c.firstAnniversary||'',c.appInstalled?'YES':'NO',c.broadcastAdded?'YES':'NO'];}));}
-function pushLeads(){
-  if(!hasScript())return;
-  showSyncPush('leads');
-  scriptPost('pushLeads',leadsRows()).then(function(r){
-    showSyncPush('ok');
-  }).catch(function(err){
-    showSyncPush('err');
-    console.warn('pushLeads failed:',err.message||err);
-    toast('⚠️ Sheet sync failed. Check Apps Script URL.',4000);
-  });
-}
+
 function pushClients(){if(!hasScript())return;scriptPost('pushClients',clientsRows()).catch(function(){});}
 
-async function pullFromSheet(manual){
-  if(!hasScript()){if(manual)showSyncMsg('Add Apps Script URL first.',false);return;}
-  if(syncInProgress)return;syncInProgress=true;setSyncBanner('syncing');setTopSync('syncing','Syncing…');
-  if(manual)toast('Pulling from sheet…',3000);
-  try{
-    var ld=await scriptGet('LEADS');
-    if(ld&&ld.rows&&ld.rows.length>1){ld.rows.slice(1).forEach(function(r){var mob=String(r[1]||'').trim();if(!mob)return;var obj={name:caps(r[0]),mobile:mob,email:caps(r[2]),country:caps(r[3]),status:caps(r[4])||'PROSPECT',source:caps(r[5]),referral:caps(r[6]),products:caps(r[7]),age:String(r[8]||''),gender:caps(r[9]),nextFollowUp:String(r[10]||''),remarks:migrateRemarks(String(r[11]||'')),modifiedDate:String(r[12]||today()),createdDate:String(r[13]||today())};var idx=leads.findIndex(function(l){return l.mobile===mob;});if(idx>=0)leads[idx]=Object.assign({},leads[idx],obj,{notes:leads[idx].notes||[]});else leads.push(Object.assign({},obj,{notes:[]}));});saveL();}
-    var cd=await scriptGet('CLIENTS');
-    if(cd&&cd.rows&&cd.rows.length>1){cd.rows.slice(1).forEach(function(r){var mob=String(r[1]||'').trim();if(!mob)return;var obj={name:caps(r[0]),mobile:mob,email:caps(r[2]),country:caps(r[3]),age:String(r[4]||''),gender:caps(r[5]),pan:caps(r[6]),products:caps(r[7]),remarks:caps(r[8]),convertedDate:String(r[9]||'')};var idx=clients.findIndex(function(c){return c.mobile===mob;});if(idx>=0)clients[idx]=Object.assign({},clients[idx],obj);else clients.push(obj);});saveC();}
-    cfg_.lastPull=now();saveCfg();var ts=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});setSyncBanner('ok');setTopSync('ok','Synced at '+ts+' · '+leads.length+' leads');
-    renderAll();if(manual)showSyncMsg('✅ Synced — '+leads.length+' leads, '+clients.length+' clients.',true);
-  }catch(err){setSyncBanner('err');setTopSync('err','Sync failed — tap 🔄 to retry');if(manual)showSyncMsg('❌ '+err.message,false);console.warn('pullFromSheet:',err.message);}
-  finally{syncInProgress=false;}
-}
+
 async function importFromSheet(){
   if(!hasScript()){toast('Add Apps Script URL first');return;}
   var tabEl=document.getElementById('s-import-tab');var tab=tabEl?tabEl.value.trim()||'MASTER LIST':'MASTER LIST';toast('Importing…',4000);
@@ -1863,109 +1313,11 @@ var AUM_ORDER={"SIP>1L":1,"SIP 50K-1L":2,"SIP~50K":3,"100L+":4,"50-100L":5,"SIP<
 function aumScore(l){return AUM_ORDER[l.aum||'']||99;}
 
 // ── OVERRIDE leadsRows to include AUM ──
-function leadsRows(){
-  var hdr=['Name','Mobile','Email','Country','Status','Source','Referred By','Products','Age','Gender','Next Follow-up','Remarks','Modified Date','Created Date','AUM'];
-  return [hdr].concat(leads.map(function(l){
-    return [l.name||'',l.mobile||'',l.email||'',l.country||'',l.status||'',l.source||'',l.referral||'',l.products||'',l.age||'',l.gender||'',l.nextFollowUp||'',l.remarks||'',l.modifiedDate?l.modifiedDate.split('T')[0]:'',l.createdDate?l.createdDate.split('T')[0]:'',l.aum||''];
-  }));
-}
+
 
 // ── OVERRIDE pullFromSheet to read AUM ──
 // (patched into existing pullFromSheet by updating row parser)
-var _origPFS=pullFromSheet;
-async function pullFromSheet(manual){
-  if(!hasScript()){if(manual)showSyncMsg('Add Apps Script URL first.',false);return;}
-  if(syncInProgress)return;syncInProgress=true;setSyncBanner('syncing');setTopSync('syncing','Syncing...');
-  if(manual)toast('Pulling from sheet...',3000);
-  try{
-    var ld=await scriptGet('LEADS');
-    if(ld&&ld.rows&&ld.rows.length>1){
-      // Use header row to detect column positions — handles any sheet layout
-      var hdr=ld.rows[0].map(function(h){return (h||'').toString().toLowerCase().trim();});
-      var ci=function(names){
-        for(var ni=0;ni<names.length;ni++){
-          for(var hi=0;hi<hdr.length;hi++){
-            if(hdr[hi].includes(names[ni])) return hi;
-          }
-        }
-        return -1;
-      };
-      var col={
-        name:   ci(['name']),
-        mob:    ci(['mobile','phone']),
-        email:  ci(['email']),
-        country:ci(['country']),
-        status: ci(['status']),
-        source: ci(['source']),
-        ref:    ci(['referred','referral','referer']),
-        prod:   ci(['product']),
-        age:    ci(['age']),
-        gender: ci(['gender']),
-        fu:     ci(['follow']),
-        rem:    ci(['remark','note','log','history']),
-        mod:    ci(['modified','mod date']),
-        created:ci(['created']),
-        aum:    ci(['aum','sip','invest'])
-      };
-      // Fallback positions if header not recognised (original 13-col sheet)
-      var fb={name:0,mob:1,email:2,country:3,status:4,source:5,ref:-1,prod:6,age:7,gender:8,fu:9,rem:10,mod:11,created:12,aum:-1};
-      function gc(row,key){ var idx=col[key]>=0?col[key]:fb[key]; return idx>=0&&idx<row.length?String(row[idx]||''):''; }
-      ld.rows.slice(1).forEach(function(r){
-        var mob=gc(r,'mob').trim();
-        if(!mob)return;
-        var fu=gc(r,'fu');
-        // Validate date: must be YYYY-MM-DD
-        if(fu&&!/^\d{4}-\d{2}-\d{2}$/.test(fu)) fu='';
-        var obj={
-          name:    caps(gc(r,'name')),
-          mobile:  mob,
-          email:   gc(r,'email'),
-          country: caps(gc(r,'country')),
-          status:  caps(gc(r,'status'))||'PROSPECT',
-          source:  caps(gc(r,'source')),
-          referral:caps(gc(r,'ref'))||'SELF',
-          products:caps(gc(r,'prod')),
-          age:     gc(r,'age'),
-          gender:  caps(gc(r,'gender')),
-          nextFollowUp: fu,
-          remarks: migrateRemarks(gc(r,'rem')),
-          modifiedDate: gc(r,'mod')||today(),
-          createdDate:  gc(r,'created')||today(),
-          aum:     gc(r,'aum')
-        };
-        var idx=leads.findIndex(function(l){return l.mobile===mob;});
-        if(idx>=0) leads[idx]=Object.assign({},leads[idx],obj,{notes:leads[idx].notes||[]});
-        else leads.push(Object.assign({},obj,{notes:[]}));
-      });
-      saveL();
-    }
-    var cd=await scriptGet('CLIENTS');
-    if(cd&&cd.rows&&cd.rows.length>1){
-      var chdr=cd.rows[0].map(function(h){return (h||'').toString().toLowerCase().trim();});
-      var cci=function(names){for(var ni=0;ni<names.length;ni++){for(var hi=0;hi<chdr.length;hi++){if(chdr[hi].includes(names[ni]))return hi;}}return -1;};
-      var ccol={name:cci(['name']),mob:cci(['mobile','phone']),email:cci(['email']),country:cci(['country']),age:cci(['age']),gender:cci(['gender']),pan:cci(['pan']),prod:cci(['product']),rem:cci(['remark','note']),conv:cci(['converted','onboard'])};
-      var cfb={name:0,mob:1,email:2,country:3,age:4,gender:5,pan:6,prod:7,rem:8,conv:9};
-      function gcc(row,key){var idx=ccol[key]>=0?ccol[key]:cfb[key];return idx>=0&&idx<row.length?String(row[idx]||''):'';}
-      cd.rows.slice(1).forEach(function(r){
-        var mob=gcc(r,'mob').trim();if(!mob)return;
-        var obj={name:caps(gcc(r,'name')),mobile:mob,email:gcc(r,'email'),country:caps(gcc(r,'country')),
-          age:gcc(r,'age'),gender:caps(gcc(r,'gender')),pan:caps(gcc(r,'pan')),
-          products:caps(gcc(r,'prod')),remarks:gcc(r,'rem'),convertedDate:gcc(r,'conv')};
-        var idx2=clients.findIndex(function(c){return c.mobile===mob;});
-        if(idx2>=0) clients[idx2]=Object.assign({},clients[idx2],obj);
-        else clients.push(obj);
-      });
-      saveC();
-    }
-    cfg_.lastPull=now();saveCfg();
-    var ts=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
-    setSyncBanner('ok');setTopSync('ok','Synced at '+ts+' - '+leads.length+' leads');
-    renderAll();if(manual)showSyncMsg('Synced - '+leads.length+' leads, '+clients.length+' clients.',true);
-  }catch(err){
-    setSyncBanner('err');setTopSync('err','Sync failed - tap sync to retry');
-    if(manual)showSyncMsg('Error: '+err.message,false);console.warn('pullFromSheet:',err.message);
-  }finally{syncInProgress=false;}
-}
+
 
 
 // ── DROP REASON POPUP ──
@@ -1990,7 +1342,6 @@ function askDropReason(mob,callback){
 }
 
 // ── OVERRIDE quickStatus to use drop reason + check for FU date conflicts ──
-var _origQS=quickStatus;
 function quickStatus(mob,status){
   var l=leads.find(function(x){return x.mobile===mob;});if(!l)return;
   var prev=(l.status||'PROSPECT').toUpperCase();
@@ -2018,103 +1369,15 @@ function quickStatus(mob,status){
 }
 
 // ── OVERRIDE openAddLead to populate AUM ──
-var _origOAL=openAddLead;
-function openAddLead(pre){
-  editLead=null;
-  document.getElementById('lf-title').textContent='New Lead';
-  ['name','mob','email','country','age','rem'].forEach(function(f){var el=document.getElementById('lf-'+f);if(el)el.value=(pre&&pre[f])||'';});
-  var gEl=document.getElementById('lf-gender');if(gEl)gEl.value=(pre&&pre.gender)||'';
-  var sEl=document.getElementById('lf-status');if(sEl)sEl.value=(pre&&pre.status)||'PROSPECT';
-  var srcEl=document.getElementById('lf-source');if(srcEl)srcEl.value=(pre&&pre.source)||'';
-  var refEl=document.getElementById('lf-referral');if(refEl)refEl.value=(pre&&pre.referral)||'SELF';
-  var aumEl=document.getElementById('lf-aum');if(aumEl)aumEl.value=(pre&&pre.aum)||'';
-  var defNext=(function(){var d=new Date();d.setDate(d.getDate()+7);return d.toISOString().split('T')[0];})();
-  var fuEl=document.getElementById('lf-followup');if(fuEl)fuEl.value=(pre&&pre.nextFollowUp)||defNext;
-  document.querySelectorAll('#ov-lead .pt').forEach(function(t){t.classList.remove('on');});
-  if(pre&&pre.products)pre.products.split(',').forEach(function(p){var t=document.querySelector('#ov-lead .pt[data-p="'+p.trim().toUpperCase()+'"]');if(t)t.classList.add('on');});
-  document.getElementById('ov-lead').classList.add('open');
-  setupAutocomplete('lf-name','lf-ac-list','lead');
-}
+
 
 // ── OVERRIDE editLeadOpen to populate AUM ──
-var _origELO=editLeadOpen;
-function editLeadOpen(mob){
-  var l=leads.find(function(x){return x.mobile===mob;});if(!l)return;
-  editLead=mob;
-  document.getElementById('lf-title').textContent='Edit Lead';
-  document.getElementById('lf-name').value=l.name;
-  document.getElementById('lf-mob').value=l.mobile;
-  document.getElementById('lf-email').value=l.email||'';
-  document.getElementById('lf-country').value=l.country||'';
-  document.getElementById('lf-age').value=l.age||'';
-  var gEl=document.getElementById('lf-gender');if(gEl)gEl.value=l.gender||'';
-  var sEl=document.getElementById('lf-status');if(sEl)sEl.value=l.status||'PROSPECT';
-  var srcEl=document.getElementById('lf-source');if(srcEl)srcEl.value=l.source||'';
-  var refEl=document.getElementById('lf-referral');if(refEl)refEl.value=l.referral||'SELF';
-  var aumEl=document.getElementById('lf-aum');if(aumEl)aumEl.value=l.aum||'';
-  var defNext=(function(){var d=new Date();d.setDate(d.getDate()+7);return d.toISOString().split('T')[0];})();
-  var fuEl=document.getElementById('lf-followup');if(fuEl)fuEl.value=l.nextFollowUp||defNext;
-  var remEl=document.getElementById('lf-rem');if(remEl)remEl.value='';
-  document.querySelectorAll('#ov-lead .pt').forEach(function(t){t.classList.toggle('on',!!(l.products&&l.products.toUpperCase().includes(t.dataset.p)));});
-  document.getElementById('ov-lead').classList.add('open');
-}
+
 
 // ── OVERRIDE saveLead to save AUM + referral default ──
-var _origSL=saveLead;
-function saveLead(){
-  var name=caps(document.getElementById('lf-name').value);
-  var mob=document.getElementById('lf-mob').value.trim();
-  if(!name||!mob){toast('Name and mobile required');return;}
-  var prods=[].slice.call(document.querySelectorAll('#ov-lead .pt.on')).map(function(t){return t.dataset.p;}).join(', ');
-  var status=caps(document.getElementById('lf-status').value);
-  var source=caps(document.getElementById('lf-source').value);
-  var refEl=document.getElementById('lf-referral');
-  var referral=refEl?refEl.value.trim()||'SELF':'SELF';
-  var aumEl=document.getElementById('lf-aum');
-  var aum=aumEl?aumEl.value:'';
-  var nextFU=document.getElementById('lf-followup')?document.getElementById('lf-followup').value:'';
-  var noteText=caps(document.getElementById('lf-rem')?document.getElementById('lf-rem').value.trim():'');
-  // Check FU date overload (max 15 per day)
-  if(nextFU){
-    var sameDay=leads.filter(function(l){return l.nextFollowUp===nextFU&&(!editLead||l.mobile!==editLead);}).length;
-    if(sameDay>=15){toast('⚠️ Already 15 leads scheduled for '+fmt(nextFU)+'. Postpone to next day!',4000);return;}
-  }
-  if(editLead){
-    var idx=leads.findIndex(function(l){return l.mobile===editLead;});if(idx<0)return;
-    var prev=(leads[idx].status||'PROSPECT').toUpperCase();
-    leads[idx]=Object.assign({},leads[idx],{name:name,mobile:mob,
-      email:caps(document.getElementById('lf-email').value),
-      country:caps(document.getElementById('lf-country').value),
-      age:document.getElementById('lf-age').value,
-      gender:caps(document.getElementById('lf-gender')?document.getElementById('lf-gender').value:''),
-      status:status,source:source,referral:referral,products:prods,aum:aum,nextFollowUp:nextFU,modifiedDate:now()});
-    if(prev!==status){
-      leads[idx].remarks=appendRemark(migrateRemarks(leads[idx].remarks||''),'Status changed: '+prev+' → '+status);
-    }
-    if(noteText)leads[idx].remarks=appendRemark(leads[idx].remarks||'',noteText);
-    saveL();
-    if(status==='CONVERTED'&&prev!=='CONVERTED') autoConvert(leads[idx]);
-    pushLeads();toast('Lead updated');
-  } else {
-    if(leads.find(function(l){return l.mobile===mob;})){toast('Mobile already exists');return;}
-    var newLead={name:name,mobile:mob,
-      email:caps(document.getElementById('lf-email').value),
-      country:caps(document.getElementById('lf-country').value),
-      age:document.getElementById('lf-age').value,
-      gender:caps(document.getElementById('lf-gender')?document.getElementById('lf-gender').value:''),
-      status:status,source:source,referral:referral,products:prods,aum:aum,nextFollowUp:nextFU,
-      remarks:'',notes:[],createdDate:now(),modifiedDate:now()};
-    newLead.remarks=appendRemark('','Lead created as '+status+(aum?' | AUM: '+aum:''));
-    if(noteText)newLead.remarks=appendRemark(newLead.remarks,noteText);
-    leads.push(newLead);saveL();pushLeads();
-    if(status==='CONVERTED') autoConvert(newLead);
-    toast('✅ Lead added');
-  }
-  closeOv('ov-lead');renderLeads();renderDash();renderFU();
-}
+
 
 // -- OVERRIDE fillFormFromRecord to populate AUM --
-var _origFFR=fillFormFromRecord;
 function fillFormFromRecord(rec,type){
   if(type==='lead'){
     var fields={name:rec.name,mob:rec.mobile,email:rec.email||''};
@@ -2155,299 +1418,15 @@ function deleteLogEntry(mob,lineIndex){
 // ── OVERRIDE renderFuDetailInner for new features ──
 // (chips, date shortcuts, AUM display, Botim, selectable log)
 // This overrides the function defined earlier in the script
-var _origRFDI=renderFuDetailInner;
-function renderFuDetailInner(mob){
-  var l=leads.find(function(x){return x.mobile===mob;});if(!l)return;
-  var d=daysAgo(l.modifiedDate||l.createdDate);
-  var defNext=(function(){var dn=new Date();dn.setDate(dn.getDate()+7);return dn.toISOString().split('T')[0];})();
-  var hasCurrent=!!(l.nextFollowUp);
-  var fuDays=hasCurrent?daysUntil(l.nextFollowUp):null;
-  var fuLabel=hasCurrent?(fuDays<0?Math.abs(fuDays)+' days overdue':fuDays===0?'Due today':fuDays+' days away'):'Not set';
-  var fuColor=!hasCurrent?'var(--t3)':fuDays<=0?'var(--accent)':fuDays<=3?'#AAA':'#888';
-  var aum=l.aum?'<span style="background:var(--accent2);color:var(--accent);border:1px solid rgba(192,57,43,.3);border-radius:999px;padding:2px 8px;font-size:10px;font-weight:700;margin-left:8px">💰 '+l.aum+'</span>':'';
 
-  // Activity log - chronological, with selectable entries for deletion
-  var remText=migrateRemarks(l.remarks||'');
-  var entries=remText.trim().split('\n').filter(function(x){return x.trim();});
-  var histHtml=entries.length?entries.map(function(entry,idx){
-    var mm=entry.match(/^\[(\d{2}\/\d{2}\/\d{4}(?:\s\d{2}:\d{2})?)\]\s*(.*)$/);
-    if(mm){var ts=mm[1];var txt=mm[2];var lo=txt.toLowerCase();
-      var ico=lo.includes('whatsapp')?'💬':lo.includes('meet')?'📹':lo.includes('botim')?'📱':lo.includes('call')?'📞':(lo.includes('follow-up')||lo.includes('followup'))?'📅':(lo.includes('status')||lo.includes('\u2192'))?'🔄':lo.includes('created')?'⭐':'📝';
-      return '<div style="padding:6px 0;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:8px">'
-        +'<div style="flex:1"><div style="font-size:10px;font-weight:700;color:var(--accent)">'+ico+' '+ts+'</div><div style="font-size:12px;color:var(--text);margin-top:2px">'+txt+'</div></div>'
-        +'<button onclick="deleteLogEntry(\''+mob+'\','+idx+')" style="background:none;border:none;cursor:pointer;color:var(--t3);font-size:14px;padding:2px 4px;flex-shrink:0" title="Delete entry">×</button>'
-        +'</div>';
-    }
-    return '<div style="padding:6px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">'
-      +'<div style="flex:1;font-size:12px;color:var(--t2)">'+entry+'</div>'
-      +'<button onclick="deleteLogEntry(\''+mob+'\','+idx+')" style="background:none;border:none;cursor:pointer;color:var(--t3);font-size:14px;padding:2px 4px;flex-shrink:0">×</button>'
-      +'</div>';
-  }).join(''):'<div style="font-size:12px;color:var(--t3);padding:8px 0;text-align:center">No activity yet.</div>';
-
-  // Updated chips with new ones
-  var chips=[
-    ['📄','Brochure sent'],['💬','WhatsApp sent'],['📞','Called'],['📵','Call not picked - WA Voice sent'],
-    ['🤝','Meeting scheduled'],['📹','Google Meet scheduled'],['🎨','Creative Media sent'],
-    ['⏳','No time now - contact later'],['🔄','Will get back later'],
-    ['❓','Asked for details'],['🫱','Physically met'],['📧','Email sent']
-  ];
-  var chipsHtml=chips.map(function(c){
-    return '<div class="qlog-chip" style="padding:5px 8px;font-size:11px" data-action="fu-qlog" data-mob="'+mob+'" data-note="'+c[0]+' '+c[1]+'">'+c[0]+' '+c[1]+'</div>';
-  }).join('');
-
-  // Date shortcuts: Tmrw, 3D, 10D, 2WK, 1M, 2M, 3M
-  var scArr=[['Tmrw',1],['3D',3],['10D',10],['2WK',14],['1M',30],['2M',60],['3M',90]];
-  var shortHtml=scArr.map(function(x){
-    var ds=new Date();ds.setDate(ds.getDate()+x[1]);
-    var val=ds.toISOString().split('T')[0];
-    return '<button class="btn btn-ghost" style="padding:5px 8px;font-size:11px;cursor:pointer" data-action="fu-shortcut" data-date="'+val+'">'+x[0]+'</button>';
-  }).join('');
-
-  // Status tabs
-  var statusOpts=[['PROSPECT','#777'],['CONTACTED','#999'],['IN PROGRESS','#BBB'],['CONVERTED','var(--accent)'],['DROPPED','#555']];
-  var statusHtml='<div style="display:flex;overflow-x:auto;scrollbar-width:none;border-bottom:2px solid var(--border);padding:0 14px">'+statusOpts.map(function(x){
-    var active=(l.status||'').toUpperCase()===x[0];
-    return '<button style="flex-shrink:0;border:none;padding:9px 10px;font-size:10px;font-weight:700;cursor:pointer;border-bottom:2px solid '+(active?x[1]:'transparent')+';margin-bottom:-2px;background:transparent;color:'+(active?x[1]:'var(--t3)')+';transition:all .15s" data-action="fu-status" data-mob="'+mob+'" data-status="'+x[0]+'">'+x[0].charAt(0)+x[0].slice(1).toLowerCase()+'</button>';
-  }).join('')+'</div>';
-
-  // Contact buttons: WA App | WA Web | Call | Botim | Meet
-  var digits=(l.mobile||'').replace(/\D/g,'');
-  var waNum=digits.length===10?'91'+digits:digits;
-  var wmsg=encodeURIComponent(waMsg(l));
-  var meetTitle=encodeURIComponent('Meeting with '+toTitle(l.name)+' — Wealth Matrix');
-  var ms2=new Date();ms2.setDate(ms2.getDate()+1);ms2.setHours(10,0,0,0);
-  var me2=new Date(ms2.getTime()+3600000);
-  var fcc=function(dd){return dd.toISOString().replace(/[-:]/g,'').split('.')[0]+'Z';};
-  var meetUrl='https://calendar.google.com/calendar/render?action=TEMPLATE&text='+meetTitle+'&dates='+fcc(ms2)+'/'+fcc(me2)+'&add=meet';
-  var botimUrl='botim://call/'+digits;
-
-  var html=
-    '<div class="sh-handle"></div>'
-    +'<div style="padding:12px 14px 8px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)">'
-    +'<div><div style="font-size:16px;font-weight:800;display:flex;align-items:center">'+toTitle(l.name)+aum+'</div>'
-    +'<div style="font-size:10px;color:var(--accent);font-weight:700;margin-top:2px">'+d+' days since last activity</div></div>'
-    +'<button class="sh-x" onclick="checkUnsavedNoteAndClose()">✕</button></div>'
-    +statusHtml
-    // 5 contact buttons
-    +'<div style="display:flex;gap:5px;padding:10px 14px 0">'
-    +'<a href="whatsapp://send?phone='+waNum+'&text='+wmsg+'" class="btn btn-wa" style="flex:1;text-decoration:none;font-size:10px;padding:7px 3px;justify-content:center;gap:3px" data-action="fu-wa-app" data-mob="'+mob+'">'+waIcon()+' App</a>'
-    +'<a href="https://web.whatsapp.com/send?phone='+waNum+'&text='+wmsg+'" target="_blank" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:10px;padding:7px 3px;justify-content:center;gap:3px;border-color:#25D366;color:#25D366">'+waIcon()+' Web</a>'
-    +'<a href="tel:'+l.mobile+'" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:10px;padding:7px 3px;justify-content:center" data-action="fu-call" data-mob="'+mob+'"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg> Call</a>'
-    +'<a href="'+botimUrl+'" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:10px;padding:7px 3px;justify-content:center" data-action="fu-botim" data-mob="'+mob+'"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg> Botim</a>'
-    +'<a href="'+meetUrl+'" target="_blank" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:10px;padding:7px 3px;justify-content:center" data-action="fu-meet" data-mob="'+mob+'"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg> Meet</a>'
-    +'</div>'
-    // Follow-up date section
-    +'<div style="margin:10px 14px 0;border:1px solid var(--border);border-radius:var(--r);overflow:hidden">'
-    +'<div style="background:var(--s2);padding:10px 12px;border-bottom:1px solid var(--border)">'
-    +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin-bottom:4px">📅 Current follow-up date</div>'
-    +'<div style="font-size:18px;font-weight:900;color:'+fuColor+'">'+( hasCurrent?fmt(l.nextFollowUp):'Not set' )+'</div>'
-    +'<div style="font-size:11px;color:'+fuColor+';margin-top:2px;font-weight:600">'+fuLabel+'</div>'
-    +'</div>'
-    +'<div style="background:var(--s1);padding:10px 12px">'
-    +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin-bottom:7px">Set new date</div>'
-    +'<div style="display:flex;gap:6px;margin-bottom:8px">'
-    +'<input type="date" id="fu-next-date-'+mob+'" class="fi" value="'+defNext+'" style="flex:1;padding:9px 11px;font-size:14px;font-weight:700;color:var(--text);background:var(--bg)">'
-    +'<button class="btn btn-gold" style="padding:9px 14px;font-size:12px;flex-shrink:0;font-weight:700" data-action="fu-save-date" data-mob="'+mob+'">💾 Save</button>'
-    +'</div>'
-    +'<div style="display:flex;gap:5px;flex-wrap:wrap">'+shortHtml+'</div>'
-    +'</div>'
-    +'</div>'
-    // Activity log
-    +'<div style="padding:10px 14px 0">'
-    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">'
-    +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3)">📋 Activity log <span style="font-weight:400;text-transform:none;font-size:9px;color:var(--t3)">(oldest→newest · tap × to delete)</span></div>'
-    +'<div style="font-size:10px;color:var(--t3)">'+entries.length+' entries</div>'
-    +'</div>'
-    +'<div id="fu-hist-'+mob+'" style="max-height:180px;overflow-y:auto;background:var(--bg);border:1px solid var(--border);border-radius:var(--r2);padding:8px 10px">'+histHtml+'</div>'
-    +'</div>'
-    // Log now
-    +'<div style="padding:10px 14px 0">'
-    +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin-bottom:7px">⚡ Log now</div>'
-    +'<div class="qlog-grid" style="margin-bottom:8px">'+chipsHtml+'</div>'
-    +'<div style="display:flex;gap:6px">'
-    +'<input class="fi" id="fu-note-input-'+mob+'" placeholder="Custom note…" style="flex:1;padding:8px 10px;font-size:13px;background:var(--bg)">'
-    +'<button class="btn btn-gold" style="padding:8px 12px;font-size:12px;flex-shrink:0" data-action="fu-save-note" data-mob="'+mob+'">Log →</button>'
-    +'</div></div>'
-    // Delete
-    +'<div style="padding:12px 14px 22px">'
-    +'<button class="btn btn-red" style="width:100%;font-size:12px" data-action="fu-delete" data-mob="'+mob+'">🗑️ Delete this lead</button>'
-    +'</div>';
-
-  document.getElementById('fu-detail-sh').innerHTML=html;
-
-  var histEl=document.getElementById('fu-hist-'+mob);
-  if(histEl)histEl.scrollTop=histEl.scrollHeight;
-
-  // Event delegation
-  document.getElementById('fu-detail-sh').onclick=function(e){
-    var btn=e.target.closest('[data-action]');if(!btn)return;
-    var action=btn.dataset.action;var m=btn.dataset.mob;
-    var lead=leads.find(function(x){return x.mobile===m;});
-    if(action==='fu-wa-app'||action==='fu-wa-web'){
-      bumpM(m);_detailModified=true;
-      setTimeout(function(){var l2=leads.find(function(x){return x.mobile===m;});if(l2)askAddRemark(l2,'WhatsApp sent',function(){refreshFuHist(m);});},1500);
-    }
-    if(action==='fu-call'){
-      bumpM(m);_detailModified=true;
-      setTimeout(function(){var l2=leads.find(function(x){return x.mobile===m;});if(l2)askAddRemark(l2,'Called',function(){refreshFuHist(m);});},2000);
-    }
-    if(action==='fu-botim'){
-      quickLog(m,'📱 Botim call initiated');_detailModified=true;
-      setTimeout(function(){refreshFuHist(m);},350);
-    }
-    if(action==='fu-meet'){
-      quickLog(m,'📹 Google Meet scheduled');_detailModified=true;
-      setTimeout(function(){refreshFuHist(m);},350);
-    }
-    if(action==='fu-qlog'){
-      quickLog(m,btn.dataset.note);_detailModified=true;
-      btn.style.background='var(--accent)';btn.style.color='#fff';btn.style.borderColor='var(--accent)';
-      setTimeout(function(){btn.style.background='';btn.style.color='';btn.style.borderColor='';},900);
-    }
-    if(action==='fu-save-note'){
-      var inp=document.getElementById('fu-note-input-'+m);
-      var txt=(inp?inp.value:'').trim();if(!txt){toast('Type a note first');return;}
-      quickLog(m,txt.toUpperCase());_detailModified=true;if(inp)inp.value='';
-    }
-    if(action==='fu-save-date'){
-      var dateInp=document.getElementById('fu-next-date-'+m);
-      var newDate=dateInp?dateInp.value:'';if(!newDate){toast('Pick a date');return;}
-      // Check 15 lead limit for the day
-      var sameDay=leads.filter(function(x){return x.nextFollowUp===newDate&&x.mobile!==m;}).length;
-      if(sameDay>=15){toast('⚠️ Already 15 leads scheduled for '+fmt(newDate)+'! Postpone to next day.',4000);return;}
-      var l3=leads.find(function(x){return x.mobile===m;});if(!l3)return;
-      var oldDate=l3.nextFollowUp;
-      var logMsg='Follow-up date '+(oldDate?'changed from '+fmt(oldDate)+' → ':' set to ')+fmt(newDate);
-      l3.nextFollowUp=newDate;l3.modifiedDate=now();
-      l3.remarks=migrateRemarks(l3.remarks||'');
-      l3.remarks=appendRemark(l3.remarks,logMsg);
-      _detailModified=true;saveL();pushLeads();
-      toast('✅ Saved: '+fmt(newDate));
-      renderFuDetailInner(m);
-      setTimeout(function(){renderFU();},300);
-    }
-    if(action==='fu-shortcut'){
-      var di=document.getElementById('fu-next-date-'+m);if(di)di.value=btn.dataset.date;
-    }
-    if(action==='fu-status'){quickStatus(m,btn.dataset.status);}
-    if(action==='fu-delete'){
-      var ln=leads.find(function(x){return x.mobile===m;});
-      if(ln&&confirm('Delete '+toTitle(ln.name)+'?')){deleteLead(m);closeFuDetail();}
-    }
-  };
-}
 
 // ── OVERRIDE renderFU for due/overdue only + AUM sort ──
-var _origRFU=renderFU;
-function renderFU(){
-  var fd=parseInt(cfg_.followUpDays)||14;
-  var staleDays=parseInt(cfg_.staleDays)||30;
-  var todayStr=today();
-  var active=leads.filter(function(l){return ['PROSPECT','CONTACTED','IN PROGRESS'].includes((l.status||'').toUpperCase());});
 
-  // Only show leads where nextFollowUp is today or past (due/overdue)
-  // OR where no nextFollowUp but daysAgo >= fd
-  var due=active.filter(function(l){
-    if(l.nextFollowUp) return daysUntil(l.nextFollowUp)<=0;
-    return daysAgo(l.modifiedDate||l.createdDate)>=fd;
-  });
-
-  var upcoming=active.filter(function(l){
-    return l.nextFollowUp && daysUntil(l.nextFollowUp)>0 && daysUntil(l.nextFollowUp)<=3;
-  });
-
-  // Sort due by AUM descending (highest value first)
-  due.sort(function(a,b){return aumScore(a)-aumScore(b);});
-
-  var stale=active.filter(function(l){
-    return ['CONTACTED','IN PROGRESS'].includes((l.status||'').toUpperCase())
-      &&daysAgo(l.modifiedDate||l.createdDate)>=staleDays
-      &&(!l.nextFollowUp||daysUntil(l.nextFollowUp)>0);
-  });
-
-  var sub=document.getElementById('fu-sub');
-  if(sub)sub.textContent=due.length+' due today'+(upcoming.length?' · '+upcoming.length+' due soon':'')+(stale.length?' · '+stale.length+' stale':'');
-
-  var html='';
-
-  if(due.length){
-    html+='<div style="padding:7px 14px 5px;background:rgba(192,57,43,.08);border-bottom:1px solid var(--border)">'
-      +'<div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px">🔴 Due / Overdue ('+due.length+') — sorted by AUM</div></div>';
-    html+=due.map(function(l){return makeFuItem(l,'overdue');}).join('');
-  }
-
-  if(upcoming.length){
-    html+='<div style="padding:7px 14px 5px;background:rgba(255,255,255,.03);border-bottom:1px solid var(--border)">'
-      +'<div style="font-size:10px;font-weight:700;color:#AAA;text-transform:uppercase;letter-spacing:.5px">🟡 Due soon — next 3 days ('+upcoming.length+')</div></div>';
-    html+=upcoming.sort(function(a,b){return daysUntil(a.nextFollowUp)-daysUntil(b.nextFollowUp);}).map(function(l){return makeFuItem(l,'soon');}).join('');
-  }
-
-  if(stale.length){
-    html+='<div style="padding:7px 14px 5px;border-top:1px solid var(--border)">'
-      +'<div style="font-size:10px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:.5px">🧊 Stale ('+stale.length+')</div></div>';
-    html+=stale.map(function(l){return makeFuItem(l,'stale');}).join('');
-  }
-
-  if(!due.length&&!upcoming.length&&!stale.length){
-    html='<div class="empty"><div class="empty-ico">🎉</div><div class="empty-t">All caught up!</div><div class="empty-s">No follow-ups due. Great work!</div></div>';
-  }
-
-  var fuList=document.getElementById('fu-list');
-  if(fuList){
-    fuList.innerHTML=html;
-    fuList.onclick=function(e){
-      var btn=e.target.closest('[data-action]');if(!btn)return;
-      var mob=btn.dataset.mob;var action=btn.dataset.action;
-      if(action==='fu-open')openFuDetail(mob);
-      if(action==='fu-wa-app'){bumpM(mob);setTimeout(function(){askAddRemark(leads.find(function(x){return x.mobile===mob;}),'WhatsApp sent',null);},1500);}
-      if(action==='fu-meet'){quickLog(mob,'📹 Google Meet scheduled');}
-      if(action==='fu-botim'){quickLog(mob,'📱 Botim call initiated');}
-      if(action==='fu-drop'){quickStatus(mob,'DROPPED');}
-    };
-  }
-  updateFUBadge();
-}
 
 // ── OVERRIDE makeFuItem to include Botim + AUM badge ──
-var _origMFI=makeFuItem;
-function makeFuItem(l,itemType){
-  var d=daysAgo(l.modifiedDate||l.createdDate);
-  var digits=(l.mobile||'').replace(/\D/g,'');
-  var waNum=digits.length===10?'91'+digits:digits;
-  var msg=encodeURIComponent(waMsg(l));
-  var mob=l.mobile;
-  var lastRem='';
-  if(l.remarks){var rl=(l.remarks||'').trim().split('\n').filter(function(x){return x.trim();});if(rl.length){var la=rl[rl.length-1];var mm=la.match(/^\[([^\]]+)\]\s*(.*)/);lastRem=mm?mm[2]:la;if(lastRem.length>45)lastRem=lastRem.substring(0,45)+'…';}}
-  var sColors={'PROSPECT':'#777','CONTACTED':'#999','IN PROGRESS':'#BBB'};
-  var sColor=sColors[(l.status||'').toUpperCase()]||'#777';
-  var fuDue=l.nextFollowUp&&daysUntil(l.nextFollowUp)<=0;
-  var aumBadge=l.aum?'<span style="font-size:9px;color:var(--accent);font-weight:700;background:rgba(192,57,43,.12);border:1px solid rgba(192,57,43,.25);border-radius:999px;padding:1px 6px;margin-left:5px">'+l.aum+'</span>':'';
-  var botimUrl='botim://call/'+digits;
-  var borderStyle=itemType==='overdue'?'border-left:3px solid var(--accent);':itemType==='soon'?'border-left:3px solid #666;':'';
 
-  return '<div class="fu-item" style="'+borderStyle+'">'
-    +'<div class="fu-row" data-action="fu-open" data-mob="'+mob+'">'
-    +'<div class="av" style="width:36px;height:36px;min-width:36px;font-size:12px">'+ini(l.name)+'</div>'
-    +'<div style="flex:1;min-width:0">'
-    +'<div style="font-weight:700;font-size:13px;display:flex;align-items:center">'+toTitle(l.name)+aumBadge+'</div>'
-    +'<div style="font-size:10px;font-weight:700;color:'+sColor+';margin-top:1px">'+l.status+'</div>'
-    +(lastRem?'<div style="font-size:10px;color:var(--t3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+lastRem+'</div>':'')
-    +(l.nextFollowUp?'<div style="font-size:10px;color:'+(fuDue?'var(--accent)':'#666')+';margin-top:1px">📅 '+fmt(l.nextFollowUp)+'</div>':'')
-    +'</div>'
-    +'<div style="font-size:11px;color:var(--accent);font-weight:700;flex-shrink:0">'+d+'d</div>'
-    +'</div>'
-    +'<div class="fu-actions">'
-    +'<a href="whatsapp://send?phone='+waNum+'&text='+msg+'" class="fu-icon-btn wa" data-action="fu-wa-app" data-mob="'+mob+'">'+waIcon()+'</a>'
-    +'<a href="https://web.whatsapp.com/send?phone='+waNum+'&text='+msg+'" target="_blank" class="fu-icon-btn wa">'+waIcon()+'<span style="font-size:9px">W</span></a>'
-    +'<a href="tel:'+mob+'" class="fu-icon-btn call"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg></a>'
-    +'<a href="'+botimUrl+'" class="fu-icon-btn call" data-action="fu-botim" data-mob="'+mob+'"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg></a>'
-    +'<div class="fu-open-btn" data-action="fu-open" data-mob="'+mob+'">Open →</div>'
-    +'</div>'
-    +'</div>';
-}
 
 // ── OVERRIDE updateFUBadge for due-only count ──
-var _origUFB=updateFUBadge;
 function updateFUBadge(){
   var fd=parseInt(cfg_.followUpDays)||14;
   var count=leads.filter(function(l){
@@ -2539,7 +1518,6 @@ function scoreTooltip(l){
 }
 
 // ── OVERRIDE renderLeads to show heat badge ──
-var _v16_origRL=renderLeads;
 function renderLeads(){
   var activeCount=leads.filter(function(l){return !['CONVERTED','DROPPED'].includes((l.status||'').toUpperCase());}).length;
   var statusChips=[
@@ -2604,314 +1582,13 @@ function renderLeads(){
 }
 
 // ── OVERRIDE makeFuItem to show heat badge + AUM ──
-var _v16_origMFI=makeFuItem;
-function makeFuItem(l,itemType){
-  var d=daysAgo(l.modifiedDate||l.createdDate);
-  var digits=(l.mobile||'').replace(/\D/g,'');
-  var waNum=digits.length===10?'91'+digits:digits;
-  var msg=encodeURIComponent(waMsg(l));
-  var mob=l.mobile;
-  var lastRem='';
-  if(l.remarks){var rl=(l.remarks||'').trim().split('\n').filter(function(x){return x.trim();});if(rl.length){var la=rl[rl.length-1];var mm2=la.match(/^\[([^\]]+)\]\s*(.*)/);lastRem=mm2?mm2[2]:la;if(lastRem.length>45)lastRem=lastRem.substring(0,45)+'…';}}
-  var sColors={'PROSPECT':'#777','CONTACTED':'#999','IN PROGRESS':'#BBB'};
-  var sColor=sColors[(l.status||'').toUpperCase()]||'#777';
-  var fuDue=l.nextFollowUp&&daysUntil(l.nextFollowUp)<=0;
-  var botimUrl='botim://call/'+digits;
-  var borderStyle=itemType==='overdue'?'border-left:3px solid var(--accent);':itemType==='soon'?'border-left:3px solid #666;':'';
 
-  // Heat badge
-  var sc=leadScore(l);
-  var heat=leadHeat(sc);
-  var heatTag='<span style="font-size:10px;font-weight:700;color:'+heat.color+'">'+heat.emoji+' '+heat.label+'</span>';
-  var aumTag=l.aum?'<span style="font-size:9px;color:var(--accent);font-weight:700;background:var(--accent2);border:1px solid rgba(192,57,43,.25);border-radius:999px;padding:1px 5px">'+l.aum+'</span>':'';
-  var scorePill='<span style="font-size:9px;color:'+heat.color+';background:'+heat.color+'14;border:1px solid '+heat.color+'30;border-radius:999px;padding:1px 5px;font-weight:800">'+sc+'pts</span>';
-
-  return '<div class="fu-item" style="'+borderStyle+'">'
-    +'<div class="fu-row" data-action="fu-open" data-mob="'+mob+'">'
-    +'<div class="av" style="width:36px;height:36px;min-width:36px;font-size:12px">'+ini(l.name)+'</div>'
-    +'<div style="flex:1;min-width:0">'
-    +'<div style="font-weight:700;font-size:13px">'+toTitle(l.name)+'</div>'
-    +'<div style="display:flex;gap:4px;align-items:center;margin-top:2px;flex-wrap:wrap">'+heatTag+scorePill+(aumTag?aumTag:'')+'</div>'
-    +'<div style="font-size:10px;font-weight:700;color:'+sColor+';margin-top:2px">'+l.status+'</div>'
-    +(lastRem?'<div style="font-size:10px;color:var(--t3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+lastRem+'</div>':'')
-    +(l.nextFollowUp?'<div style="font-size:10px;color:'+(fuDue?'var(--accent)':'#666')+';margin-top:1px">📅 '+fmt(l.nextFollowUp)+'</div>':'')
-    +'</div>'
-    +'<div style="font-size:11px;color:var(--accent);font-weight:700;flex-shrink:0">'+d+'d</div>'
-    +'</div>'
-    +'<div class="fu-actions">'
-    +'<a href="whatsapp://send?phone='+waNum+'&text='+msg+'" class="fu-icon-btn wa" data-action="fu-wa-app" data-mob="'+mob+'">'+waIcon()+'</a>'
-    +'<a href="https://web.whatsapp.com/send?phone='+waNum+'&text='+msg+'" target="_blank" class="fu-icon-btn wa">'+waIcon()+'<span style="font-size:9px">W</span></a>'
-    +'<a href="tel:'+mob+'" class="fu-icon-btn call"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg></a>'
-    +'<a href="'+botimUrl+'" class="fu-icon-btn call" data-action="fu-botim" data-mob="'+mob+'"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg></a>'
-    +'<div class="fu-open-btn" data-action="fu-open" data-mob="'+mob+'">Open →</div>'
-    +'</div>'
-    +'</div>';
-}
 
 // ── OVERRIDE renderFuDetailInner to show score + response chips ──
-var _v16_origRFDI=renderFuDetailInner;
-function renderFuDetailInner(mob){
-  var l=leads.find(function(x){return x.mobile===mob;});if(!l)return;
-  var d=daysAgo(l.modifiedDate||l.createdDate);
-  var defNext=(function(){var dn=new Date();dn.setDate(dn.getDate()+7);return dn.toISOString().split('T')[0];})();
-  var hasCurrent=!!(l.nextFollowUp);
-  var fuDays=hasCurrent?daysUntil(l.nextFollowUp):null;
-  var fuLabel=hasCurrent?(fuDays<0?Math.abs(fuDays)+' days overdue':fuDays===0?'Due today':fuDays+' days away'):'Not set';
-  var fuColor=!hasCurrent?'var(--t3)':fuDays<=0?'var(--accent)':fuDays<=3?'#AAA':'#888';
-  var sc=leadScore(l);
-  var heat=leadHeat(sc);
 
-  // Score breakdown card
-  var ref=(l.referral||'').toUpperCase().trim();
-  var age=parseInt(l.age||0);
-  var country=(l.country||'').toUpperCase().trim();
-  var rem=(l.remarks||'').toUpperCase();
-  var responded=rem.includes('✅ WHATSAPP REPLIED')||rem.includes('✅ CALL PICKED UP')||rem.includes('RESPONDED');
-  var aum_sc=AUM_SCORE_MAP[l.aum||'']||0;
-
-  var scoreBreakdown='<div style="display:flex;align-items:center;gap:10px;padding:10px 14px 0">'
-    +'<div style="flex:1;background:'+heat.color+'14;border:1px solid '+heat.color+'30;border-radius:var(--r);padding:10px 12px">'
-    +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
-    +'<div style="font-size:22px">'+heat.emoji+'</div>'
-    +'<div><div style="font-size:15px;font-weight:900;color:'+heat.color+'">'+heat.label+' Lead</div>'
-    +'<div style="font-size:11px;color:'+heat.color+';font-weight:700">'+sc+' pts</div></div>'
-    +'</div>'
-    +'<div style="display:flex;flex-wrap:wrap;gap:4px">'
-    +(ref&&ref!=='SELF'?'<span style="font-size:9px;background:var(--s2);color:var(--t2);border-radius:999px;padding:2px 7px;border:1px solid var(--border)">Referral +30</span>':'')
-    +(age>=35&&age<=55?'<span style="font-size:9px;background:var(--s2);color:var(--t2);border-radius:999px;padding:2px 7px;border:1px solid var(--border)">Age 35-55 +15</span>':'')
-    +(country&&country!=='INDIA'&&country!=='IN'?'<span style="font-size:9px;background:var(--s2);color:var(--t2);border-radius:999px;padding:2px 7px;border:1px solid var(--border)">Non-India +20</span>':'')
-    +(responded?'<span style="font-size:9px;background:var(--s2);color:var(--t2);border-radius:999px;padding:2px 7px;border:1px solid var(--border)">Responded +10</span>':'')
-    +(aum_sc>0?'<span style="font-size:9px;background:var(--s2);color:var(--t2);border-radius:999px;padding:2px 7px;border:1px solid var(--border)">AUM +'+aum_sc+'</span>':'')
-    +(sc===0?'<span style="font-size:9px;color:var(--t3)">No qualifying factors yet</span>':'')
-    +'</div>'
-    +'</div></div>';
-
-  // Activity log
-  var remText=migrateRemarks(l.remarks||'');
-  var entries=remText.trim().split('\n').filter(function(x){return x.trim();});
-  var histHtml=entries.length?entries.map(function(entry,idx){
-    var mm=entry.match(/^\[(\d{2}\/\d{2}\/\d{4}(?:\s\d{2}:\d{2})?)\]\s*(.*)$/);
-    if(mm){var ts=mm[1];var txt=mm[2];var lo=txt.toLowerCase();
-      var ico=lo.includes('whatsapp replied')||lo.includes('call picked')?'✅':lo.includes('whatsapp')?'💬':lo.includes('meet')?'📹':lo.includes('botim')?'📱':lo.includes('call')?'📞':(lo.includes('follow-up')||lo.includes('followup'))?'📅':(lo.includes('status')||lo.includes('\u2192'))?'🔄':lo.includes('created')?'⭐':'📝';
-      return '<div style="padding:6px 0;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:8px">'
-        +'<div style="flex:1"><div style="font-size:10px;font-weight:700;color:var(--accent)">'+ico+' '+ts+'</div><div style="font-size:12px;color:var(--text);margin-top:2px">'+txt+'</div></div>'
-        +'<button onclick="deleteLogEntry(\''+mob+'\','+idx+')" style="background:none;border:none;cursor:pointer;color:var(--t3);font-size:15px;padding:2px 4px;flex-shrink:0" title="Delete">×</button>'
-        +'</div>';
-    }
-    return '<div style="padding:6px 0;border-bottom:1px solid var(--border);display:flex;gap:8px">'
-      +'<div style="flex:1;font-size:12px;color:var(--t2)">'+entry+'</div>'
-      +'<button onclick="deleteLogEntry(\''+mob+'\','+idx+')" style="background:none;border:none;cursor:pointer;color:var(--t3);font-size:15px;padding:2px 4px">×</button>'
-      +'</div>';
-  }).join(''):'<div style="font-size:12px;color:var(--t3);padding:8px 0;text-align:center">No activity yet.</div>';
-
-  // Chips — include response chips that boost score
-  var chips=[
-    ['✅','WhatsApp replied'],['✅','Call picked up'],
-    ['📄','Brochure sent'],['💬','WhatsApp sent'],['📞','Called'],
-    ['📵','Call not picked - WA Voice sent'],['🤝','Meeting scheduled'],
-    ['📹','Google Meet scheduled'],['🎨','Creative Media sent'],
-    ['⏳','No time now - contact later'],['🔄','Will get back later'],
-    ['❓','Asked for details'],['🫱','Physically met'],['📧','Email sent']
-  ];
-  var chipsHtml=chips.map(function(c){
-    var isResponse=c[1]==='WhatsApp replied'||c[1]==='Call picked up';
-    var chipStyle=isResponse?'padding:5px 8px;font-size:11px;border-color:'+heat.color+';color:var(--text);font-weight:600':'padding:5px 8px;font-size:11px';
-    return '<div class="qlog-chip" style="'+chipStyle+'" data-action="fu-qlog" data-mob="'+mob+'" data-note="'+c[0]+' '+c[1]+'">'+c[0]+' '+c[1]+'</div>';
-  }).join('');
-
-  // Date shortcuts
-  var scArr=[['Tmrw',1],['3D',3],['10D',10],['2WK',14],['1M',30],['2M',60],['3M',90]];
-  var shortHtml=scArr.map(function(x){
-    var ds=new Date();ds.setDate(ds.getDate()+x[1]);
-    var val=ds.toISOString().split('T')[0];
-    return '<button class="btn btn-ghost" style="padding:5px 8px;font-size:11px;cursor:pointer" data-action="fu-shortcut" data-date="'+val+'">'+x[0]+'</button>';
-  }).join('');
-
-  // Status tabs
-  var statusOpts=[['PROSPECT','#777'],['CONTACTED','#999'],['IN PROGRESS','#BBB'],['CONVERTED','var(--accent)'],['DROPPED','#555']];
-  var statusHtml='<div style="display:flex;overflow-x:auto;scrollbar-width:none;border-bottom:2px solid var(--border);padding:0 14px">'+statusOpts.map(function(x){
-    var active=(l.status||'').toUpperCase()===x[0];
-    return '<button style="flex-shrink:0;border:none;padding:9px 10px;font-size:10px;font-weight:700;cursor:pointer;border-bottom:2px solid '+(active?x[1]:'transparent')+';margin-bottom:-2px;background:transparent;color:'+(active?x[1]:'var(--t3)')+';transition:all .15s" data-action="fu-status" data-mob="'+mob+'" data-status="'+x[0]+'">'+x[0].charAt(0)+x[0].slice(1).toLowerCase()+'</button>';
-  }).join('')+'</div>';
-
-  // Contact buttons
-  var digits=(l.mobile||'').replace(/\D/g,'');
-  var waNum=digits.length===10?'91'+digits:digits;
-  var wmsg=encodeURIComponent(waMsg(l));
-  var meetTitle=encodeURIComponent('Meeting with '+toTitle(l.name)+' — Wealth Matrix');
-  var ms2=new Date();ms2.setDate(ms2.getDate()+1);ms2.setHours(10,0,0,0);
-  var me2=new Date(ms2.getTime()+3600000);
-  var fcc=function(dd){return dd.toISOString().replace(/[-:]/g,'').split('.')[0]+'Z';};
-  var meetUrl='https://calendar.google.com/calendar/render?action=TEMPLATE&text='+meetTitle+'&dates='+fcc(ms2)+'/'+fcc(me2)+'&add=meet';
-  var botimUrl='botim://call/'+digits;
-
-  var html=
-    '<div class="sh-handle"></div>'
-    +'<div style="padding:12px 14px 8px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)">'
-    +'<div><div style="font-size:16px;font-weight:800">'+toTitle(l.name)+'</div>'
-    +'<div style="font-size:10px;color:var(--accent);font-weight:700;margin-top:2px">'+d+' days since last activity</div></div>'
-    +'<button class="sh-x" onclick="checkUnsavedNoteAndClose()">✕</button></div>'
-    +statusHtml
-    // Score card
-    +scoreBreakdown
-    // Contact buttons (5)
-    +'<div style="display:flex;gap:5px;padding:10px 14px 0">'
-    +'<a href="whatsapp://send?phone='+waNum+'&text='+wmsg+'" class="btn btn-wa" style="flex:1;text-decoration:none;font-size:10px;padding:7px 3px;justify-content:center;gap:3px" data-action="fu-wa-app" data-mob="'+mob+'">'+waIcon()+' App</a>'
-    +'<a href="https://web.whatsapp.com/send?phone='+waNum+'&text='+wmsg+'" target="_blank" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:10px;padding:7px 3px;justify-content:center;gap:3px;border-color:#25D366;color:#25D366">'+waIcon()+' Web</a>'
-    +'<a href="tel:'+l.mobile+'" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:10px;padding:7px 3px;justify-content:center" data-action="fu-call" data-mob="'+mob+'"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg> Call</a>'
-    +'<a href="'+botimUrl+'" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:10px;padding:7px 3px;justify-content:center" data-action="fu-botim" data-mob="'+mob+'"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg> Botim</a>'
-    +'<a href="'+meetUrl+'" target="_blank" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:10px;padding:7px 3px;justify-content:center" data-action="fu-meet" data-mob="'+mob+'"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg> Meet</a>'
-    +'</div>'
-    // Follow-up date
-    +'<div style="margin:10px 14px 0;border:1px solid var(--border);border-radius:var(--r);overflow:hidden">'
-    +'<div style="background:var(--s2);padding:10px 12px;border-bottom:1px solid var(--border)">'
-    +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin-bottom:4px">📅 Current follow-up date</div>'
-    +'<div style="font-size:18px;font-weight:900;color:'+fuColor+'">'+( hasCurrent?fmt(l.nextFollowUp):'Not set' )+'</div>'
-    +'<div style="font-size:11px;color:'+fuColor+';margin-top:2px;font-weight:600">'+fuLabel+'</div>'
-    +'</div>'
-    +'<div style="background:var(--s1);padding:10px 12px">'
-    +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin-bottom:7px">Set new date</div>'
-    +'<div style="display:flex;gap:6px;margin-bottom:8px">'
-    +'<input type="date" id="fu-next-date-'+mob+'" class="fi" value="'+defNext+'" style="flex:1;padding:9px 11px;font-size:14px;font-weight:700;color:var(--text);background:var(--bg)">'
-    +'<button class="btn btn-gold" style="padding:9px 14px;font-size:12px;flex-shrink:0;font-weight:700" data-action="fu-save-date" data-mob="'+mob+'">💾 Save</button>'
-    +'</div>'
-    +'<div style="display:flex;gap:5px;flex-wrap:wrap">'+shortHtml+'</div>'
-    +'</div></div>'
-    // Activity log
-    +'<div style="padding:10px 14px 0">'
-    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">'
-    +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3)">📋 Activity log <span style="font-weight:400;font-size:9px">(× to delete)</span></div>'
-    +'<div style="font-size:10px;color:var(--t3)">'+entries.length+' entries</div>'
-    +'</div>'
-    +'<div id="fu-hist-'+mob+'" style="max-height:160px;overflow-y:auto;background:var(--bg);border:1px solid var(--border);border-radius:var(--r2);padding:8px 10px">'+histHtml+'</div>'
-    +'</div>'
-    // Log now
-    +'<div style="padding:10px 14px 0">'
-    +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin-bottom:7px">⚡ Log now <span style="font-size:9px;font-weight:400;color:var(--green)">— ✅ chips boost your lead score</span></div>'
-    +'<div class="qlog-grid" style="margin-bottom:8px">'+chipsHtml+'</div>'
-    +'<div style="display:flex;gap:6px">'
-    +'<input class="fi" id="fu-note-input-'+mob+'" placeholder="Custom note…" style="flex:1;padding:8px 10px;font-size:13px;background:var(--bg)">'
-    +'<button class="btn btn-gold" style="padding:8px 12px;font-size:12px;flex-shrink:0" data-action="fu-save-note" data-mob="'+mob+'">Log →</button>'
-    +'</div></div>'
-    // Delete
-    +'<div style="padding:12px 14px 22px">'
-    +'<button class="btn btn-red" style="width:100%;font-size:12px" data-action="fu-delete" data-mob="'+mob+'">🗑️ Delete this lead</button>'
-    +'</div>';
-
-  document.getElementById('fu-detail-sh').innerHTML=html;
-  var histEl=document.getElementById('fu-hist-'+mob);
-  if(histEl)histEl.scrollTop=histEl.scrollHeight;
-
-  // Event delegation
-  document.getElementById('fu-detail-sh').onclick=function(e){
-    var btn=e.target.closest('[data-action]');if(!btn)return;
-    var action=btn.dataset.action;var m=btn.dataset.mob;
-    if(action==='fu-wa-app'||action==='fu-wa-web'){
-      bumpM(m);_detailModified=true;
-      setTimeout(function(){var l2=leads.find(function(x){return x.mobile===m;});if(l2)askAddRemark(l2,'WhatsApp sent',function(){refreshFuHist(m);renderFuDetailInner(m);});},1500);
-    }
-    if(action==='fu-call'){
-      bumpM(m);_detailModified=true;
-      setTimeout(function(){var l2=leads.find(function(x){return x.mobile===m;});if(l2)askAddRemark(l2,'Called',function(){refreshFuHist(m);renderFuDetailInner(m);});},2000);
-    }
-    if(action==='fu-botim'){quickLog(m,'📱 Botim call initiated');_detailModified=true;setTimeout(function(){renderFuDetailInner(m);},350);}
-    if(action==='fu-meet'){quickLog(m,'📹 Google Meet scheduled');_detailModified=true;setTimeout(function(){renderFuDetailInner(m);},350);}
-    if(action==='fu-qlog'){
-      quickLog(m,btn.dataset.note);_detailModified=true;
-      btn.style.background='var(--accent)';btn.style.color='#fff';btn.style.borderColor='var(--accent)';
-      setTimeout(function(){btn.style.background='';btn.style.color='';btn.style.borderColor='';},900);
-      // Re-render score card if response chip tapped
-      var note=btn.dataset.note||'';
-      if(note.includes('replied')||note.includes('picked up')) setTimeout(function(){renderFuDetailInner(m);},400);
-      else setTimeout(function(){refreshFuHist(m);},350);
-    }
-    if(action==='fu-save-note'){
-      var inp=document.getElementById('fu-note-input-'+m);
-      var txt=(inp?inp.value:'').trim();if(!txt){toast('Type a note first');return;}
-      quickLog(m,txt.toUpperCase());_detailModified=true;if(inp)inp.value='';
-    }
-    if(action==='fu-save-date'){
-      var dateInp=document.getElementById('fu-next-date-'+m);
-      var newDate=dateInp?dateInp.value:'';if(!newDate){toast('Pick a date');return;}
-      var sameDay=leads.filter(function(x){return x.nextFollowUp===newDate&&x.mobile!==m;}).length;
-      if(sameDay>=15){toast('⚠️ Already 15 leads scheduled for '+fmt(newDate)+'! Postpone to next day.',4000);return;}
-      var l3=leads.find(function(x){return x.mobile===m;});if(!l3)return;
-      var oldDate=l3.nextFollowUp;
-      var logMsg='Follow-up date '+(oldDate?'changed from '+fmt(oldDate)+' → ':' set to ')+fmt(newDate);
-      l3.nextFollowUp=newDate;l3.modifiedDate=now();
-      l3.remarks=migrateRemarks(l3.remarks||'');
-      l3.remarks=appendRemark(l3.remarks,logMsg);
-      _detailModified=true;saveL();pushLeads();
-      toast('✅ Saved: '+fmt(newDate));
-      renderFuDetailInner(m);
-      setTimeout(function(){renderFU();},300);
-    }
-    if(action==='fu-shortcut'){var di=document.getElementById('fu-next-date-'+m);if(di)di.value=btn.dataset.date;}
-    if(action==='fu-status'){quickStatus(m,btn.dataset.status);}
-    if(action==='fu-delete'){var ln=leads.find(function(x){return x.mobile===m;});if(ln&&confirm('Delete '+toTitle(ln.name)+'?')){deleteLead(m);closeFuDetail();}}
-  };
-}
 
 // ── OVERRIDE renderFU to sort by score within AUM groups ──
-var _v16_origRFU=renderFU;
-function renderFU(){
-  var fd=parseInt(cfg_.followUpDays)||14;
-  var todayStr=today();
-  var active=leads.filter(function(l){return ['PROSPECT','CONTACTED','IN PROGRESS'].includes((l.status||'').toUpperCase());});
-  var due=active.filter(function(l){
-    if(l.nextFollowUp) return daysUntil(l.nextFollowUp)<=0;
-    return daysAgo(l.modifiedDate||l.createdDate)>=fd;
-  });
-  var upcoming=active.filter(function(l){
-    return l.nextFollowUp && daysUntil(l.nextFollowUp)>0 && daysUntil(l.nextFollowUp)<=3;
-  });
-  // Sort due: first by AUM, then by score descending
-  due.sort(function(a,b){
-    var aAum=aumScore(a),bAum=aumScore(b);
-    if(aAum!==bAum) return aAum-bAum;
-    return leadScore(b)-leadScore(a);
-  });
-  var stale=active.filter(function(l){
-    return ['CONTACTED','IN PROGRESS'].includes((l.status||'').toUpperCase())
-      &&daysAgo(l.modifiedDate||l.createdDate)>=parseInt(cfg_.staleDays||30)
-      &&(!l.nextFollowUp||daysUntil(l.nextFollowUp)>0);
-  });
-  var sub=document.getElementById('fu-sub');
-  if(sub)sub.textContent=due.length+' due'+(upcoming.length?' · '+upcoming.length+' soon':'')+(stale.length?' · '+stale.length+' stale':'');
-  var html='';
-  if(due.length){
-    html+='<div style="padding:7px 14px 5px;background:rgba(192,57,43,.08);border-bottom:1px solid var(--border)">'
-      +'<div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px">🔴 Due / Overdue ('+due.length+') — highest score first</div></div>';
-    html+=due.map(function(l){return makeFuItem(l,'overdue');}).join('');
-  }
-  if(upcoming.length){
-    html+='<div style="padding:7px 14px 5px;background:rgba(255,255,255,.03);border-bottom:1px solid var(--border)">'
-      +'<div style="font-size:10px;font-weight:700;color:#AAA;text-transform:uppercase;letter-spacing:.5px">🟡 Due soon ('+upcoming.length+')</div></div>';
-    html+=upcoming.sort(function(a,b){return daysUntil(a.nextFollowUp)-daysUntil(b.nextFollowUp);}).map(function(l){return makeFuItem(l,'soon');}).join('');
-  }
-  if(stale.length){
-    html+='<div style="padding:7px 14px 5px;border-top:1px solid var(--border)">'
-      +'<div style="font-size:10px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:.5px">🧊 Stale ('+stale.length+')</div></div>';
-    html+=stale.map(function(l){return makeFuItem(l,'stale');}).join('');
-  }
-  if(!due.length&&!upcoming.length&&!stale.length){
-    html='<div class="empty"><div class="empty-ico">🎉</div><div class="empty-t">All caught up!</div><div class="empty-s">No follow-ups due today.</div></div>';
-  }
-  var fuList=document.getElementById('fu-list');
-  if(fuList){
-    fuList.innerHTML=html;
-    fuList.onclick=function(e){
-      var btn=e.target.closest('[data-action]');if(!btn)return;
-      var mob=btn.dataset.mob;var action=btn.dataset.action;
-      if(action==='fu-open')openFuDetail(mob);
-      if(action==='fu-wa-app'){bumpM(mob);setTimeout(function(){askAddRemark(leads.find(function(x){return x.mobile===mob;}),'WhatsApp sent',null);},1500);}
-      if(action==='fu-meet'){quickLog(mob,'📹 Google Meet scheduled');}
-      if(action==='fu-botim'){quickLog(mob,'📱 Botim call initiated');}
-      if(action==='fu-drop'){quickStatus(mob,'DROPPED');}
-    };
-  }
-  updateFUBadge();
-}
+
 
 
 
@@ -3314,50 +1991,7 @@ function renderFuDetailInner(mob){
 }
 
 // ── BOOTSEQUENCE v1.7 (load activity log on startup) ──
-async function bootSequenceV17(){
-  loadActivityLog();
-  renderAll();updateFUBadge();scheduleNotifications();
-  if(!hasScript()){setTopSync('idle','Not synced - add Apps Script URL in Sync tab');setSyncBanner('idle');return;}
-  setTopSync('syncing','Syncing on startup...');
-  await new Promise(function(res){setTimeout(res,300);});
-  try{
-    syncInProgress=true;
-    // Pull LEADS
-    var ld=await scriptGet('LEADS');
-    if(ld&&ld.rows&&ld.rows.length>1){
-      var hdr=ld.rows[0].map(function(h){return (h||'').toLowerCase().trim();});
-      var ci=function(keys){for(var ki=0;ki<keys.length;ki++)for(var hi=0;hi<hdr.length;hi++)if(hdr[hi].includes(keys[ki]))return hi;return -1;};
-      var C={name:ci(['name']),mob:ci(['mobile','phone']),email:ci(['email']),age:ci(['age']),country:ci(['country']),status:ci(['status']),source:ci(['source']),ref:ci(['referred','referral']),aum:ci(['aum','sip','estimated']),fu:ci(['follow']),prod:ci(['product','investment']),rem:ci(['remark','note']),mod:ci(['modified']),created:ci(['created'])};
-      function g(r,k,fb){var i=C[k]>=0?C[k]:fb;return i>=0&&i<r.length?String(r[i]||''):'';}
-      ld.rows.slice(1).forEach(function(r){
-        var mob=g(r,'mob',1).trim();if(!mob)return;
-        var fu=g(r,'fu',8);if(fu&&!/^\d{4}-\d{2}-\d{2}$/.test(fu))fu='';
-        var obj={name:caps(g(r,'name',0)),mobile:mob,email:g(r,'email',2),age:g(r,'age',3),country:caps(g(r,'country',4)),status:caps(g(r,'status',5))||'PROSPECT',source:caps(g(r,'source',6)),referral:g(r,'ref',7),aum:g(r,'aum',8),nextFollowUp:fu,products:caps(g(r,'prod',10)),remarks:g(r,'rem',11),modifiedDate:g(r,'mod',12)||today(),createdDate:g(r,'created',13)||today()};
-        var idx=leads.findIndex(function(l){return l.mobile===mob;});
-        if(idx>=0)leads[idx]=Object.assign({},leads[idx],obj);
-        else leads.push(Object.assign({notes:[]},obj));
-      });saveL();
-    }
-    // Pull CLIENTS
-    var cd=await scriptGet('CLIENTS');
-    if(cd&&cd.rows&&cd.rows.length>1){
-      var chdr=cd.rows[0].map(function(h){return (h||'').toLowerCase().trim();});
-      var cci=function(keys){for(var ki=0;ki<keys.length;ki++)for(var hi=0;hi<chdr.length;hi++)if(chdr[hi].includes(keys[ki]))return hi;return -1;};
-      var CC={name:cci(['name']),mob:cci(['mobile']),email:cci(['email']),country:cci(['country']),age:cci(['age']),gender:cci(['gender']),pan:cci(['pan']),prod:cci(['product']),rem:cci(['remark']),conv:cci(['converted'])};
-      function gcc(r,k,fb){var i=CC[k]>=0?CC[k]:fb;return i>=0&&i<r.length?String(r[i]||''):'';}
-      cd.rows.slice(1).forEach(function(r){var mob=gcc(r,'mob',1).trim();if(!mob)return;var obj={name:caps(gcc(r,'name',0)),mobile:mob,email:gcc(r,'email',2),country:caps(gcc(r,'country',3)),age:gcc(r,'age',4),gender:caps(gcc(r,'gender',5)),pan:caps(gcc(r,'pan',6)),products:caps(gcc(r,'prod',7)),remarks:gcc(r,'rem',8),convertedDate:gcc(r,'conv',9)};var idx2=clients.findIndex(function(c){return c.mobile===mob;});if(idx2>=0)clients[idx2]=Object.assign({},clients[idx2],obj);else clients.push(obj);});saveC();
-    }
-    // Pull Activity Log
-    await pullActivityLog();
-    cfg_.lastPull=now();saveCfg();
-    var ts=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
-    setTopSync('ok','Synced '+ts+' - '+leads.length+' leads');setSyncBanner('ok');
-    renderAll();updateFUBadge();
-  }catch(err){
-    setTopSync('err','Startup sync failed - tap sync');setSyncBanner('err');
-    console.warn('Boot sync:',err.message);
-  }finally{syncInProgress=false;}
-}
+
 
 // Version marker
 var APP_VERSION='1.7';
@@ -3460,7 +2094,6 @@ function renderCountryLeadsChart(){
 }
 
 // ── OVERRIDE renderDash to include country leads chart + last sync ──
-var _v17_origRD=renderDash;
 function renderDash(){
   _v17_origRD();
   renderCountryLeadsChart();
@@ -3471,7 +2104,6 @@ function renderDash(){
 
 // ── FOLLOW-UP CARD: Set Date button replaces Open → ──
 // Override makeFuItem to replace "Open →" with "📅 Date" button
-var _v17_origMFI2=makeFuItem;
 function makeFuItem(l,itemType){
   var d=daysAgo(l.modifiedDate||l.createdDate);
   var digits=(l.mobile||'').replace(/\D/g,'');
@@ -3580,7 +2212,6 @@ function wireFuList(){
 }
 
 // ── OVERRIDE renderFU to wire list after render ──
-var _v17_origRFU2=renderFU;
 function renderFU(){
   _v17_origRFU2();
   _v17_fuListWired=false;
@@ -3588,14 +2219,12 @@ function renderFU(){
 }
 
 // ── OVERRIDE openAddLead + saveLead + editLeadOpen to handle Country ──
-var _v17_origOAL2=openAddLead;
 function openAddLead(pre){
   _v17_origOAL2(pre);
   var cEl=document.getElementById('lf-country');
   if(cEl)cEl.value=(pre&&pre.country)||'';
 }
 
-var _v17_origELO2=editLeadOpen;
 function editLeadOpen(mob){
   _v17_origELO2(mob);
   var l=leads.find(function(x){return x.mobile===mob;});
@@ -3603,7 +2232,6 @@ function editLeadOpen(mob){
   if(cEl&&l)cEl.value=l.country||'';
 }
 
-var _v17_origSL2=saveLead;
 function saveLead(){
   // Capture country before calling original
   var cEl=document.getElementById('lf-country');
@@ -3622,13 +2250,11 @@ function saveLead(){
 }
 
 // ── OVERRIDE pushLeads to use reliable queue ──
-var _v17_origPL=pushLeads;
 function pushLeads(){
   reliablePushLeads();
 }
 
 // ── RELIABLE BOOTSEQUENCE with loading screen + dash landing ──
-var _v17_origBS=bootSequenceV17;
 async function bootSequenceV17(){
   // Load queued pushes from localStorage
   try{var q=JSON.parse(localStorage.getItem('wm_push_queue')||'[]');if(q.length){_pushQueue=q;setTimeout(drainPushQueue,5000);}}catch(e){}
