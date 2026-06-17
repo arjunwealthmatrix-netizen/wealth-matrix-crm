@@ -804,52 +804,48 @@ function setupAutocomplete(inputId,listId,type){
 // FOLLOW-UP DETAIL POPUP
 // ═══════════════════════════════════════════════
 function openFuDetail(mob){
-  var l=leads.find(function(x){return x.mobile===mob;});if(!l)return;
-  _detailOpenMobile=mob;_detailOpenType='lead';_detailModified=false;
+  var l = leads.find(function(x){ return x.mobile===mob; });
+  if(!l) return;
+  _detailOpenMobile = mob;
+  _detailOpenType   = 'lead';
+  _detailModified   = false;
   renderFuDetailInner(mob);
   document.getElementById('ov-fu-detail').classList.add('open');
-  // Show "syncing..." in history panel, pull from sheet, refresh
-  if(hasScript()){
-    var histEl=document.getElementById('fu-hist-'+mob);
-    if(histEl&&activityLog.filter(function(e){return e.mobile===mob;}).length===0){
-      histEl.innerHTML='<div style="color:var(--t3);font-size:12px;padding:8px 0;text-align:center">🔄 Loading history from sheet...</div>';
-    }
-    pullLeadActivity(mob).then(function(){
-      var el2=document.getElementById('fu-hist-'+mob);
-      if(el2) el2.innerHTML=buildHistoryHtml(mob,'lead');
-      // Scroll to bottom (newest)
-      if(el2) el2.scrollTop=el2.scrollHeight;
-    });
+  // Pull fresh history from sheet
+  var histEl = document.getElementById('fu-hist-'+mob);
+  if(histEl){
+    histEl.innerHTML = '<div style="color:var(--t3);font-size:11px;padding:10px 0;text-align:center">🔄 Loading from sheet…</div>';
   }
+  pullLeadActivity(mob).then(function(){
+    var el = document.getElementById('fu-hist-'+mob);
+    if(el){ el.innerHTML = buildHistoryHtml(mob,'lead'); el.scrollTop = el.scrollHeight; }
+  });
 }
 
 async function pullLeadActivity(mob){
-  // Use scriptGet which correctly handles Apps Script redirects
+  if(!hasScript()) return;
+  mob = String(mob||'').trim();
   try{
-    var data=await scriptGet('ACTIVITY_LOG');
-    if(data&&data.rows&&data.rows.length>1){
-      // rows[0]=header, filter rows by mobile number
-      var mobStr=String(mob).trim();
-      var matched=data.rows.slice(1).filter(function(r){
-        return String(r[2]||'').trim()===mobStr;
-      });
-      if(matched.length>0){
-        // Replace local entries for this mobile with fresh sheet data
-        activityLog=activityLog.filter(function(e){return String(e.mobile).trim()!==mobStr;});
-        matched.forEach(function(r){
-          activityLog.push({
-            ts:String(r[0]||'').trim(),
-            name:String(r[1]||'').trim(),
-            mobile:mobStr,
-            type:String(r[3]||'LEAD').trim(),
-            activity:String(r[4]||'').trim(),
-            notes:String(r[5]||'').trim()
-          });
-        });
-        saveActivityLog();
-      }
+    var d = await scriptGet('ACTIVITY_LOG');
+    if(d && d.rows && d.rows.length > 1){
+      var forThis = d.rows.slice(1)
+        .filter(function(r){ return String(r[2]||'').trim() === mob; })
+        .map(function(r){
+          return {
+            ts:       String(r[0]||'').trim(),
+            name:     String(r[1]||'').trim(),
+            mobile:   mob,
+            type:     String(r[3]||'LEAD').trim(),
+            activity: String(r[4]||'').trim(),
+            notes:    String(r[5]||'').trim()
+          };
+        }).filter(function(e){ return e.activity; });
+      // Replace entries for this mobile in local cache
+      activityLog = activityLog.filter(function(e){ return String(e.mobile||'').trim() !== mob; });
+      activityLog = activityLog.concat(forThis);
+      saveActivityLog();
     }
-  }catch(e){console.warn('pullLeadActivity failed:',e.message);}
+  } catch(e){ console.warn('pullLeadActivity:', e.message); }
 }
 
 
@@ -1211,6 +1207,16 @@ async function scriptGet(tab,retries){
     }catch(err){if(attempt===retries)throw err;await new Promise(function(res){setTimeout(res,1000);});}
   }
 }
+
+function sheetPost(data, onDone){
+  if(!hasScript()) return;
+  var payload = encodeURIComponent(JSON.stringify(data));
+  // Use GET with payload — this is what Apps Script reliably accepts
+  var url = cfg_.scriptUrl + '?payload=' + payload + '&t=' + Date.now();
+  fetch(url, {mode:'no-cors'})
+    .then(function(){ if(onDone) onDone(true); })
+    .catch(function(e){ console.warn('sheetPost failed:', e.message); if(onDone) onDone(false); });
+}
 async function scriptPost(action,rows){
   // Apps Script only works via GET from browser (CORS restriction)
   // Use no-cors GET - Apps Script executes it even though we can't read response
@@ -1508,16 +1514,18 @@ function deleteLogEntry(mob,lineIndex){
 
 // ── OVERRIDE updateFUBadge for due-only count ──
 function updateFUBadge(){
-  var fd=parseInt(cfg_.followUpDays)||14;
-  var count=leads.filter(function(l){
-    if(!['PROSPECT','CONTACTED','IN PROGRESS'].includes((l.status||'').toUpperCase()))return false;
-    if(l.nextFollowUp)return daysUntil(l.nextFollowUp)<=0;
+  var fd = parseInt(cfg_.followUpDays)||14;
+  var count = leads.filter(function(l){
+    if(!['PROSPECT','CONTACTED','IN PROGRESS'].includes((l.status||'').toUpperCase())) return false;
+    if(l.nextFollowUp && /^\d{4}-\d{2}-\d{2}$/.test(l.nextFollowUp)) return daysUntil(l.nextFollowUp)<=0;
     return daysAgo(l.modifiedDate||l.createdDate)>=fd;
   }).length;
-  var navFu=document.getElementById('nav-fu');if(!navFu)return;
-  var badge=navFu.querySelector('.nb-badge');
-  if(count>0){if(!badge){badge=document.createElement('span');badge.className='nb-badge';navFu.insertBefore(badge,navFu.firstChild);}badge.textContent=count>9?'9+':count;}
-  else if(badge)badge.remove();
+  var navFu = document.getElementById('nav-fu'); if(!navFu) return;
+  var badge = navFu.querySelector('.nb-badge');
+  if(count>0){
+    if(!badge){ badge=document.createElement('span'); badge.className='nb-badge'; navFu.insertBefore(badge,navFu.firstChild); }
+    badge.textContent = count>9?'9+':count;
+  } else if(badge){ badge.remove(); }
 }
 
 // ── Set Self as default for existing leads without referral ──
@@ -1660,39 +1668,37 @@ function renderLeads(){
 var activityLog = [];
 
 function loadActivityLog(){
-  try{ activityLog=JSON.parse(localStorage.getItem('wm_activity')||'[]'); }
-  catch(e){ activityLog=[]; }
+  try{ activityLog = JSON.parse(localStorage.getItem('wm_activity') || '[]'); }
+  catch(e){ activityLog = []; }
 }
 function saveActivityLog(){
-  localStorage.setItem('wm_activity', JSON.stringify(activityLog));
+  try{ localStorage.setItem('wm_activity', JSON.stringify(activityLog)); }
+  catch(e){ console.warn('saveActivityLog:', e); }
 }
 
 // ── Log an activity (local + push to sheet) ──
 function logActivity(mob, type, activity, notes){
-  mob = String(mob||'').trim(); // normalize mobile
+  mob = String(mob||'').trim();
+  if(!mob || !activity) return;
   var rec = type==='lead'
-    ? leads.find(function(x){return x.mobile===mob;})
-    : clients.find(function(x){return x.mobile===mob;});
-  var name = rec ? rec.name : mob;
+    ? leads.find(function(x){ return x.mobile===mob; })
+    : clients.find(function(x){ return x.mobile===mob; });
+  var name = rec ? (rec.name||mob) : mob;
   var ts = fmtStamp(new Date());
-  var entry = {ts:ts, name:name, mobile:mob, type:type, activity:activity, notes:notes||''};
+  var entry = { ts:ts, name:name, mobile:mob, type:type.toUpperCase(), activity:activity, notes:notes||'' };
+  // Save locally first (instant)
   activityLog.push(entry);
   saveActivityLog();
-  // Push to ACTIVITY_LOG sheet
-  if(hasScript()){
-    var row = [ts, name, mob, type.toUpperCase(), activity, notes||''];
-    var payload = encodeURIComponent(JSON.stringify({action:'appendLog', row:row}));
-    fetch(cfg_.scriptUrl+'?payload='+payload+'&t='+Date.now(), {method:'GET', mode:'no-cors'})
-      .catch(function(){});
-  }
+  // Push to sheet
+  sheetPost({ action:'appendLog', row:[ts, name, mob, type.toUpperCase(), activity, notes||''] });
 }
 
 // Get activity history for a mobile number (local + optional sheet pull)
 function getActivity(mob){
-  var mobStr=String(mob||'').trim();
+  var m = String(mob||'').trim();
   return activityLog
-    .filter(function(e){return String(e.mobile||'').trim()===mobStr;})
-    .sort(function(a,b){return (a.ts||'').localeCompare(b.ts||'');});
+    .filter(function(e){ return String(e.mobile||'').trim() === m; })
+    .sort(function(a,b){ return (a.ts||'').localeCompare(b.ts||''); });
 }
 
 async function pullActivityLog(){
@@ -1700,13 +1706,20 @@ async function pullActivityLog(){
   try{
     var d = await scriptGet('ACTIVITY_LOG');
     if(d && d.rows && d.rows.length > 1){
-      // rows[0] is header, rows[1+] are entries
-      activityLog = d.rows.slice(1).map(function(r){
-        return {ts:r[0]||'',name:r[1]||'',mobile:r[2]||'',type:r[3]||'LEAD',activity:r[4]||'',notes:r[5]||''};
-      });
+      var fresh = d.rows.slice(1).map(function(r){
+        return {
+          ts:       String(r[0]||'').trim(),
+          name:     String(r[1]||'').trim(),
+          mobile:   String(r[2]||'').trim(),
+          type:     String(r[3]||'LEAD').trim(),
+          activity: String(r[4]||'').trim(),
+          notes:    String(r[5]||'').trim()
+        };
+      }).filter(function(e){ return e.mobile && e.activity; });
+      activityLog = fresh;
       saveActivityLog();
     }
-  }catch(e){ console.warn('pullActivityLog:', e.message); }
+  } catch(e){ console.warn('pullActivityLog:', e.message); }
 }
 
 // ── NEW LEADS COLUMNS (v1.7): 13 columns ──
@@ -1809,54 +1822,54 @@ async function pullFromSheet(manual){
 // ── ACTIVITY LOG DISPLAY (replaces renderCommLog) ──
 function buildHistoryHtml(mob, type){
   var entries = getActivity(mob);
-  // Also check remarks for legacy data
-  var rec = type==='client'
-    ? clients.find(function(x){return x.mobile===mob;})
-    : leads.find(function(x){return x.mobile===mob;});
-  // Parse legacy remarks into activity entries for display
-  var legacyEntries = [];
-  if(rec && rec.remarks){
-    var lines = rec.remarks.trim().split('\n').filter(function(l){return l.trim();});
-    lines.forEach(function(line){
-      var mm = line.match(/^\[(\d{2}\/\d{2}\/\d{4}(?:\s\d{2}:\d{2})?)\]\s*(.*)$/);
-      if(mm) legacyEntries.push({ts:mm[1], activity:mm[2], notes:'', isLegacy:true});
-    });
+  if(!entries.length){
+    return '<div style="color:var(--t3);font-size:12px;padding:14px 0;text-align:center">'
+      + 'No activity logged yet.<br>'
+      + '<span style="font-size:10px">Use the chips below to log your first interaction.</span>'
+      + '</div>';
   }
-  // Combine: activity log entries first, then legacy
-  var allEntries = entries.concat(legacyEntries);
-  // Sort chronologically (oldest first)
-  allEntries.sort(function(a,b){ return (a.ts||'').localeCompare(b.ts||''); });
-  if(!allEntries.length) return '<div style="color:var(--t3);font-size:12px;padding:10px 0;text-align:center">No activity yet. Log your first interaction below.</div>';
-  return allEntries.map(function(e,idx){
-    var txt=e.activity+(e.notes?' — '+e.notes:'');
-    var lo=(txt||'').toLowerCase();
-    var ico=lo.includes('whatsapp')?'💬':lo.includes('call')?'📞':lo.includes('meet')?'📹':lo.includes('visit')?'🏢':lo.includes('proposal')?'📄':lo.includes('brochure')?'📋':lo.includes('status')||lo.includes('→')?'🔄':lo.includes('follow-up')||lo.includes('followup')?'📅':lo.includes('created')?'⭐':'📝';
-    return '<div style="padding:6px 0;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:8px">'
-      +'<div style="flex:1">'
-      +'<div style="font-size:10px;font-weight:700;color:var(--accent)">'+ico+' '+e.ts+'</div>'
-      +'<div style="font-size:12px;color:var(--text);margin-top:2px">'+txt+'</div>'
-      +'</div>'
-      +(e.isLegacy?''
-        :'<button onclick="deleteActivityEntry(\''+mob+'\',\''+e.ts+'\')" style="background:none;border:none;cursor:pointer;color:var(--t3);font-size:15px;padding:2px 4px;flex-shrink:0" title="Delete">×</button>')
-      +'</div>';
+  return entries.map(function(e){
+    var txt = (e.activity||'') + (e.notes ? ' — ' + e.notes : '');
+    var lo  = txt.toLowerCase();
+    var ico = lo.includes('whatsapp') ? '💬'
+            : lo.includes('meet')     ? '📅'
+            : lo.includes('call')     ? '📞'
+            : lo.includes('visit')    ? '🏢'
+            : lo.includes('proposal') ? '📄'
+            : lo.includes('brochure') ? '📋'
+            : lo.includes('follow')   ? '🗓️'
+            : lo.includes('status')   ? '🔄'
+            : lo.includes('created')  ? '⭐'
+            : '📝';
+    var safeMob = String(e.mobile||'').replace(/'/g,"\\'");
+    var safeTs  = String(e.ts||'').replace(/'/g,"\\'");
+    return '<div style="padding:7px 0;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:8px">'
+      + '<div style="flex:1">'
+      + '<div style="font-size:10px;font-weight:700;color:var(--accent)">' + ico + ' ' + (e.ts||'') + '</div>'
+      + '<div style="font-size:12px;color:var(--text);margin-top:2px">' + txt + '</div>'
+      + '</div>'
+      + '<button data-delmob="' + safeMob + '" data-delts="' + safeTs + '" data-action="del-log" '
+      + 'style="background:none;border:1px solid var(--border);border-radius:4px;cursor:pointer;'
+      + 'color:var(--t3);font-size:12px;padding:1px 6px;flex-shrink:0">×</button>'
+      + '</div>';
   }).join('');
 }
 
 function deleteActivityEntry(mob, ts){
-  if(!confirm('Delete this activity entry?'))return;
-  // Remove from local cache
-  activityLog=activityLog.filter(function(e){return !(e.mobile===mob&&e.ts===ts);});
+  if(!confirm('Delete this log entry?')) return;
+  mob = String(mob||'').trim();
+  ts  = String(ts||'').trim();
+  // Remove locally
+  activityLog = activityLog.filter(function(e){
+    return !(String(e.mobile||'').trim()===mob && String(e.ts||'').trim()===ts);
+  });
   saveActivityLog();
-  // Delete from sheet instantly: send deleteLog with specific ts
-  if(hasScript()){
-    var payload=encodeURIComponent(JSON.stringify({action:'deleteLogEntry',mobile:mob,ts:ts}));
-    fetch(cfg_.scriptUrl+'?payload='+payload+'&t='+Date.now(),{method:'GET',mode:'no-cors'})
-      .catch(function(){});
-  }
+  // Delete from sheet
+  sheetPost({ action:'deleteLogEntry', mobile:mob, ts:ts });
   toast('Entry deleted');
-  // Refresh open panel
-  var el=document.getElementById('fu-hist-'+mob)||document.getElementById('comm-log-'+mob);
-  if(el) el.innerHTML=buildHistoryHtml(mob,_detailOpenType||'lead');
+  // Refresh panel
+  var el = document.getElementById('fu-hist-'+mob);
+  if(el){ el.innerHTML = buildHistoryHtml(mob, _detailOpenType||'lead'); el.scrollTop = el.scrollHeight; }
 }
 
 // ── NEW CHIPS (v1.7) ──
@@ -2057,6 +2070,9 @@ function renderFuDetailInner(mob){
     if(action==='fu-delete'){
       var ln=leads.find(function(x){return x.mobile===m;});
       if(ln&&confirm('Delete '+toTitle(ln.name)+'?')){deleteLead(m);closeFuDetail();}
+    }
+    if(action==='del-log'){
+      deleteActivityEntry(btn.dataset.delmob, btn.dataset.delts);
     }
   };
 }
@@ -2358,42 +2374,56 @@ function wireFuList(){
 
 // ── OVERRIDE renderFU to wire list after render ──
 function renderFU(){
-  var fd=parseInt(cfg_.followUpDays)||14;
-  var active=leads.filter(function(l){return ['PROSPECT','CONTACTED','IN PROGRESS'].includes((l.status||'').toUpperCase());});
-  var due=active.filter(function(l){if(l.nextFollowUp)return daysUntil(l.nextFollowUp)<=0;return daysAgo(l.modifiedDate||l.createdDate)>=fd;});
-  var upcoming=active.filter(function(l){return l.nextFollowUp&&daysUntil(l.nextFollowUp)>0&&daysUntil(l.nextFollowUp)<=3;});
-  due.sort(function(a,b){var aA=aumScore(a),bA=aumScore(b);if(aA!==bA)return aA-bA;return leadScore(b)-leadScore(a);});
-  var stale=active.filter(function(l){return ['CONTACTED','IN PROGRESS'].includes((l.status||'').toUpperCase())&&daysAgo(l.modifiedDate||l.createdDate)>=parseInt(cfg_.staleDays||30)&&(!l.nextFollowUp||daysUntil(l.nextFollowUp)>0);});
-  var sub=document.getElementById('fu-sub');
-  if(sub)sub.textContent=due.length+' due'+(upcoming.length?' · '+upcoming.length+' soon':'')+(stale.length?' · '+stale.length+' stale':'');
-  var html='';
-  if(due.length){html+='<div style="padding:7px 14px 5px;background:rgba(192,57,43,.08);border-bottom:1px solid var(--border)"><div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase">🔴 Due/Overdue ('+due.length+') — highest value first</div></div>';html+=due.map(function(l){return makeFuItem(l,'overdue');}).join('');}
-  if(upcoming.length){html+='<div style="padding:7px 14px 5px;background:rgba(255,255,255,.03);border-bottom:1px solid var(--border)"><div style="font-size:10px;font-weight:700;color:#AAA;text-transform:uppercase">🟡 Due soon ('+upcoming.length+')</div></div>';html+=upcoming.sort(function(a,b){return daysUntil(a.nextFollowUp)-daysUntil(b.nextFollowUp);}).map(function(l){return makeFuItem(l,'soon');}).join('');}
-  if(stale.length){html+='<div style="padding:7px 14px 5px;border-top:1px solid var(--border)"><div style="font-size:10px;font-weight:700;color:#666;text-transform:uppercase">🧊 Stale ('+stale.length+')</div></div>';html+=stale.map(function(l){return makeFuItem(l,'stale');}).join('');}
-  if(!due.length&&!upcoming.length&&!stale.length){html='<div class="empty"><div class="empty-ico">🎉</div><div class="empty-t">All caught up!</div><div class="empty-s">No follow-ups due today.</div></div>';}
-  var fuList=document.getElementById('fu-list');
-  if(fuList){
-    fuList.innerHTML=html;
-    fuList.onclick=function(e){
-      var btn=e.target.closest('[data-action]');if(!btn)return;
-      var mob=btn.dataset.mob;var action=btn.dataset.action;
-      if(action==='fu-open')openFuDetail(mob);
-      if(action==='fu-set-date'){
-        document.querySelectorAll('[id^="fu-inline-date-"]').forEach(function(p){p.style.display='none';});
-        var panel=document.getElementById('fu-inline-date-'+mob);
-        if(panel)panel.style.display='block';
-      }
-      if(action==='fu-sc'){var inp=document.getElementById('fu-inline-input-'+mob);if(inp)inp.value=btn.dataset.date;}
-      if(action==='fu-confirm-date'){
-        var inp2=document.getElementById('fu-inline-input-'+mob);var newDate=inp2?inp2.value:'';
-        if(!newDate){toast('Pick a date');return;}
-        saveFuDateV17(mob,newDate);
-        var panel2=document.getElementById('fu-inline-date-'+mob);if(panel2)panel2.style.display='none';
-      }
-      if(action==='fu-cancel-date'){var p3=document.getElementById('fu-inline-date-'+mob);if(p3)p3.style.display='none';}
-      if(action==='fu-wa-app'){bumpM(mob);logActivity(mob,'lead','WhatsApp sent','');}
-    };
+  var fd = parseInt(cfg_.followUpDays)||14;
+  var active = leads.filter(function(l){
+    return ['PROSPECT','CONTACTED','IN PROGRESS'].includes((l.status||'').toUpperCase());
+  });
+  // Due = nextFollowUp is today or past; or no date and inactive fd+ days
+  var due = active.filter(function(l){
+    if(l.nextFollowUp && /^\d{4}-\d{2}-\d{2}$/.test(l.nextFollowUp)){
+      return daysUntil(l.nextFollowUp) <= 0;
+    }
+    return daysAgo(l.modifiedDate||l.createdDate) >= fd;
+  });
+  // Sort: highest AUM first, then lead score
+  due.sort(function(a,b){
+    var d = aumScore(a) - aumScore(b);
+    return d !== 0 ? d : leadScore(b) - leadScore(a);
+  });
+  var sub = document.getElementById('fu-sub');
+  if(sub) sub.textContent = due.length + ' lead' + (due.length!==1?'s':'') + ' due for follow-up';
+  var fuList = document.getElementById('fu-list');
+  if(!fuList){ updateFUBadge(); return; }
+  if(!due.length){
+    fuList.innerHTML = '<div class="empty"><div class="empty-ico">🎉</div>'
+      + '<div class="empty-t">All caught up!</div>'
+      + '<div class="empty-s">No follow-ups due today.</div></div>';
+    updateFUBadge();
+    return;
   }
+  var html = '<div style="padding:7px 14px 5px;background:rgba(192,57,43,.08);border-bottom:1px solid var(--border)">'
+    + '<div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase">'
+    + '🔴 ' + due.length + ' Due — sorted by value</div></div>';
+  html += due.map(function(l){ return makeFuItem(l,'overdue'); }).join('');
+  fuList.innerHTML = html;
+  fuList.onclick = function(e){
+    var btn = e.target.closest('[data-action]'); if(!btn) return;
+    var mob = btn.dataset.mob; var action = btn.dataset.action;
+    if(action==='fu-open') openFuDetail(mob);
+    if(action==='fu-set-date'){
+      document.querySelectorAll('[id^="fu-inline-date-"]').forEach(function(p){p.style.display='none';});
+      var p = document.getElementById('fu-inline-date-'+mob); if(p) p.style.display='block';
+    }
+    if(action==='fu-sc'){ var inp=document.getElementById('fu-inline-input-'+mob); if(inp)inp.value=btn.dataset.date; }
+    if(action==='fu-confirm-date'){
+      var nd = (document.getElementById('fu-inline-input-'+mob)||{}).value;
+      if(!nd){ toast('Pick a date'); return; }
+      saveFuDateV17(mob,nd);
+      var p2=document.getElementById('fu-inline-date-'+mob); if(p2)p2.style.display='none';
+    }
+    if(action==='fu-cancel-date'){ var p3=document.getElementById('fu-inline-date-'+mob); if(p3)p3.style.display='none'; }
+    if(action==='fu-wa-app'){ bumpM(mob); logActivity(mob,'lead','WhatsApp sent',''); }
+  };
   updateFUBadge();
 }
 
