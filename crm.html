@@ -308,10 +308,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   <div class="sec"><div class="lbl" style="color:var(--accent)">⭐ North Star Matrix</div><div class="card ns-wrap"><table class="ns-table" id="ns-table"></table></div></div>
   <div class="sec"><div class="lbl">Analytics</div><div class="ana-grid" id="analytics"></div></div>
   <div class="sec"><div class="lbl">Monthly trend (Contacted)</div><div class="card" style="padding:14px"><div class="trend-wrap"><div class="trend-bars" id="trend-bars"></div></div></div></div>
-  <div class="sec"><div class="lbl">Source breakdown</div><div class="card" style="padding:12px" id="source-chart"></div></div>
-  <div class="sec"><div class="lbl">Top referrers</div><div class="card" style="padding:12px" id="referral-chart"></div></div>
-  <div class="sec"><div class="lbl">Country — Leads breakdown</div><div class="card" style="padding:12px" id="country-chart"></div></div>
-  <div class="sec"><div class="lbl">Country — Lead status map</div><div class="card" style="padding:12px" id="country-leads-chart"></div></div>
+
+
+  <div class="sec"><div class="lbl">Country — Leads</div><div class="card" style="padding:12px" id="country-chart"></div></div>
+
   <div class="sec"><div class="lbl">Age groups</div><div class="card" style="padding:12px" id="age-chart"></div></div>
 </div>
 
@@ -806,8 +806,31 @@ function setupAutocomplete(inputId,listId,type){
 function openFuDetail(mob){
   var l=leads.find(function(x){return x.mobile===mob;});if(!l)return;
   _detailOpenMobile=mob;_detailOpenType='lead';_detailModified=false;
+  // Show immediately from local cache
   renderFuDetailInner(mob);
   document.getElementById('ov-fu-detail').classList.add('open');
+  // Pull fresh activity log from sheet in background, then refresh
+  if(hasScript()){
+    pullLeadActivity(mob).then(function(){
+      // Refresh history panel after pull
+      var el=document.getElementById('fu-hist-'+mob);
+      if(el) el.innerHTML=buildHistoryHtml(mob,'lead');
+    }).catch(function(){});
+  }
+}
+
+async function pullLeadActivity(mob){
+  var url=cfg_.scriptUrl+'?action=pullLog&mobile='+encodeURIComponent(mob)+'&t='+Date.now();
+  var resp=await fetch(url);
+  var data=await resp.json();
+  if(data&&data.rows&&data.rows.length){
+    // Merge into local activityLog (replace entries for this mobile)
+    activityLog=activityLog.filter(function(e){return e.mobile!==mob;});
+    data.rows.forEach(function(r){
+      activityLog.push({ts:r[0]||'',name:r[1]||'',mobile:r[2]||mob,type:r[3]||'LEAD',activity:r[4]||'',notes:r[5]||''});
+    });
+    saveActivityLog();
+  }
 }
 
 
@@ -900,6 +923,13 @@ function openDetail(mob,type){
     _detailOpenMobile=rec.mobile;_detailOpenType='lead';_detailModified=false;
     renderFuDetailInner(rec.mobile);
     document.getElementById('ov-fu-detail').classList.add('open');
+    // Pull fresh activity from sheet in background
+    if(hasScript()){
+      pullLeadActivity(rec.mobile).then(function(){
+        var el=document.getElementById('fu-hist-'+rec.mobile);
+        if(el) el.innerHTML=buildHistoryHtml(rec.mobile,'lead');
+      }).catch(function(){});
+    }
     return; // skip the detail-sh render below
   }
     document.getElementById('detail-sh').innerHTML=html;
@@ -993,7 +1023,29 @@ function showConvertedBanner(name){
 // QUICK STATUS & DELETE
 // ═══════════════════════════════════════════════
 
-function deleteLead(mob){if(!confirm('Delete this lead?'))return;leads=leads.filter(function(x){return x.mobile!==mob;});saveL();closeOv('ov-detail');renderLeads();renderDash();renderFU();toast('Lead deleted');pushLeads();}
+function deleteLead(mob){
+  if(!confirm('Delete this lead?'))return;
+  var l=leads.find(function(x){return x.mobile===mob;});
+  var name=l?l.name:'';
+  leads=leads.filter(function(x){return x.mobile!==mob;});
+  saveL();
+  // Remove all activity log entries for this lead
+  activityLog=activityLog.filter(function(e){return e.mobile!==mob;});
+  saveActivityLog();
+  // Push deletion to sheet (remove all rows for this mobile)
+  deleteLogFromSheet(mob);
+  closeOv('ov-detail');closeFuDetail();
+  renderLeads();renderDash();renderFU();
+  toast('Lead deleted');
+  pushLeads();
+}
+
+function deleteLogFromSheet(mob){
+  if(!hasScript())return;
+  var payload=encodeURIComponent(JSON.stringify({action:'deleteLog',mobile:mob}));
+  fetch(cfg_.scriptUrl+'?payload='+payload+'&t='+Date.now(),{method:'GET',mode:'no-cors'})
+    .catch(function(){});
+}
 function deleteClient(mob){if(!confirm('Delete this client?'))return;clients=clients.filter(function(x){return x.mobile!==mob;});saveC();closeOv('ov-detail');renderClients();toast('Client deleted');pushClients();}
 
 function retagClientAsLead(mob,status){
@@ -1189,7 +1241,7 @@ function showAppsScriptCode(){
     +"function pullLog(mobile){var ss=SpreadsheetApp.openById(SHEET_ID);var sh=ss.getSheetByName(LOG_TAB);if(!sh||sh.getLastRow()<=1)return out({rows:[]});var lr=sh.getLastRow(),lc=sh.getLastColumn();var raw=sh.getRange(2,1,lr-1,lc).getValues();var filtered=raw.filter(function(r){return String(r[2]||'').trim()===String(mobile).trim();});return out({rows:filtered});}\n"
     +"function writeData(data){var ss=SpreadsheetApp.openById(SHEET_ID);\n"
     +"if(data.action==='appendLog'){var logSh=ss.getSheetByName(LOG_TAB)||ss.insertSheet(LOG_TAB);if(logSh.getLastRow()===0){var hdr=[['Timestamp','Name','Mobile','Type','Activity','Notes']];var hr=logSh.getRange(1,1,1,6);hr.setValues(hdr);hr.setFontWeight('bold').setBackground('#C0392B').setFontColor('#FFFFFF');logSh.setFrozenRows(1);}logSh.appendRow(data.row||[]);return out({success:true});}\n"
-    +"if(data.action==='deleteLog'){var logSh2=ss.getSheetByName(LOG_TAB);if(logSh2&&logSh2.getLastRow()>1){var lr2=logSh2.getLastRow();var all=logSh2.getRange(2,1,lr2-1,6).getValues();var keep=all.filter(function(r){return String(r[2]||'').trim()!==String(data.mobile||'').trim();});logSh2.clearContents();var hdr2=[['Timestamp','Name','Mobile','Type','Activity','Notes']];logSh2.getRange(1,1,1,6).setValues(hdr2).setFontWeight('bold').setBackground('#C0392B').setFontColor('#FFFFFF');if(keep.length>0)logSh2.getRange(2,1,keep.length,6).setValues(keep);}return out({success:true});}\n"
+    +"if(data.action==='deleteLog'||data.action==='deleteLogEntry'){var logSh2=ss.getSheetByName(LOG_TAB);if(logSh2&&logSh2.getLastRow()>1){var lr2=logSh2.getLastRow();var all=logSh2.getRange(2,1,lr2-1,6).getValues();var keep;if(data.action==='deleteLogEntry'&&data.ts){keep=all.filter(function(r){return !(String(r[2]||'').trim()===String(data.mobile||'').trim()&&String(r[0]||'').trim()===String(data.ts||'').trim());});}else{keep=all.filter(function(r){return String(r[2]||'').trim()!==String(data.mobile||'').trim();});}logSh2.getRange(2,1,lr2-1,6).clearContent();if(keep.length>0)logSh2.getRange(2,1,keep.length,6).setValues(keep);}return out({success:true});}\n"
     +"var tab=data.action==='pushLeads'?LEADS_TAB:data.action==='pushClients'?CLIENTS_TAB:null;if(!tab)return out({error:'Bad action:'+data.action});var rows=data.rows;if(!rows||rows.length===0)return out({error:'No rows'});var sh=ss.getSheetByName(tab)||ss.insertSheet(tab);sh.clearContents();var r=sh.getRange(1,1,rows.length,rows[0].length);r.setNumberFormat('@');r.setValues(rows);var h=sh.getRange(1,1,1,rows[0].length);h.setFontWeight('bold').setBackground('#C0392B').setFontColor('#FFFFFF');sh.setFrozenRows(1);return out({success:true,written:rows.length-1});}\n"
     +"function out(o){return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);}\n"
     +"function testConnection(){Logger.log('OK: '+SpreadsheetApp.openById(SHEET_ID).getName());}";
@@ -1765,20 +1817,16 @@ function buildHistoryHtml(mob, type){
 
 function deleteActivityEntry(mob, ts){
   if(!confirm('Delete this activity entry?'))return;
-  activityLog = activityLog.filter(function(e){return !(e.mobile===mob && e.ts===ts);});
+  // Remove from local cache
+  activityLog=activityLog.filter(function(e){return !(e.mobile===mob&&e.ts===ts);});
   saveActivityLog();
-  // Push deletion to sheet: re-push ALL activity log for this mobile
-  // (Apps Script handles this by deleting matching rows)
+  // Delete from sheet instantly: send deleteLog with specific ts
   if(hasScript()){
-    var mobileLog=activityLog.filter(function(e){return e.mobile===mob;});
-    var rows=[['Timestamp','Name','Mobile','Type','Activity','Notes']].concat(
-      mobileLog.map(function(e){return [e.ts,e.name,e.mobile,e.type,e.activity,e.notes||''];})
-    );
-    var payload=encodeURIComponent(JSON.stringify({action:'deleteLog',mobile:mob,rows:rows}));
+    var payload=encodeURIComponent(JSON.stringify({action:'deleteLogEntry',mobile:mob,ts:ts}));
     fetch(cfg_.scriptUrl+'?payload='+payload+'&t='+Date.now(),{method:'GET',mode:'no-cors'})
       .catch(function(){});
-    toast('✅ Entry deleted from log');
   }
+  toast('Entry deleted');
   // Refresh open panel
   var el=document.getElementById('fu-hist-'+mob)||document.getElementById('comm-log-'+mob);
   if(el) el.innerHTML=buildHistoryHtml(mob,_detailOpenType||'lead');
@@ -1791,8 +1839,10 @@ var V17_CHIPS = [
   ['📵','Called - not picking'],
   ['🔄','Will call back'],
   ['📵','Called twice no reply'],
-  ['📄','Proposal to be send'],
-  ['🤝','Will meet one day'],
+  ['📄','Proposal Send'],
+  ['🤝','Agreed to meet one day'],
+  ['📅','Need to schedule a meet'],
+  ['📞','Call me later'],
   ['🏢','Will visit office']
 ];
 
@@ -2154,25 +2204,11 @@ function renderDash(){
   var tbEl=document.getElementById('trend-bars');
   if(tbEl)tbEl.innerHTML=months.map(function(mo,i){return '<div class="trend-col"><div class="trend-n">'+(mCounts[i]||'')+'</div><div class="trend-bar" style="height:'+Math.max(mCounts[i]/maxM*68,mCounts[i]>0?4:0)+'px"></div><div class="trend-lbl">'+mo.lbl+'</div></div>';}).join('');
 
-  // Source chart
-  var sources=['REFERRAL','FRIENDS','SOCIAL MEDIA','WALK-IN','SEMINAR','SIB','COLD CALL','WEBSITE','OTHER'];
-  var scols=['#C0392B','#888','#AAA','#666','#999','#777','#555','#BBB','#444'];
-  var sc=sources.map(function(src){return leads.filter(function(l){return (l.source||'').toUpperCase()===src;}).length;});
-  var mxS=Math.max.apply(null,sc.concat([1]));
-  var srcEl=document.getElementById('source-chart');
-  if(srcEl)srcEl.innerHTML=sources.map(function(src,i){return sc[i]>0?'<div class="fn-row"><div class="fn-lbl" style="font-size:10px">'+src.charAt(0)+src.slice(1).toLowerCase()+'</div><div class="fn-track"><div class="fn-bar" style="width:'+sc[i]/mxS*100+'%;background:'+scols[i]+'">&nbsp;</div></div><div class="fn-n" style="color:'+scols[i]+'">'+sc[i]+'</div></div>':'';}).join('')||'<div style="color:var(--t3);font-size:11px">No data</div>';
-
-  // Referral chart
-  var refC={};leads.filter(function(l){return l.referral&&l.referral!=='SELF';}).forEach(function(l){var k=l.referral.trim();if(k)refC[k]=(refC[k]||0)+1;});
-  var topRefs=Object.entries(refC).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
-  var refEl=document.getElementById('referral-chart');
-  if(refEl)refEl.innerHTML=topRefs.length?topRefs.map(function(x){return '<div class="fn-row"><div class="fn-lbl" style="font-size:10px">'+toTitle(x[0])+'</div><div class="fn-track"><div class="fn-bar" style="width:'+x[1]/(topRefs[0][1]||1)*100+'%;background:var(--accent)">&nbsp;</div></div><div class="fn-n" style="color:var(--accent)">'+x[1]+'</div></div>';}).join(''):'<div style="color:var(--t3);font-size:11px">No referral data</div>';
-
-  // Country chart (leads)
-  var cc={};leads.forEach(function(l){var c=(l.country||'—').toUpperCase().trim()||'—';if(!cc[c])cc[c]={total:0,conv:0};cc[c].total++;if((l.status||'').toUpperCase()==='CONVERTED')cc[c].conv++;});
-  var sortedC=Object.entries(cc).sort(function(a,b){return b[1].total-a[1].total;});
+  // Country chart (leads — count only)
+  var cc={};leads.forEach(function(l){var c=(l.country||'Not set').toUpperCase().trim();if(!cc[c])cc[c]=0;cc[c]++;});
+  var sortedC=Object.entries(cc).sort(function(a,b){return b[1]-a[1];});
   var ctEl=document.getElementById('country-chart');
-  if(ctEl)ctEl.innerHTML=sortedC.length?sortedC.map(function(x){var pct=Math.round(x[1].conv/x[1].total*100);return '<div class="fn-row"><div class="fn-lbl" style="font-size:10px">'+x[0]+'</div><div class="fn-track"><div class="fn-bar" style="width:'+x[1].total/(sortedC[0][1].total||1)*100+'%;background:#888">&nbsp;</div></div><div class="fn-n" style="color:#AAA">'+x[1].total+'<span style="font-size:9px;color:var(--accent)"> '+pct+'%</span></div></div>';}).join(''):'<div style="color:var(--t3);font-size:11px">No data</div>';
+  if(ctEl)ctEl.innerHTML=sortedC.length?sortedC.map(function(x){return '<div class="fn-row"><div class="fn-lbl" style="font-size:11px;font-weight:700">'+x[0]+'</div><div class="fn-track"><div class="fn-bar" style="width:'+x[1]/(sortedC[0][1]||1)*100+'%;background:var(--accent)">&nbsp;</div></div><div class="fn-n" style="color:var(--accent);font-size:13px;font-weight:800">'+x[1]+'</div></div>';}).join(''):'<div style="color:var(--t3);font-size:11px">No data</div>';
 
   // Age chart
   var ageGroups=[['<25',0,24],['25-34',25,34],['35-44',35,44],['45-54',45,54],['55+',55,120]];
