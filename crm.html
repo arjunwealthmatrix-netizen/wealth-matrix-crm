@@ -806,31 +806,50 @@ function setupAutocomplete(inputId,listId,type){
 function openFuDetail(mob){
   var l=leads.find(function(x){return x.mobile===mob;});if(!l)return;
   _detailOpenMobile=mob;_detailOpenType='lead';_detailModified=false;
-  // Show immediately from local cache
   renderFuDetailInner(mob);
   document.getElementById('ov-fu-detail').classList.add('open');
-  // Pull fresh activity log from sheet in background, then refresh
+  // Show "syncing..." in history panel, pull from sheet, refresh
   if(hasScript()){
+    var histEl=document.getElementById('fu-hist-'+mob);
+    if(histEl&&activityLog.filter(function(e){return e.mobile===mob;}).length===0){
+      histEl.innerHTML='<div style="color:var(--t3);font-size:12px;padding:8px 0;text-align:center">🔄 Loading history from sheet...</div>';
+    }
     pullLeadActivity(mob).then(function(){
-      // Refresh history panel after pull
-      var el=document.getElementById('fu-hist-'+mob);
-      if(el) el.innerHTML=buildHistoryHtml(mob,'lead');
-    }).catch(function(){});
+      var el2=document.getElementById('fu-hist-'+mob);
+      if(el2) el2.innerHTML=buildHistoryHtml(mob,'lead');
+      // Scroll to bottom (newest)
+      if(el2) el2.scrollTop=el2.scrollHeight;
+    });
   }
 }
 
 async function pullLeadActivity(mob){
-  var url=cfg_.scriptUrl+'?action=pullLog&mobile='+encodeURIComponent(mob)+'&t='+Date.now();
-  var resp=await fetch(url);
-  var data=await resp.json();
-  if(data&&data.rows&&data.rows.length){
-    // Merge into local activityLog (replace entries for this mobile)
-    activityLog=activityLog.filter(function(e){return e.mobile!==mob;});
-    data.rows.forEach(function(r){
-      activityLog.push({ts:r[0]||'',name:r[1]||'',mobile:r[2]||mob,type:r[3]||'LEAD',activity:r[4]||'',notes:r[5]||''});
-    });
-    saveActivityLog();
-  }
+  // Use scriptGet which correctly handles Apps Script redirects
+  try{
+    var data=await scriptGet('ACTIVITY_LOG');
+    if(data&&data.rows&&data.rows.length>1){
+      // rows[0]=header, filter rows by mobile number
+      var mobStr=String(mob).trim();
+      var matched=data.rows.slice(1).filter(function(r){
+        return String(r[2]||'').trim()===mobStr;
+      });
+      if(matched.length>0){
+        // Replace local entries for this mobile with fresh sheet data
+        activityLog=activityLog.filter(function(e){return String(e.mobile).trim()!==mobStr;});
+        matched.forEach(function(r){
+          activityLog.push({
+            ts:String(r[0]||'').trim(),
+            name:String(r[1]||'').trim(),
+            mobile:mobStr,
+            type:String(r[3]||'LEAD').trim(),
+            activity:String(r[4]||'').trim(),
+            notes:String(r[5]||'').trim()
+          });
+        });
+        saveActivityLog();
+      }
+    }
+  }catch(e){console.warn('pullLeadActivity failed:',e.message);}
 }
 
 
@@ -923,12 +942,16 @@ function openDetail(mob,type){
     _detailOpenMobile=rec.mobile;_detailOpenType='lead';_detailModified=false;
     renderFuDetailInner(rec.mobile);
     document.getElementById('ov-fu-detail').classList.add('open');
-    // Pull fresh activity from sheet in background
+    // Pull fresh activity from sheet, refresh history
     if(hasScript()){
+      var histEl=document.getElementById('fu-hist-'+rec.mobile);
+      if(histEl&&activityLog.filter(function(e){return e.mobile===rec.mobile;}).length===0){
+        histEl.innerHTML='<div style="color:var(--t3);font-size:12px;padding:8px 0;text-align:center">🔄 Loading history from sheet...</div>';
+      }
       pullLeadActivity(rec.mobile).then(function(){
         var el=document.getElementById('fu-hist-'+rec.mobile);
-        if(el) el.innerHTML=buildHistoryHtml(rec.mobile,'lead');
-      }).catch(function(){});
+        if(el){ el.innerHTML=buildHistoryHtml(rec.mobile,'lead'); el.scrollTop=el.scrollHeight; }
+      });
     }
     return; // skip the detail-sh render below
   }
@@ -1646,6 +1669,7 @@ function saveActivityLog(){
 
 // ── Log an activity (local + push to sheet) ──
 function logActivity(mob, type, activity, notes){
+  mob = String(mob||'').trim(); // normalize mobile
   var rec = type==='lead'
     ? leads.find(function(x){return x.mobile===mob;})
     : clients.find(function(x){return x.mobile===mob;});
@@ -1665,7 +1689,10 @@ function logActivity(mob, type, activity, notes){
 
 // Get activity history for a mobile number (local + optional sheet pull)
 function getActivity(mob){
-  return activityLog.filter(function(e){return e.mobile===mob;});
+  var mobStr=String(mob||'').trim();
+  return activityLog
+    .filter(function(e){return String(e.mobile||'').trim()===mobStr;})
+    .sort(function(a,b){return (a.ts||'').localeCompare(b.ts||'');});
 }
 
 async function pullActivityLog(){
