@@ -670,7 +670,15 @@ function callIcon(){return '<svg width="14" height="14" viewBox="0 0 24 24" fill
 // ═══════════════════════════════════════════════
 // REMARKS LOG
 // ═══════════════════════════════════════════════
-function fmtStamp(date){var d=date||new Date();var day=String(d.getDate()).padStart(2,'0');var mon=String(d.getMonth()+1).padStart(2,'0');var yr=d.getFullYear();var h=String(d.getHours()).padStart(2,'0');var m=String(d.getMinutes()).padStart(2,'0');return day+'/'+mon+'/'+yr+' '+h+':'+m;}
+function fmtStamp(date){
+  var d=date||new Date();
+  var yr=d.getFullYear();
+  var mon=String(d.getMonth()+1).padStart(2,'0');
+  var day=String(d.getDate()).padStart(2,'0');
+  var h=String(d.getHours()).padStart(2,'0');
+  var m=String(d.getMinutes()).padStart(2,'0');
+  return yr+'-'+mon+'-'+day+' '+h+':'+m; // ISO format - Sheets won't auto-convert
+}
 function migrateRemarks(t){if(!t||!t.trim())return '';if(/\[\d{2}\/\d{2}\/\d{4}/.test(t))return t;return t.split('\n').filter(function(l){return l.trim();}).map(function(l){return '[13/06/2026] '+l.trim();}).join('\n');}
 function appendRemark(existing,note){var stamp=fmtStamp(new Date());var e='['+stamp+'] '+note;if(!existing||!existing.trim())return e;return existing.trim()+'\n'+e;}
 function lastRemarkSummary(remarks){if(!remarks||!remarks.trim())return '';var lines=remarks.trim().split('\n').filter(function(l){return l.trim();});if(!lines.length)return '';var last=lines[lines.length-1];if(last.length>60)last=last.substring(0,60)+'…';return last;}
@@ -875,21 +883,23 @@ async function pullLeadActivity(mob){
   if(!hasScript()) return;
   mob = String(mob||'').trim();
   try{
-    var d = await scriptGet('ACTIVITY_LOG');
-    if(d && d.rows && d.rows.length > 1){
-      var fresh = d.rows.slice(1)
-        .filter(function(r){ return String(r[2]||'').trim() === mob && r[4]; })
-        .map(function(r){
-          return {
-            ts:       String(r[0]||'').trim(),
-            name:     String(r[1]||'').trim(),
-            mobile:   mob,
-            type:     String(r[3]||'LEAD').trim(),
-            activity: String(r[4]||'').trim(),
-            notes:    String(r[5]||'').trim()
-          };
-        });
-      // Replace this mobile's entries in local cache
+    // Use dedicated pullLog endpoint — server-side filter, only returns this lead's rows
+    var url = cfg_.scriptUrl + '?action=pullLog&mobile=' + encodeURIComponent(mob) + '&t=' + Date.now();
+    var resp = await fetch(url);
+    if(!resp.ok) throw new Error('HTTP '+resp.status);
+    var d = await resp.json();
+    if(d && d.rows){
+      var fresh = d.rows.map(function(r){
+        return {
+          ts:       String(r[0]||'').trim(),
+          name:     String(r[1]||'').trim(),
+          mobile:   mob,
+          type:     String(r[3]||'LEAD').trim(),
+          activity: String(r[4]||'').trim(),
+          notes:    String(r[5]||'').trim()
+        };
+      }).filter(function(e){ return e.activity; });
+      // Replace local entries for this mobile
       activityLog = activityLog.filter(function(e){ return String(e.mobile||'').trim() !== mob; });
       activityLog = activityLog.concat(fresh);
       saveActivityLog();
@@ -1439,8 +1449,8 @@ function showAppsScriptCode(){
     +"function readTab(t){var ss=SpreadsheetApp.openById(SHEET_ID);var sh=ss.getSheetByName(t);if(!sh)return out({rows:[],error:'Tab not found:'+t});var lr=sh.getLastRow(),lc=sh.getLastColumn();if(lr===0||lc===0)return out({rows:[]});var raw=sh.getRange(1,1,lr,lc).getValues();var cleaned=raw.map(function(row){return row.map(function(c){if(c===null||c===undefined||c==='')return'';if(c instanceof Date){var y=c.getFullYear();var m=String(c.getMonth()+1).padStart(2,'0');var d=String(c.getDate()).padStart(2,'0');return y+'-'+m+'-'+d;}if(typeof c==='number')return String(c);return String(c).trim();});});return out({rows:cleaned});}\n"
     +"function pullLog(mobile){var ss=SpreadsheetApp.openById(SHEET_ID);var sh=ss.getSheetByName(LOG_TAB);if(!sh||sh.getLastRow()<=1)return out({rows:[]});var lr=sh.getLastRow(),lc=sh.getLastColumn();var raw=sh.getRange(2,1,lr-1,lc).getValues();var filtered=raw.filter(function(r){return String(r[2]||'').trim()===String(mobile).trim();});return out({rows:filtered});}\n"
     +"function writeData(data){var ss=SpreadsheetApp.openById(SHEET_ID);\n"
-    +"if(data.action==='appendLog'){var logSh=ss.getSheetByName(LOG_TAB)||ss.insertSheet(LOG_TAB);if(logSh.getLastRow()===0){var hdr=[['Timestamp','Name','Mobile','Type','Activity','Notes']];var hr=logSh.getRange(1,1,1,6);hr.setValues(hdr);hr.setFontWeight('bold').setBackground('#C0392B').setFontColor('#FFFFFF');logSh.setFrozenRows(1);}logSh.appendRow(data.row||[]);return out({success:true});}\n"
-    +"if(data.action==='deleteLog'||data.action==='deleteLogEntry'){var logSh2=ss.getSheetByName(LOG_TAB);if(logSh2&&logSh2.getLastRow()>1){var lr2=logSh2.getLastRow();var mob2=String(data.mobile||'').trim();var ts2=String(data.ts||'').trim();if(data.action==='deleteLogEntry'&&ts2){for(var ri=lr2;ri>=2;ri--){var rv=logSh2.getRange(ri,1,1,6).getValues()[0];if(String(rv[2]||'').trim()===mob2&&String(rv[0]||'').trim()===ts2){logSh2.deleteRow(ri);break;}}}else{for(var ri2=lr2;ri2>=2;ri2--){if(String(logSh2.getRange(ri2,3).getValue()||'').trim()===mob2){logSh2.deleteRow(ri2);}}}}return out({success:true});}\n"
+    +"if(data.action==='appendLog'){var logSh=ss.getSheetByName(LOG_TAB)||ss.insertSheet(LOG_TAB);if(logSh.getLastRow()===0){var hdr=[['Timestamp','Name','Mobile','Type','Activity','Notes']];var hr=logSh.getRange(1,1,1,6);hr.setValues(hdr);hr.setFontWeight('bold').setBackground('#C0392B').setFontColor('#FFFFFF');logSh.setFrozenRows(1);}logSh.appendRow(data.row||[]);var lr3=logSh.getLastRow();logSh.getRange(lr3,1).setNumberFormat('@');return out({success:true});}\n"
+    +"if(data.action==='deleteLog'||data.action==='deleteLogEntry'){var logSh2=ss.getSheetByName(LOG_TAB);if(logSh2&&logSh2.getLastRow()>1){var lr2=logSh2.getLastRow();var mob2=String(data.mobile||'').trim();var ts2=String(data.ts||'').trim();if(data.action==='deleteLogEntry'&&ts2){for(var ri=lr2;ri>=2;ri--){var rv=logSh2.getRange(ri,1,1,6).getValues()[0];if(String(rv[2]||'').trim()===mob2){var rt=String(rv[0]||'').trim().replace(/\//g,'-').substring(0,16);var ct=ts2.replace(/\//g,'-').substring(0,16);if(rt===ct){logSh2.deleteRow(ri);break;}}}}else{for(var ri2=lr2;ri2>=2;ri2--){if(String(logSh2.getRange(ri2,3).getValue()||'').trim()===mob2){logSh2.deleteRow(ri2);}}}}return out({success:true});}\n"
  +"if(data.action===\'updateAnalytics\'){var aS=ss.getSheetByName(\'ANALYTICS\')||ss.insertSheet(\'ANALYTICS\');if(aS.getLastRow()===0){aS.getRange(1,1,1,7).setValues([[\'Date\',\'Lead Entries\',\'Prospects\',\'Contacted\',\'In Progress\',\'Converted\',\'Dropped\']]).setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');aS.setFrozenRows(1);}var ad=data.date,ac=parseInt(data.col)||2,adel=parseInt(data.delta)||1,alr=aS.getLastRow(),af=false;if(alr>1){var adts=aS.getRange(2,1,alr-1,1).getValues();for(var i=0;i<adts.length;i++){if(String(adts[i][0]).trim()===ad){var acel=aS.getRange(i+2,ac);acel.setValue(Math.max(0,(parseInt(acel.getValue())||0)+adel));af=true;break;}}}if(!af&&adel>0){var anr=[ad,0,0,0,0,0,0];anr[ac-1]=adel;aS.appendRow(anr);}return out({success:true});}\n"
        +"var tab=data.action==='pushLeads'?LEADS_TAB:data.action==='pushClients'?CLIENTS_TAB:null;if(!tab)return out({error:'Bad action:'+data.action});var rows=data.rows;if(!rows||rows.length===0)return out({error:'No rows'});var sh=ss.getSheetByName(tab)||ss.insertSheet(tab);sh.clearContents();var r=sh.getRange(1,1,rows.length,rows[0].length);r.setNumberFormat('@');r.setValues(rows);var h=sh.getRange(1,1,1,rows[0].length);h.setFontWeight('bold').setBackground('#C0392B').setFontColor('#FFFFFF');sh.setFrozenRows(1);return out({success:true,written:rows.length-1});}\n"
     +"function out(o){return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);}\n"
@@ -1889,10 +1899,20 @@ function logActivity(mob, type, activity, notes){
   if(hasScript()){
     var row = [ts, name, mob, type.toUpperCase(), activity, notes||''];
     var payload = encodeURIComponent(JSON.stringify({action:'appendLog', row:row}));
-    var url = cfg_.scriptUrl + '?payload=' + payload + '&t=' + Date.now();
+    var logUrl = cfg_.scriptUrl + '?payload=' + payload + '&t=' + Date.now();
     var xhr2 = new XMLHttpRequest();
-    xhr2.open('GET', url, true);
-    xhr2.onerror = function(){ fetch(url,{mode:'no-cors'}).catch(function(){}); };
+    xhr2.open('GET', logUrl, true);
+    xhr2.onload = function(){
+      // Verify Apps Script response
+      try{
+        var resp = JSON.parse(xhr2.responseText);
+        if(resp && resp.error) console.warn('appendLog error:', resp.error);
+      }catch(ex){}
+    };
+    xhr2.onerror = function(){ 
+      // Retry once with no-cors
+      fetch(logUrl,{mode:'no-cors'}).catch(function(){});
+    };
     xhr2.send();
   }
 }
@@ -1908,21 +1928,24 @@ function getActivity(mob){
 async function pullActivityLog(){
   if(!hasScript()) return;
   try{
-    var d = await scriptGet('ACTIVITY_LOG');
+    var url = cfg_.scriptUrl + '?tab=ACTIVITY_LOG&t=' + Date.now();
+    var resp = await fetch(url);
+    if(!resp.ok) throw new Error('HTTP '+resp.status);
+    var d = await resp.json();
     if(d && d.rows && d.rows.length > 1){
-      activityLog = d.rows.slice(1)
-        .filter(function(r){ return r[2] && r[4]; })
-        .map(function(r){
-          return {
-            ts:       String(r[0]||'').trim(),
-            name:     String(r[1]||'').trim(),
-            mobile:   String(r[2]||'').trim(),
-            type:     String(r[3]||'LEAD').trim(),
-            activity: String(r[4]||'').trim(),
-            notes:    String(r[5]||'').trim()
-          };
-        });
+      var fresh = d.rows.slice(1).map(function(r){
+        return {
+          ts:       String(r[0]||'').trim(),
+          name:     String(r[1]||'').trim(),
+          mobile:   String(r[2]||'').trim(),
+          type:     String(r[3]||'LEAD').trim(),
+          activity: String(r[4]||'').trim(),
+          notes:    String(r[5]||'').trim()
+        };
+      }).filter(function(e){ return e.mobile && e.activity; });
+      activityLog = fresh;
       saveActivityLog();
+      console.log('Activity log pulled:', fresh.length, 'entries');
     }
   } catch(e){ console.warn('pullActivityLog:', e.message); }
 }
@@ -2084,8 +2107,11 @@ function deleteActivityEntry(mob, ts){
   document.getElementById('_dk').onclick=function(){
     ov.remove();
     // Local remove
+    // Normalize timestamps for comparison (handles both old DD/MM/YYYY and new YYYY-MM-DD formats)
+    var normTgt=ts.replace(/\//g,'-').substring(0,16);
     activityLog=activityLog.filter(function(e){
-      return !(String(e.mobile||'').trim()===mob&&String(e.ts||'').trim()===ts);
+      var ets=String(e.ts||'').trim().replace(/\//g,'-').substring(0,16);
+      return !(String(e.mobile||'').trim()===mob && ets===normTgt);
     });
     saveActivityLog();
     // Sheet delete — try XHR first (most reliable), then no-cors GET
