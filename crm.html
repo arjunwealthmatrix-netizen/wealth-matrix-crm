@@ -60,7 +60,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .nb svg{width:23px;height:23px;flex-shrink:0}
 .nb-badge{position:absolute;top:4px;right:calc(50% - 14px);background:var(--red);color:#fff;font-size:9px;font-weight:800;min-width:16px;height:16px;border-radius:999px;display:flex;align-items:center;justify-content:center;padding:0 3px}
 .page{display:none}
-.page.active{display:block}
+.page.active{display:block;min-height:100%}
 .ph{padding:14px 14px 8px;display:flex;align-items:center;justify-content:space-between}
 .ph h1{font-size:20px;font-weight:900;letter-spacing:-.5px}
 .ph .sub{font-size:10px;color:var(--t2);margin-top:1px}
@@ -305,7 +305,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       <div style="font-size:11px;color:var(--t2);margin-top:5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">Clients</div>
     </div>
   </div>
-  <div class="sub" id="dash-date" style="padding:0 14px 8px;font-size:11px;color:var(--t2)"></div>
+  <div style="padding:3px 14px 8px;display:flex;align-items:center;gap:6px">
+    <div id="top-sync-dot" class="sync-dot idle" style="width:7px;height:7px;border-radius:50%;background:#555;flex-shrink:0"></div>
+    <div id="top-sync-txt" style="font-size:11px;color:var(--t3)">Loading…</div>
+  </div>
   <div id="sync-status-bar" style="margin:0 12px 8px;padding:6px 10px;border-radius:var(--r2);font-size:10px;font-weight:600;display:flex;align-items:center;justify-content:space-between;gap:6px;background:var(--s1);border:1px solid var(--border)">
     <div style="display:flex;align-items:center;gap:6px">
       <div class="sync-dot idle" id="top-sync-dot" style="width:7px;height:7px"></div>
@@ -381,14 +384,41 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   </div>
   <div style="padding:0 12px;margin:14px 0 7px" class="lbl">WhatsApp templates</div>
   <div id="tmpl-section"></div>
-  <div style="padding:0 12px;margin:14px 0 7px" class="lbl">About</div>
-  <div class="sg">
-    <div class="si"><span>Version</span><span style="color:var(--accent);font-weight:700">v1.8</span></div>
-    <div class="si"><span>Total leads</span><span style="color:var(--t2)" id="st-leads">0</span></div>
-    <div class="si"><span>Total clients</span><span style="color:var(--t2)" id="st-clients">0</span></div>
-  </div>
-</div>
 
+  <div style="padding:0 12px;margin:14px 0 7px" class="lbl">☁️ Sheet Sync</div>
+  <div class="sync-banner" id="sync-banner" style="margin:0 12px 8px;border-radius:var(--r2)">
+    <div class="sync-dot idle" id="sync-dot"></div>
+    <div id="sync-banner-text" style="font-size:12px;color:var(--t2)">Not configured.</div>
+  </div>
+  <div class="syc" style="border:1px solid rgba(192,57,43,.4);background:rgba(192,57,43,.05)">
+    <div class="sy-t" style="color:var(--accent)">⚠️ Redeploy Apps Script for Analytics tracking</div>
+    <div class="sy-d">Copy new code → paste in script.google.com → Deploy new version → update URL below → tap Create Analytics Tab</div>
+  </div>
+  <div class="syc"><div class="sy-t">🔗 Apps Script URL</div>
+    <div class="fg"><input class="fi" id="s-url" placeholder="https://script.google.com/macros/s/…/exec" oninput="cfg('scriptUrl',this.value);updateSyncBanner()"></div>
+  </div>
+  <div class="syc"><div class="sy-t">⬇️ Pull from Sheet</div>
+    <button class="btn btn-ghost btn-full" style="border-color:var(--blue);color:var(--blue)" onclick="pullFromSheet(true)">Pull from Google Sheet</button>
+    <div style="font-size:10px;color:var(--t3);margin-top:6px" id="pull-meta"></div>
+  </div>
+  <div class="syc"><div class="sy-t" style="color:var(--accent)">⬆️ Force Push All</div>
+    <button class="btn btn-full" style="background:var(--accent);color:#fff;border:none;font-size:13px;font-weight:700;padding:11px;border-radius:var(--r2)" onclick="forcePushAll()">⬆️ Push All to Sheet Now</button>
+    <div id="push-result" style="font-size:11px;margin-top:7px;color:var(--t3)"></div>
+  </div>
+  <div class="syc"><div class="sy-t">📊 Create ANALYTICS Tab</div>
+    <div class="sy-d">Creates the ANALYTICS tab in your sheet for daily activity tracking. Run once after redeploying Apps Script.</div>
+    <button class="btn btn-ghost btn-full" onclick="createAnalyticsSheet()">📊 Create ANALYTICS Tab in Sheet</button>
+  </div>
+  <div class="syc"><div class="sy-t">📥 Import MASTER LIST</div>
+    <div class="fg"><label class="fl">Tab name</label><input class="fi" id="s-import-tab" value="MASTER LIST"></div>
+    <button class="btn btn-green btn-full" onclick="importFromSheet()">Import leads</button>
+  </div>
+  <div class="syc"><div class="sy-t">📤 Export backup</div>
+    <button class="btn btn-ghost btn-full" onclick="exportData()">Export JSON</button>
+  </div>
+  <div class="syc"><div class="sy-t">📋 Apps Script Code</div>
+    <button class="btn btn-ghost btn-full" onclick="showAppsScriptCode()">View / Copy Code</button>
+  </div>
 </div><!-- /content -->
 
 <!-- FLOATING ADD BUTTON -->
@@ -1139,10 +1169,10 @@ function autoConvert(l){
     age:l.age||'',gender:l.gender||'',products:l.products||'',remarks:l.remarks||'',
     pan:'',convertedDate:onboard,createdDate:today(),dob:'',spouseDob:'',anniversary:'',
     reviewDate:firstAnn,firstAnniversary:firstAnn,appInstalled:false,broadcastAdded:false};
-  clients.push(c);saveC();pushClients();renderClients();
-  // Show success — DO NOT open client edit form
-  // User can go to Clients section to add more details
+  clients.push(c);saveC();pushClients();
+  renderAll(); // Refresh all pages including clients
   showConvertedBanner(toTitle(l.name));
+  logAnalytics(6, 1); // Log conversion to Analytics sheet
 }
 
 function showConvertedBanner(name){
@@ -1415,6 +1445,23 @@ function showAppsScriptCode(){
 }
 
 
+async function createAnalyticsSheet(){
+  if(!hasScript()){toast('Add Apps Script URL first');return;}
+  var result=document.getElementById('push-result');
+  if(result) result.textContent='Creating ANALYTICS sheet tab...';
+  try{
+    // Send a dummy updateAnalytics to create the tab + header
+    var payload=encodeURIComponent(JSON.stringify({action:'updateAnalytics',date:today(),col:2,delta:0}));
+    var url=cfg_.scriptUrl+'?payload='+payload+'&t='+Date.now();
+    await fetch(url);
+    toast('ANALYTICS tab created in sheet!',3000);
+    if(result) result.textContent='✅ ANALYTICS tab created';
+  }catch(e){
+    toast('Note: Redeploy Apps Script first',4000);
+    if(result) result.textContent='⚠️ Redeploy Apps Script first';
+  }
+}
+
 async function forcePushAll(){
   if(!hasScript()){toast('Add Apps Script URL first');return;}
   var prEl=document.getElementById('push-result');
@@ -1481,6 +1528,7 @@ function nav(name,btn){
   if(btn) btn.classList.add('active');
   // Render on page switch
   if(name==='analytics') renderAnalytics();
+  if(name==='clients'){ renderClients(); setTimeout(addSearchClose,100); }
   if(name==='dash'){renderDash();setTimeout(addSearchClose,100);}
   if(name==='leads') setTimeout(addSearchClose,100);
   if(name==='clients') setTimeout(addSearchClose,100);
