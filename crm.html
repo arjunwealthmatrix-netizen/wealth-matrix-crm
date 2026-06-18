@@ -51,8 +51,8 @@
   --t3:#888888;
 }
 html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;overscroll-behavior:none;-webkit-font-smoothing:antialiased;transition:background .2s,color .2s}
-#app{display:flex;flex-direction:column;height:100dvh;height:100vh;max-width:520px;margin:0 auto;position:relative;overflow:hidden}
-#content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:76px}
+#app{display:flex;flex-direction:column;height:100dvh;height:100vh;max-width:520px;margin:0 auto;position:relative;overflow-x:hidden}
+#content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:calc(72px + env(safe-area-inset-bottom, 10px))}
 #nav{position:fixed;bottom:0;left:0;right:0;background:rgba(12,20,32,.97);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--border);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom,4px)}
 .dark-mode #nav{background:rgba(248,250,252,.97)}
 .nb{flex:1;padding:9px 2px 7px;display:flex;flex-direction:column;align-items:center;gap:3px;border:none;background:none;color:var(--t3);cursor:pointer;font-size:10px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;transition:color .15s;min-width:0;position:relative;-webkit-user-select:none;user-select:none}
@@ -60,7 +60,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .nb svg{width:23px;height:23px;flex-shrink:0}
 .nb-badge{position:absolute;top:4px;right:calc(50% - 14px);background:var(--red);color:#fff;font-size:9px;font-weight:800;min-width:16px;height:16px;border-radius:999px;display:flex;align-items:center;justify-content:center;padding:0 3px}
 .page{display:none}
-.page.active{display:block;min-height:100%}
+.page.active{display:block}
 .ph{padding:14px 14px 8px;display:flex;align-items:center;justify-content:space-between}
 .ph h1{font-size:20px;font-weight:900;letter-spacing:-.5px}
 .ph .sub{font-size:10px;color:var(--t2);margin-top:1px}
@@ -121,7 +121,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .fn-bar{height:100%;border-radius:3px;min-width:3px;transition:width .5s ease}
 .fn-n{font-size:12px;font-weight:800;width:24px;text-align:right;flex-shrink:0}
 .fn-pct{font-size:10px;color:var(--t3);margin:-5px 0 5px 83px}
-.ov{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:500;display:none;align-items:flex-end;justify-content:center}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9000;display:none;align-items:flex-end;justify-content:center}
 .ov.open{display:flex}
 .sh{background:var(--s1);border-radius:16px 16px 0 0;width:100%;max-width:520px;max-height:92dvh;max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:env(safe-area-inset-bottom,16px)}
 .sh::-webkit-scrollbar{display:none}
@@ -848,17 +848,27 @@ function openFuDetail(mob){
   _detailOpenMobile = mob;
   _detailOpenType   = 'lead';
   _detailModified   = false;
+
+  // Move ov-fu-detail to <body> so it stacks above ALL overlays including fu-overlay
+  var ovEl = document.getElementById('ov-fu-detail');
+  if(ovEl && ovEl.parentNode !== document.body){
+    document.body.appendChild(ovEl);
+  }
+
   renderFuDetailInner(mob);
   document.getElementById('ov-fu-detail').classList.add('open');
-  // Pull fresh history from sheet
-  var histEl = document.getElementById('fu-hist-'+mob);
-  if(histEl){
-    histEl.innerHTML = '<div style="color:var(--t3);font-size:11px;padding:10px 0;text-align:center">🔄 Loading from sheet…</div>';
+
+  // Pull fresh history from sheet in background
+  if(hasScript()){
+    var histEl = document.getElementById('fu-hist-'+mob);
+    if(histEl){
+      histEl.innerHTML = '<div style="color:var(--t3);font-size:11px;padding:10px 0;text-align:center">🔄 Loading…</div>';
+    }
+    pullLeadActivity(mob).then(function(){
+      var el = document.getElementById('fu-hist-'+mob);
+      if(el){ el.innerHTML = buildHistoryHtml(mob,'lead'); el.scrollTop = el.scrollHeight; }
+    });
   }
-  pullLeadActivity(mob).then(function(){
-    var el = document.getElementById('fu-hist-'+mob);
-    if(el){ el.innerHTML = buildHistoryHtml(mob,'lead'); el.scrollTop = el.scrollHeight; }
-  });
 }
 
 async function pullLeadActivity(mob){
@@ -867,8 +877,8 @@ async function pullLeadActivity(mob){
   try{
     var d = await scriptGet('ACTIVITY_LOG');
     if(d && d.rows && d.rows.length > 1){
-      var forThis = d.rows.slice(1)
-        .filter(function(r){ return String(r[2]||'').trim() === mob; })
+      var fresh = d.rows.slice(1)
+        .filter(function(r){ return String(r[2]||'').trim() === mob && r[4]; })
         .map(function(r){
           return {
             ts:       String(r[0]||'').trim(),
@@ -878,10 +888,10 @@ async function pullLeadActivity(mob){
             activity: String(r[4]||'').trim(),
             notes:    String(r[5]||'').trim()
           };
-        }).filter(function(e){ return e.activity; });
-      // Replace entries for this mobile in local cache
+        });
+      // Replace this mobile's entries in local cache
       activityLog = activityLog.filter(function(e){ return String(e.mobile||'').trim() !== mob; });
-      activityLog = activityLog.concat(forThis);
+      activityLog = activityLog.concat(fresh);
       saveActivityLog();
     }
   } catch(e){ console.warn('pullLeadActivity:', e.message); }
@@ -944,9 +954,14 @@ function checkUnsavedNoteAndClose(){
 }
 
 function closeFuDetail(){
-  // Note: individual actions (qlog, save-note, save-date) already save immediately
-  // closeFuDetail just closes and refreshes the list
   document.getElementById('ov-fu-detail').classList.remove('open');
+  // Also refresh fu-overlay list if it's open
+  var fuOv=document.getElementById('fu-overlay');
+  if(fuOv){
+    var fuOvList=document.getElementById('fu-overlay-list');
+    var fuOvSub=document.getElementById('ov-fu-sub');
+    if(fuOvList) renderFuInElement(fuOvList, fuOvSub);
+  }
   renderFU();updateFUBadge();renderLeads();
   _detailOpenMobile=null;_detailOpenType=null;_detailModified=false;
 }
@@ -1419,7 +1434,7 @@ function showAppsScriptCode(){
     +"function pullLog(mobile){var ss=SpreadsheetApp.openById(SHEET_ID);var sh=ss.getSheetByName(LOG_TAB);if(!sh||sh.getLastRow()<=1)return out({rows:[]});var lr=sh.getLastRow(),lc=sh.getLastColumn();var raw=sh.getRange(2,1,lr-1,lc).getValues();var filtered=raw.filter(function(r){return String(r[2]||'').trim()===String(mobile).trim();});return out({rows:filtered});}\n"
     +"function writeData(data){var ss=SpreadsheetApp.openById(SHEET_ID);\n"
     +"if(data.action==='appendLog'){var logSh=ss.getSheetByName(LOG_TAB)||ss.insertSheet(LOG_TAB);if(logSh.getLastRow()===0){var hdr=[['Timestamp','Name','Mobile','Type','Activity','Notes']];var hr=logSh.getRange(1,1,1,6);hr.setValues(hdr);hr.setFontWeight('bold').setBackground('#C0392B').setFontColor('#FFFFFF');logSh.setFrozenRows(1);}logSh.appendRow(data.row||[]);return out({success:true});}\n"
-    +"if(data.action==='deleteLog'||data.action==='deleteLogEntry'){var logSh2=ss.getSheetByName(LOG_TAB);if(logSh2&&logSh2.getLastRow()>1){var lr2=logSh2.getLastRow();var all=logSh2.getRange(2,1,lr2-1,6).getValues();var keep;if(data.action==='deleteLogEntry'&&data.ts){keep=all.filter(function(r){return !(String(r[2]||'').trim()===String(data.mobile||'').trim()&&String(r[0]||'').trim()===String(data.ts||'').trim());});}else{keep=all.filter(function(r){return String(r[2]||'').trim()!==String(data.mobile||'').trim();});}logSh2.getRange(2,1,lr2-1,6).clearContent();if(keep.length>0)logSh2.getRange(2,1,keep.length,6).setValues(keep);}return out({success:true});}\n"
+    +"if(data.action==='deleteLog'||data.action==='deleteLogEntry'){var logSh2=ss.getSheetByName(LOG_TAB);if(logSh2&&logSh2.getLastRow()>1){var lr2=logSh2.getLastRow();var mob2=String(data.mobile||'').trim();var ts2=String(data.ts||'').trim();if(data.action==='deleteLogEntry'&&ts2){for(var ri=lr2;ri>=2;ri--){var rv=logSh2.getRange(ri,1,1,6).getValues()[0];if(String(rv[2]||'').trim()===mob2&&String(rv[0]||'').trim()===ts2){logSh2.deleteRow(ri);break;}}}else{for(var ri2=lr2;ri2>=2;ri2--){if(String(logSh2.getRange(ri2,3).getValue()||'').trim()===mob2){logSh2.deleteRow(ri2);}}}}return out({success:true});}\n"
  +"if(data.action===\'updateAnalytics\'){var aS=ss.getSheetByName(\'ANALYTICS\')||ss.insertSheet(\'ANALYTICS\');if(aS.getLastRow()===0){aS.getRange(1,1,1,7).setValues([[\'Date\',\'Lead Entries\',\'Prospects\',\'Contacted\',\'In Progress\',\'Converted\',\'Dropped\']]).setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');aS.setFrozenRows(1);}var ad=data.date,ac=parseInt(data.col)||2,adel=parseInt(data.delta)||1,alr=aS.getLastRow(),af=false;if(alr>1){var adts=aS.getRange(2,1,alr-1,1).getValues();for(var i=0;i<adts.length;i++){if(String(adts[i][0]).trim()===ad){var acel=aS.getRange(i+2,ac);acel.setValue(Math.max(0,(parseInt(acel.getValue())||0)+adel));af=true;break;}}}if(!af&&adel>0){var anr=[ad,0,0,0,0,0,0];anr[ac-1]=adel;aS.appendRow(anr);}return out({success:true});}\n"
        +"var tab=data.action==='pushLeads'?LEADS_TAB:data.action==='pushClients'?CLIENTS_TAB:null;if(!tab)return out({error:'Bad action:'+data.action});var rows=data.rows;if(!rows||rows.length===0)return out({error:'No rows'});var sh=ss.getSheetByName(tab)||ss.insertSheet(tab);sh.clearContents();var r=sh.getRange(1,1,rows.length,rows[0].length);r.setNumberFormat('@');r.setValues(rows);var h=sh.getRange(1,1,1,rows[0].length);h.setFontWeight('bold').setBackground('#C0392B').setFontColor('#FFFFFF');sh.setFrozenRows(1);return out({success:true,written:rows.length-1});}\n"
     +"function out(o){return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);}\n"
@@ -1859,11 +1874,18 @@ function logActivity(mob, type, activity, notes){
   var name = rec ? (rec.name||mob) : mob;
   var ts = fmtStamp(new Date());
   var entry = { ts:ts, name:name, mobile:mob, type:type.toUpperCase(), activity:activity, notes:notes||'' };
-  // Save locally first (instant)
+
+  // Save locally first
   activityLog.push(entry);
   saveActivityLog();
-  // Push to sheet
-  sheetPost({ action:'appendLog', row:[ts, name, mob, type.toUpperCase(), activity, notes||''] });
+
+  // Append ONE row to ACTIVITY_LOG sheet via reliable GET request
+  if(hasScript()){
+    var row = [ts, name, mob, type.toUpperCase(), activity, notes||''];
+    var payload = encodeURIComponent(JSON.stringify({action:'appendLog', row:row}));
+    fetch(cfg_.scriptUrl + '?payload=' + payload + '&t=' + Date.now(), {mode:'no-cors'})
+      .catch(function(){});
+  }
 }
 
 // Get activity history for a mobile number (local + optional sheet pull)
@@ -1879,17 +1901,18 @@ async function pullActivityLog(){
   try{
     var d = await scriptGet('ACTIVITY_LOG');
     if(d && d.rows && d.rows.length > 1){
-      var fresh = d.rows.slice(1).map(function(r){
-        return {
-          ts:       String(r[0]||'').trim(),
-          name:     String(r[1]||'').trim(),
-          mobile:   String(r[2]||'').trim(),
-          type:     String(r[3]||'LEAD').trim(),
-          activity: String(r[4]||'').trim(),
-          notes:    String(r[5]||'').trim()
-        };
-      }).filter(function(e){ return e.mobile && e.activity; });
-      activityLog = fresh;
+      activityLog = d.rows.slice(1)
+        .filter(function(r){ return r[2] && r[4]; })
+        .map(function(r){
+          return {
+            ts:       String(r[0]||'').trim(),
+            name:     String(r[1]||'').trim(),
+            mobile:   String(r[2]||'').trim(),
+            type:     String(r[3]||'LEAD').trim(),
+            activity: String(r[4]||'').trim(),
+            notes:    String(r[5]||'').trim()
+          };
+        });
       saveActivityLog();
     }
   } catch(e){ console.warn('pullActivityLog:', e.message); }
@@ -2032,47 +2055,63 @@ function buildHistoryHtml(mob, type){
 function deleteActivityEntry(mob, ts){
   mob = String(mob||'').trim();
   ts  = String(ts||'').trim();
-  if(!mob || !ts){ toast('Invalid entry'); return; }
-  // Use custom modal — avoids touch-through that triggers lead deletion
+  if(!mob || !ts){ toast('Cannot delete: invalid entry'); return; }
+
+  // Custom modal (no confirm() touch-through bug)
   var ov = document.createElement('div');
   ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
   ov.innerHTML = '<div style="background:var(--s1);border-radius:12px;width:100%;max-width:340px;overflow:hidden">'
-    + '<div style="padding:16px 16px 10px;font-size:14px;font-weight:800;border-bottom:1px solid var(--border)">Delete log entry?</div>'
-    + '<div style="padding:10px 16px;font-size:12px;color:var(--t2)">This entry will be deleted from the app and the sheet permanently.</div>'
+    + '<div style="padding:16px 16px 10px;font-size:14px;font-weight:800;border-bottom:1px solid var(--border)">Delete this entry?</div>'
+    + '<div style="padding:10px 16px;font-size:11px;color:var(--t2)">This will be removed from the app and the sheet.</div>'
     + '<div style="display:flex;border-top:1px solid var(--border)">'
-    + '<button id="del-cancel" style="flex:1;padding:13px;border:none;background:none;color:var(--t2);font-size:13px;cursor:pointer;border-right:1px solid var(--border)">Cancel</button>'
-    + '<button id="del-confirm" style="flex:1;padding:13px;border:none;background:none;color:var(--accent);font-size:13px;font-weight:700;cursor:pointer">Delete</button>'
+    + '<button id="_del_cancel" style="flex:1;padding:13px;border:none;background:none;color:var(--t2);font-size:13px;cursor:pointer;border-right:1px solid var(--border)">Cancel</button>'
+    + '<button id="_del_ok" style="flex:1;padding:13px;border:none;background:none;color:var(--accent);font-size:13px;font-weight:700;cursor:pointer">Delete</button>'
     + '</div></div>';
   document.body.appendChild(ov);
-  document.getElementById('del-cancel').onclick = function(){ document.body.removeChild(ov); };
-  document.getElementById('del-confirm').onclick = function(){
+
+  document.getElementById('_del_cancel').onclick = function(){ document.body.removeChild(ov); };
+  document.getElementById('_del_ok').onclick = function(){
     document.body.removeChild(ov);
-    // Remove from local cache
+
+    // 1. Remove from local cache
     activityLog = activityLog.filter(function(e){
       return !(String(e.mobile||'').trim()===mob && String(e.ts||'').trim()===ts);
     });
     saveActivityLog();
-    // Delete from sheet
-    sheetPost({ action:'deleteLogEntry', mobile:mob, ts:ts });
+
+    // 2. Delete from sheet — send exact mobile+ts to Apps Script
+    //    Apps Script uses deleteRow() for one-to-one matching
+    if(hasScript()){
+      var payload = encodeURIComponent(JSON.stringify({
+        action: 'deleteLogEntry',
+        mobile: mob,
+        ts:     ts
+      }));
+      fetch(cfg_.scriptUrl + '?payload=' + payload + '&t=' + Date.now(), {mode:'no-cors'})
+        .catch(function(){});
+    }
+
     toast('Entry deleted');
-    // Refresh panel
-    var el = document.getElementById('fu-hist-'+mob);
+
+    // 3. Refresh history panel
+    var el = document.getElementById('fu-hist-'+mob) || document.getElementById('cl-hist-'+mob);
     if(el){ el.innerHTML = buildHistoryHtml(mob, _detailOpenType||'lead'); el.scrollTop = el.scrollHeight; }
   };
 }
 
 // ── NEW CHIPS (v1.8) ──
 var V17_CHIPS = [
-  ['📋','Brochure Send'],
-  ['💬','WhatsApp msg Send'],
-  ['📵','Called - not picking'],
-  ['🔄','Will call back'],
-  ['📵','Called twice no reply'],
-  ['📄','Proposal Send'],
-  ['🤝','Agreed to meet one day'],
-  ['📅','Need to schedule a meet'],
-  ['📞','Call me later'],
-  ['🏢','Will visit office']
+  ['📞','Called follow up'],
+  ['🔄','Called-will call back'],
+  ['📵','Called not picking'],
+  ['💬','Followed up-Whatsapp msg'],
+  ['📲','Followed up-Whatsapp voice'],
+  ['🤝','Physically met'],
+  ['📄','Proposal send-follow up'],
+  ['📋','Brochure send-Follow up'],
+  ['🎨','Creative send-Whatsapp'],
+  ['📹','Met-VC'],
+  ['📅','Asked for meeting']
 ];
 
 function chipHtml(mob){
@@ -2089,10 +2128,7 @@ function saveFuDateV17(mob, newDate){
   if(sameDay>=15){toast('Already 15 leads on '+fmt(newDate)+'! Postpone.',4000);return;}
   var l=leads.find(function(x){return x.mobile===mob;});if(!l)return;
   var oldDate=l.nextFollowUp||'';
-  // Log to activity
-  var logMsg='Follow-up date '+(oldDate?'changed: '+fmt(oldDate)+' → '+fmt(newDate):'set to '+fmt(newDate));
-  logActivity(mob,'lead',logMsg,'');
-  // Update lead
+  // Update lead (no activity log for date changes per user preference)
   l.nextFollowUp=newDate;
   l.modifiedDate=now();
   saveL(); pushLeads();
@@ -2111,52 +2147,33 @@ function renderFuDetailInner(mob){
   var fuDays=hasCurrent?daysUntil(l.nextFollowUp):null;
   var fuLabel=hasCurrent?(fuDays<0?Math.abs(fuDays)+' days overdue':fuDays===0?'Due today':fuDays+' days away'):'Not set';
   var fuColor=!hasCurrent?'var(--t3)':fuDays<=0?'var(--accent)':fuDays<=3?'#AAA':'#888';
-
-  // Score
-  var sc=leadScore(l); var heat=leadHeat(sc);
+  var sc=leadScore(l);var heat=leadHeat(sc);
   var ref=(l.referral||'').toUpperCase().trim();
   var age=parseInt(l.age||0);
-  var country=(l.country||l.aum||'').toUpperCase();
-  var rem=(l.remarks||'').toUpperCase();
   var aum_sc=AUM_SCORE_MAP[l.aum||'']||0;
 
+  // Score card
   var scoreHtml='<div style="display:flex;align-items:center;gap:10px;margin:10px 14px 0">'
     +'<div style="flex:1;background:'+heat.color+'14;border:1px solid '+heat.color+'30;border-radius:var(--r);padding:10px 12px">'
     +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
     +'<span style="font-size:20px">'+heat.emoji+'</span>'
     +'<div><div style="font-size:14px;font-weight:900;color:'+heat.color+'">'+heat.label+' Lead</div>'
-    +'<div style="font-size:11px;color:'+heat.color+'">'+sc+' pts'+(l.aum?' · '+l.aum:'')+'</div></div>'
-    +'</div>'
+    +'<div style="font-size:11px;color:'+heat.color+'">'+sc+' pts'+(l.aum?' · '+l.aum:'')+'</div></div></div>'
     +'<div style="display:flex;flex-wrap:wrap;gap:3px">'
     +(ref&&ref!=='SELF'?'<span style="font-size:9px;background:var(--s2);color:var(--t2);border-radius:999px;padding:2px 7px;border:1px solid var(--border)">Referral +30</span>':'')
     +(age>=35&&age<=55?'<span style="font-size:9px;background:var(--s2);color:var(--t2);border-radius:999px;padding:2px 7px;border:1px solid var(--border)">Age 35-55 +15</span>':'')
     +(aum_sc>0?'<span style="font-size:9px;background:var(--s2);color:var(--t2);border-radius:999px;padding:2px 7px;border:1px solid var(--border)">AUM +'+aum_sc+'</span>':'')
-    +(sc===0?'<span style="font-size:9px;color:var(--t3)">No qualifying factors yet</span>':'')
     +'</div></div></div>';
-
-  // Activity history
-  var histHtml=buildHistoryHtml(mob,'lead');
-
-  // Date shortcuts — Tmrw, 3D, 10D, 2WK, 1M, 2M, 3M
-  var shortcuts=[['Tmrw',1],['3D',3],['10D',10],['2WK',14],['1M',30],['2M',60],['3M',90]];
-  var shortHtml='<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:8px">'
-    +shortcuts.map(function(x){
-      var ds=new Date();ds.setDate(ds.getDate()+x[1]);
-      var val=ds.toISOString().split('T')[0];
-      // Use onclick directly with the mob variable baked in to avoid data-mob issue
-      return '<button class="btn btn-ghost" style="padding:5px 9px;font-size:11px" onclick="document.getElementById(\'fnd-'+mob+'\').value=\''+val+'\'">'
-        +x[0]+'</button>';
-    }).join('')+'</div>';
 
   // Status tabs
   var statusOpts=[['PROSPECT','#C0C0C0'],['CONTACTED','#4FC3F7'],['IN PROGRESS','#FFB300'],['CONVERTED','#C0392B'],['DROPPED','#888888']];
   var statusHtml='<div style="display:flex;overflow-x:auto;scrollbar-width:none;border-bottom:2px solid var(--border);padding:0 14px">'
     +statusOpts.map(function(x){
       var active=(l.status||'').toUpperCase()===x[0];
-      return '<button style="flex-shrink:0;border:none;padding:8px 10px;font-size:10px;font-weight:800;cursor:pointer;border-bottom:3px solid '+(active?x[1]:'transparent')+';margin-bottom:-2px;background:'+(active?x[1]+'22':'transparent')+';color:'+(active?x[1]:'#666')+';transition:all .15s;border-radius:'+(active?'6px 6px 0 0':'0')+'" data-action="fu-status" data-mob="'+mob+'" data-status="'+x[0]+'">'+x[0].charAt(0)+x[0].slice(1).toLowerCase()+'</button>';
+      return '<button style="flex-shrink:0;border:none;padding:8px 10px;font-size:10px;font-weight:800;cursor:pointer;border-bottom:3px solid '+(active?x[1]:'transparent')+';margin-bottom:-2px;background:'+(active?x[1]+'22':'transparent')+';color:'+(active?x[1]:'#666');
     }).join('')+'</div>';
 
-  // Mode of contact chips — shown below status tabs
+  // Mode of contact chips
   var modes=['Not contacted','Phone','WhatsApp','Botim','Physically met','Zoom/GMeet'];
   var modeIcons={'Not contacted':'🚫','Phone':'📞','WhatsApp':'💬','Botim':'📱','Physically met':'🤝','Zoom/GMeet':'📹'};
   var modeColors={'Not contacted':'#888','Phone':'#AAA','WhatsApp':'#25D366','Botim':'#00B4D8','Physically met':'#FFB300','Zoom/GMeet':'#4FC3F7'};
@@ -2165,13 +2182,27 @@ function renderFuDetailInner(mob){
     +'<div style="font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Mode of contact</div>'
     +'<div style="display:flex;overflow-x:auto;scrollbar-width:none;gap:5px;padding-bottom:6px">'
     +modes.map(function(m){
-      var isCur=curMode===m;
-      var col=modeColors[m];
-      return '<button style="flex-shrink:0;border:2px solid '+(isCur?col:'var(--border)')+';border-radius:999px;padding:4px 10px;font-size:10px;font-weight:'+(isCur?'800':'600')+';cursor:pointer;background:'+(isCur?col+'22':'transparent')+';color:'+(isCur?col:'var(--t3)')+';white-space:nowrap;transition:all .2s" data-action="fu-mode" data-mob="'+mob+'" data-mode="'+m+'">'+(modeIcons[m]||'')+'&nbsp;'+m+'</button>';
-    }).join('')
-    +'</div></div>';
+      var isCur=curMode===m;var col=modeColors[m];
+      return '<button style="flex-shrink:0;border:2px solid '+(isCur?col:'var(--border)')+';border-radius:999px;padding:4px 10px;font-size:10px;font-weight:'+(isCur?'800':'600')+';cursor:pointer;background:'+(isCur?col+'22':'transparent')+';color:'+(isCur?col:'var(--t3)')+';white-space:nowrap" data-action="fu-mode" data-mob="'+mob+'" data-mode="'+m+'">'+(modeIcons[m]||'')+' '+m+'</button>';
+    }).join('')+'</div></div>';
 
-  // Contact buttons
+  // Activity log
+  var histHtml=buildHistoryHtml(mob,'lead');
+
+  // Chips
+  var chipsHtml=V17_CHIPS.map(function(c){
+    return '<div class="qlog-chip" style="padding:5px 9px;font-size:11px" data-action="fu-qlog" data-mob="'+mob+'" data-note="'+c[0]+' '+c[1]+'">'+c[0]+' '+c[1]+'</div>';
+  }).join('');
+
+  // Date shortcuts
+  var shortcuts=[['Tmrw',1],['3D',3],['10D',10],['2WK',14],['1M',30],['2M',60],['3M',90]];
+  var shortHtml='<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:8px">'
+    +shortcuts.map(function(x){
+      var ds=new Date();ds.setDate(ds.getDate()+x[1]);var val=ds.toISOString().split('T')[0];
+      return '<button class="btn btn-ghost" style="padding:5px 9px;font-size:11px" onclick="document.getElementById(\'fnd-'+mob+'\').value=\''+val+'\'">'+x[0]+'</button>';
+    }).join('')+'</div>';
+
+  // Contact buttons (WA App, WA Web, Call, Botim, Meet — NO auto-logging)
   var digits=(l.mobile||'').replace(/\D/g,'');
   var waNum=digits.length===10?'91'+digits:digits;
   var wmsg=encodeURIComponent(waMsg(l));
@@ -2190,18 +2221,18 @@ function renderFuDetailInner(mob){
     +statusHtml
     +modeHtml
     +scoreHtml
-    // Contact buttons
+    // Contact buttons — quick action links only, no activity logging
     +'<div style="display:flex;gap:5px;padding:10px 14px 0">'
-    +'<a href="whatsapp://send?phone='+waNum+'&text='+wmsg+'" class="btn btn-wa" style="flex:1;text-decoration:none;font-size:10px;padding:7px 3px;justify-content:center;gap:3px" data-action="fu-wa-app" data-mob="'+mob+'">'+waIcon()+' App</a>'
+    +'<a href="whatsapp://send?phone='+waNum+'&text='+wmsg+'" class="btn btn-wa" style="flex:1;text-decoration:none;font-size:10px;padding:7px 3px;justify-content:center;gap:3px">'+waIcon()+' App</a>'
     +'<a href="https://web.whatsapp.com/send?phone='+waNum+'&text='+wmsg+'" target="_blank" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:10px;padding:7px 3px;justify-content:center;gap:3px;border-color:#25D366;color:#25D366">'+waIcon()+' Web</a>'
-    +'<a href="tel:'+l.mobile+'" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:10px;padding:7px 3px;justify-content:center" data-action="fu-call" data-mob="'+mob+'">📞 Call</a>'
+    +'<a href="tel:'+l.mobile+'" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:10px;padding:7px 3px;justify-content:center">📞 Call</a>'
     +'<a href="botim://call/'+digits+'" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:10px;padding:7px 3px;justify-content:center">📱 Botim</a>'
-    +'<a href="'+meetUrl+'" target="_blank" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:10px;padding:7px 3px;justify-content:center" data-action="fu-meet" data-mob="'+mob+'">📹 Meet</a>'
+    +'<a href="'+meetUrl+'" target="_blank" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:10px;padding:7px 3px;justify-content:center">📹 Meet</a>'
     +'</div>'
     // Follow-up date
     +'<div style="margin:10px 14px 0;border:1px solid var(--border);border-radius:var(--r);overflow:hidden">'
     +'<div style="background:var(--s2);padding:10px 12px;border-bottom:1px solid var(--border)">'
-    +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin-bottom:4px">📅 Current follow-up date</div>'
+    +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin-bottom:4px">📅 Follow-up date</div>'
     +'<div style="font-size:18px;font-weight:900;color:'+fuColor+'">'+(hasCurrent?fmt(l.nextFollowUp):'Not set')+'</div>'
     +'<div style="font-size:11px;color:'+fuColor+';margin-top:2px;font-weight:600">'+fuLabel+'</div>'
     +'</div>'
@@ -2211,24 +2242,21 @@ function renderFuDetailInner(mob){
     +'<input type="date" id="fnd-'+mob+'" class="fi" value="'+defNext+'" style="flex:1;padding:9px 11px;font-size:14px;font-weight:700;color:var(--text);background:var(--bg)">'
     +'<button class="btn btn-gold" style="padding:9px 14px;font-size:12px;flex-shrink:0;font-weight:700" onclick="saveFuDateV17(\''+mob+'\',document.getElementById(\'fnd-'+mob+'\').value)">💾 Save</button>'
     +'</div>'
-    +shortHtml
-    +'</div></div>'
+    +shortHtml+'</div></div>'
     // Activity log
     +'<div style="padding:10px 14px 0">'
-    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">'
-    +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3)">📋 Activity log <span style="font-weight:400;font-size:9px;text-transform:none">(oldest→newest · × to delete)</span></div>'
-    +'</div>'
+    +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin-bottom:6px">📋 Activity log <span style="font-size:9px;font-weight:400">(tap × to delete)</span></div>'
     +'<div id="fu-hist-'+mob+'" style="max-height:160px;overflow-y:auto;background:var(--bg);border:1px solid var(--border);border-radius:var(--r2);padding:8px 10px">'+histHtml+'</div>'
     +'</div>'
     // Log now
     +'<div style="padding:10px 14px 0">'
     +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin-bottom:7px">⚡ Log now</div>'
-    +'<div class="qlog-grid" style="margin-bottom:8px">'+chipHtml(mob)+'</div>'
+    +'<div class="qlog-grid" style="margin-bottom:8px">'+chipsHtml+'</div>'
     +'<div style="display:flex;gap:6px">'
-    +'<input class="fi" id="fu-note-input-'+mob+'" placeholder="Custom note..." style="flex:1;padding:8px 10px;font-size:13px;background:var(--bg)">'
+    +'<input class="fi" id="fu-note-input-'+mob+'" placeholder="Custom note…" style="flex:1;padding:8px 10px;font-size:13px;background:var(--bg)">'
     +'<button class="btn btn-gold" style="padding:8px 12px;font-size:12px;flex-shrink:0" data-action="fu-save-note" data-mob="'+mob+'">Log →</button>'
     +'</div></div>'
-    // Delete
+    // Delete lead
     +'<div style="padding:10px 14px 20px">'
     +'<button class="btn btn-red" style="width:100%;font-size:12px" data-action="fu-delete" data-mob="'+mob+'">🗑️ Delete this lead</button>'
     +'</div>';
@@ -2237,46 +2265,12 @@ function renderFuDetailInner(mob){
   var histEl=document.getElementById('fu-hist-'+mob);
   if(histEl) histEl.scrollTop=histEl.scrollHeight;
 
-  // Event delegation
+  // Event delegation — NO auto-logging for contact buttons
   document.getElementById('fu-detail-sh').onclick=function(e){
     var btn=e.target.closest('[data-action]');if(!btn)return;
     var action=btn.dataset.action;var m=btn.dataset.mob;
-    if(action==='fu-wa-app'){
-      bumpM(m);_detailModified=true;
-      logActivity(m,'lead','WhatsApp sent','');
-      setTimeout(function(){var el=document.getElementById('fu-hist-'+m);if(el){el.innerHTML=buildHistoryHtml(m,'lead');el.scrollTop=el.scrollHeight;}},400);
-    }
-    if(action==='fu-call'){
-      bumpM(m);_detailModified=true;
-      logActivity(m,'lead','Called','');
-      setTimeout(function(){var el=document.getElementById('fu-hist-'+m);if(el){el.innerHTML=buildHistoryHtml(m,'lead');el.scrollTop=el.scrollHeight;}},400);
-    }
-    if(action==='fu-meet'){
-      logActivity(m,'lead','Google Meet scheduled','');_detailModified=true;
-      setTimeout(function(){var el=document.getElementById('fu-hist-'+m);if(el){el.innerHTML=buildHistoryHtml(m,'lead');el.scrollTop=el.scrollHeight;}},400);
-    }
-    if(action==='client-reclassify'){
-      var mob2=btn.dataset.mob||mob;
-      var newStatus=btn.dataset.status;
-      var cl=clients.find(function(x){return x.mobile===mob2;});
-      if(cl){
-        // Move back to leads
-        var lead={name:cl.name,mobile:cl.mobile,email:cl.email||'',country:cl.country||'',
-          age:cl.age||'',gender:cl.gender||'',status:newStatus,source:'',referral:'',
-          products:cl.products||'',aum:'',contactMode:'',nextFollowUp:'',
-          remarks:appendRemark('','Reclassified from CLIENT → '+newStatus),
-          notes:[],createdDate:cl.convertedDate||today(),modifiedDate:now()};
-        // Remove from clients, add to leads
-        clients=clients.filter(function(x){return x.mobile!==mob2;});saveC();pushClients();
-        leads.push(lead);saveL();pushLeads();
-        logActivity(mob2,'lead','Reclassified: Client → '+newStatus,'');
-        closeOv('ov-detail');renderAll();
-        toast(toTitle(cl.name)+' moved to '+newStatus);
-      }
-    }
     if(action==='fu-qlog'){
-      var note=btn.dataset.note;
-      logActivity(m,'lead',note,'');_detailModified=true;
+      logActivity(m,'lead',btn.dataset.note,'');_detailModified=true;
       btn.style.background='var(--accent)';btn.style.color='#fff';btn.style.borderColor='var(--accent)';
       setTimeout(function(){btn.style.background='';btn.style.color='';btn.style.borderColor='';},900);
       setTimeout(function(){var el=document.getElementById('fu-hist-'+m);if(el){el.innerHTML=buildHistoryHtml(m,'lead');el.scrollTop=el.scrollHeight;}},350);
@@ -2284,33 +2278,21 @@ function renderFuDetailInner(mob){
     if(action==='fu-save-note'){
       var inp=document.getElementById('fu-note-input-'+m);
       var txt=(inp?inp.value:'').trim();if(!txt){toast('Type a note first');return;}
-      logActivity(m,'lead',txt,'');_detailModified=true;
-      if(inp)inp.value='';
-      var l2=leads.find(function(x){return x.mobile===m;});
-      if(l2){l2.modifiedDate=now();saveL();pushLeads();}
+      logActivity(m,'lead',txt,'');_detailModified=true;if(inp)inp.value='';
       setTimeout(function(){var el=document.getElementById('fu-hist-'+m);if(el){el.innerHTML=buildHistoryHtml(m,'lead');el.scrollTop=el.scrollHeight;}},350);
     }
-    if(action==='fu-status') quickStatus(m,btn.dataset.status);
     if(action==='fu-mode'){
       var l2=leads.find(function(x){return x.mobile===m;});
-      if(!l2) return;
-      var oldMode=l2.contactMode||'Not contacted';
-      var newMode=btn.dataset.mode;
-      if(oldMode===newMode) return;
-      l2.contactMode=newMode;
-      l2.modifiedDate=now();
-      logActivity(m,'lead','Mode of contact changed: '+oldMode+' → '+newMode,'');
-      saveL(); pushLeads();
-      // Re-render mode chips only
-      renderFuDetailInner(m);
-      toast('Mode updated: '+newMode);
+      if(!l2)return;
+      l2.contactMode=btn.dataset.mode;l2.modifiedDate=now();
+      saveL();pushLeads();
+      renderFuDetailInner(m);toast('Mode: '+btn.dataset.mode);
     }
+    if(action==='fu-status') quickStatus(m,btn.dataset.status);
+    if(action==='del-log') deleteActivityEntry(btn.dataset.delmob||m, btn.dataset.delts||'');
     if(action==='fu-delete'){
       var ln=leads.find(function(x){return x.mobile===m;});
       if(ln&&confirm('Delete '+toTitle(ln.name)+'?')){deleteLead(m);closeFuDetail();}
-    }
-    if(action==='del-log'){
-      deleteActivityEntry(btn.dataset.delmob, btn.dataset.delts);
     }
   };
 }
