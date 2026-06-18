@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="WM CRM">
-<title>Wealth Matrix CRM v1.8</title>
+<title>Wealth Matrix CRM v1.9</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -51,8 +51,8 @@
   --t3:#888888;
 }
 html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;overscroll-behavior:none;-webkit-font-smoothing:antialiased;transition:background .2s,color .2s}
-#app{display:flex;flex-direction:column;height:100dvh;height:100vh;max-width:520px;margin:0 auto;position:relative;overflow-x:hidden}
-#content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:calc(72px + env(safe-area-inset-bottom, 10px))}
+#app{display:flex;flex-direction:column;height:100vh;height:100dvh;max-width:520px;margin:0 auto;position:relative;overflow-x:hidden}
+#content{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:calc(84px + env(safe-area-inset-bottom, 10px))}
 #nav{position:fixed;bottom:0;left:0;right:0;background:rgba(12,20,32,.97);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--border);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom,4px)}
 .dark-mode #nav{background:rgba(248,250,252,.97)}
 .nb{flex:1;padding:9px 2px 7px;display:flex;flex-direction:column;align-items:center;gap:3px;border:none;background:none;color:var(--t3);cursor:pointer;font-size:10px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;transition:color .15s;min-width:0;position:relative;-webkit-user-select:none;user-select:none}
@@ -292,7 +292,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div style="display:flex;align-items:center;gap:8px">
       <button onclick="toggleDark()" style="background:none;border:none;cursor:pointer;font-size:16px" id="dark-btn">🌙</button>
       <button onclick="manualSync()" style="background:none;border:none;cursor:pointer;font-size:16px">🔄</button>
-      <span style="font-size:9px;font-weight:700;color:var(--accent);background:var(--accent2);padding:2px 7px;border-radius:999px;border:1px solid var(--accent)">v1.8</span>
+      <span style="font-size:9px;font-weight:700;color:var(--accent);background:var(--accent2);padding:2px 7px;border-radius:999px;border:1px solid var(--accent)">v1.9</span>
     </div>
   </div>
   <div style="display:flex;gap:10px;padding:0 14px 12px">
@@ -353,8 +353,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div><h1>Clients</h1><div class="sub" id="clients-sub"></div></div>
     <button class="btn btn-gold" style="padding:7px 12px;font-size:12px" onclick="openAddClient()">+ Add</button>
   </div>
-  <div style="padding:0 12px 9px"><input class="sbox" id="client-search" placeholder="Search clients…" oninput="renderClients()"></div>
-  <div id="client-list"></div>
+  <div style="padding:0 12px 9px;position:sticky;top:0;z-index:20;background:var(--bg)"><input class="sbox" id="client-search" placeholder="Search clients…" oninput="renderClients()"></div>
+  <div id="client-list" style="padding-bottom:24px"></div>
 </div>
 
 <!-- SYNC -->
@@ -899,12 +899,30 @@ async function pullLeadActivity(mob){
           notes:    String(r[5]||'').trim()
         };
       }).filter(function(e){ return e.activity; });
-      // Replace local entries for this mobile
-      activityLog = activityLog.filter(function(e){ return String(e.mobile||'').trim() !== mob; });
-      activityLog = activityLog.concat(fresh);
+      // MERGE (not replace) the sheet rows with local entries for this mobile.
+      // This keeps a just-logged entry visible even if the sheet append hasn't
+      // landed yet (no-cors append is fire-and-forget and takes ~1s), so the
+      // lead's activity always reflects properly instead of briefly vanishing.
+      var other = activityLog.filter(function(e){ return String(e.mobile||'').trim() !== mob; });
+      var localThis = activityLog.filter(function(e){ return String(e.mobile||'').trim() === mob; });
+      activityLog = other.concat(mergeActivity(localThis, fresh));
       saveActivityLog();
     }
   } catch(e){ console.warn('pullLeadActivity:', e.message); }
+}
+
+// Merge two activity arrays, de-duped by mobile + timestamp(minute) + activity.
+// Sheet entries win for content; local-only entries are preserved (never dropped).
+function mergeActivity(localArr, sheetArr){
+  var key=function(e){
+    return String(e.mobile||'').trim()
+      +'|'+String(e.ts||'').trim().replace(/\//g,'-').replace('T',' ').substring(0,16)
+      +'|'+String(e.activity||'').trim();
+  };
+  var map={};
+  (sheetArr||[]).forEach(function(e){ map[key(e)]=e; });
+  (localArr||[]).forEach(function(e){ var k=key(e); if(!map[k]) map[k]=e; });
+  return Object.keys(map).map(function(k){ return map[k]; });
 }
 
 
@@ -2075,9 +2093,10 @@ async function pullActivityLog(){
           notes:    String(r[5]||'').trim()
         };
       }).filter(function(e){ return e.mobile && e.activity; });
-      activityLog = fresh;
+      // MERGE with local so locally-logged-but-not-yet-synced entries survive a full pull.
+      activityLog = mergeActivity(activityLog, fresh);
       saveActivityLog();
-      console.log('Activity log pulled:', fresh.length, 'entries');
+      console.log('Activity log pulled:', fresh.length, 'sheet entries; merged total', activityLog.length);
     }
   } catch(e){ console.warn('pullActivityLog:', e.message); }
 }
@@ -2464,7 +2483,7 @@ function renderFuDetailInner(mob){
 
 
 // Version marker
-var APP_VERSION='1.7';
+var APP_VERSION='1.9';
 
 
 
