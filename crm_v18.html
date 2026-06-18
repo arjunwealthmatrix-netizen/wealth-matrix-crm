@@ -1,0 +1,1163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Wealth Matrix CRM v1.8</title>
+<style>
+:root{
+  --red:#C0392B; --red-d:#a93226; --gold:#e3a437; --gold-s:#f2c878;
+  --navy:#13283f; --navy-d:#0c1c2e;
+  --bg:#f4f6f9; --card:#fff; --border:#e2e8f0;
+  --text:#1a202c; --text2:#4a5568; --text3:#718096;
+  --green:#27ae60; --blue:#2980b9; --orange:#e67e22; --purple:#8e44ad;
+  --shadow:0 2px 8px rgba(0,0,0,.08);
+  --radius:12px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+
+/* ── SPLASH ── */
+#splash{position:fixed;inset:0;background:var(--navy-d);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity .5s}
+#splash.hidden{opacity:0;pointer-events:none}
+.splash-logo{width:64px;height:64px;background:var(--red);border-radius:16px;display:flex;align-items:center;justify-content:center;margin-bottom:20px;animation:pulse 1s ease-in-out infinite}
+.splash-logo svg{width:36px;height:36px;fill:#fff}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.splash-brand{color:#fff;font-size:24px;font-weight:800;letter-spacing:.06em;margin-bottom:6px}
+.splash-sub{color:#8fa0b4;font-size:13px;margin-bottom:40px}
+.splash-count{color:var(--gold);font-size:64px;font-weight:900;line-height:1;margin-bottom:12px;transition:all .3s}
+.splash-loading{color:#8fa0b4;font-size:12px;letter-spacing:.08em}
+
+/* ── NAV ── */
+#nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom)}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 0;cursor:pointer;color:var(--text3);font-size:10px;gap:3px;transition:color .2s}
+.nav-item.active{color:var(--red)}
+.nav-item svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8}
+
+/* ── PAGES ── */
+#app{padding-bottom:70px}
+.page{display:none;padding:16px}
+.page.active{display:block}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.page-title{font-size:20px;font-weight:800;color:var(--navy)}
+
+/* ── CARDS ── */
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin-bottom:12px}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 18px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all .2s}
+.btn-primary{background:var(--red);color:#fff}
+.btn-primary:active{background:var(--red-d)}
+.btn-sm{padding:6px 12px;font-size:12px;border-radius:6px}
+.btn-ghost{background:transparent;color:var(--text2);border:1.5px solid var(--border)}
+.btn-danger{background:#fee2e2;color:#c0392b}
+.btn-success{background:#d4edda;color:#27ae60}
+
+/* ── STATUS BADGES ── */
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
+.badge-prospect{background:#e8eaf6;color:#3949ab}
+.badge-contacted{background:#e3f2fd;color:#1976d2}
+.badge-inprogress{background:#fff8e1;color:#f57f17}
+.badge-converted{background:#e8f5e9;color:#2e7d32}
+.badge-dropped{background:#f5f5f5;color:#616161}
+
+/* ── LEAD CAPSULE ── */
+.lead-capsule{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 16px;margin-bottom:10px;cursor:pointer;border-left:4px solid var(--red);transition:transform .15s}
+.lead-capsule:active{transform:scale(.98)}
+.lead-name{font-size:15px;font-weight:700;color:var(--text)}
+.lead-meta{font-size:12px;color:var(--text3);margin-top:3px}
+.lead-footer{display:flex;align-items:center;justify-content:space-between;margin-top:8px}
+
+/* ── SEARCH ── */
+.search-bar{position:relative;margin-bottom:14px}
+.search-bar input{width:100%;padding:10px 14px 10px 38px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;background:#fff;color:var(--text)}
+.search-bar input:focus{outline:none;border-color:var(--red)}
+.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text3)}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:none;align-items:flex-end}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:20px 20px 0 0;width:100%;max-height:92vh;overflow-y:auto;padding:20px 16px 32px;position:relative}
+.modal-handle{width:40px;height:4px;background:#ddd;border-radius:2px;margin:0 auto 16px}
+.modal-title{font-size:18px;font-weight:800;color:var(--navy);margin-bottom:16px}
+.modal-close{position:absolute;right:16px;top:20px;width:32px;height:32px;border-radius:50%;background:var(--bg);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--text2)}
+
+/* ── FORM ── */
+.form-group{margin-bottom:14px}
+.form-label{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:5px;display:block}
+.form-control{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;color:var(--text);background:#fff}
+.form-control:focus{outline:none;border-color:var(--red)}
+select.form-control{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+
+/* ── ACTIVITY LOG ── */
+.log-chips{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.chip{padding:7px 14px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);background:#f8f9fa;color:var(--text2);transition:all .15s}
+.chip:active{transform:scale(.95)}
+.chip.selected{background:var(--red);color:#fff;border-color:var(--red)}
+
+.log-entry{background:var(--bg);border-radius:10px;padding:12px;margin-bottom:8px;position:relative;border-left:3px solid var(--gold)}
+.log-entry-activity{font-size:13px;font-weight:700;color:var(--text)}
+.log-entry-meta{font-size:11px;color:var(--text3);margin-top:3px}
+.log-entry-notes{font-size:12px;color:var(--text2);margin-top:5px;font-style:italic}
+.log-delete{position:absolute;right:10px;top:10px;background:#fee2e2;border:none;border-radius:6px;padding:4px 8px;font-size:11px;color:#c0392b;cursor:pointer;font-weight:700}
+
+.log-loading{text-align:center;color:var(--text3);font-size:13px;padding:20px}
+.log-empty{text-align:center;color:var(--text3);font-size:13px;padding:20px;background:var(--bg);border-radius:10px}
+
+/* ── DASH STAT ── */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.stat-card{background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);text-align:center}
+.stat-val{font-size:28px;font-weight:900;color:var(--red)}
+.stat-lbl{font-size:11px;color:var(--text3);margin-top:2px}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--navy);color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;z-index:9000;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.success{background:var(--green)}
+#toast.error{background:var(--red)}
+
+/* ── SYNC STATUS ── */
+.sync-status{font-size:11px;color:var(--text3);text-align:center;padding:4px}
+.sync-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:4px;vertical-align:middle}
+.sync-dot.red{background:var(--red)}
+.sync-dot.orange{background:var(--orange)}
+
+/* ── FOLLOW UP DATE PICKER ── */
+.date-shortcuts{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.date-btn{padding:5px 10px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);background:#f8f9fa;color:var(--text2)}
+.date-btn:active{background:var(--red);color:#fff;border-color:var(--red)}
+
+/* ── TABS ── */
+.tab-bar{display:flex;background:#fff;border-radius:10px;padding:4px;box-shadow:var(--shadow);margin-bottom:14px}
+.tab-btn{flex:1;padding:8px;text-align:center;font-size:12px;font-weight:600;border-radius:7px;cursor:pointer;color:var(--text3);transition:all .2s}
+.tab-btn.active{background:var(--red);color:#fff}
+
+/* ── COUNTRY SECTION ── */
+.country-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)}
+.country-name{font-size:13px;font-weight:600;color:var(--text)}
+.country-count{font-size:13px;font-weight:800;color:var(--red)}
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div class="splash-logo">
+    <svg viewBox="0 0 24 24"><path d="M3 17l4-8 4 4 4-7 4 11H3z"/></svg>
+  </div>
+  <div class="splash-brand">WEALTH MATRIX</div>
+  <div class="splash-sub">CRM v1.8</div>
+  <div class="splash-count" id="splashCount">3</div>
+  <div class="splash-loading" id="splashMsg">LOADING DATA...</div>
+</div>
+
+<!-- APP -->
+<div id="app">
+
+<!-- ───────── DASH PAGE ───────── -->
+<div class="page active" id="pageDash">
+  <div class="page-header">
+    <div class="page-title">Dashboard</div>
+    <div id="syncBadge" class="sync-status"><span class="sync-dot orange" id="syncDot"></span><span id="syncTime">Not synced</span></div>
+  </div>
+  <div class="stat-grid">
+    <div class="stat-card"><div class="stat-val" id="dTotalLeads">0</div><div class="stat-lbl">Total Leads</div></div>
+    <div class="stat-card"><div class="stat-val" id="dConverted">0</div><div class="stat-lbl">Converted</div></div>
+    <div class="stat-card"><div class="stat-val" id="dTodayFu">0</div><div class="stat-lbl">Today Follow-ups</div></div>
+    <div class="stat-card"><div class="stat-val" id="dOverdue">0</div><div class="stat-lbl">Overdue</div></div>
+  </div>
+  <div class="card" style="margin-bottom:12px">
+    <div class="card-header"><b>Status Breakdown</b></div>
+    <div id="statusBreakdown"></div>
+  </div>
+  <div class="card" style="margin-bottom:12px">
+    <div class="card-header"><b>Country Wise Leads</b></div>
+    <div id="countryBreakdown"></div>
+  </div>
+  <div class="card">
+    <div class="card-header"><b>Age Groups</b></div>
+    <div id="ageBreakdown"></div>
+  </div>
+</div>
+
+<!-- ───────── LEADS PAGE ───────── -->
+<div class="page" id="pageLeads">
+  <div class="page-header">
+    <div class="page-title">Leads</div>
+    <button class="btn btn-primary btn-sm" onclick="openAddLead()">+ Add</button>
+  </div>
+  <div class="search-bar">
+    <span class="search-icon">
+      <svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+    </span>
+    <input type="text" id="leadSearch" placeholder="Search leads..." oninput="renderLeads()">
+  </div>
+  <div class="tab-bar">
+    <div class="tab-btn active" onclick="filterLeads('All',this)">All</div>
+    <div class="tab-btn" onclick="filterLeads('Prospect',this)">Prospect</div>
+    <div class="tab-btn" onclick="filterLeads('Contacted',this)">Contacted</div>
+    <div class="tab-btn" onclick="filterLeads('In Progress',this)">Progress</div>
+    <div class="tab-btn" onclick="filterLeads('Converted',this)">Converted</div>
+  </div>
+  <div id="leadsList"></div>
+</div>
+
+<!-- ───────── FOLLOW-UP PAGE ───────── -->
+<div class="page" id="pageFU">
+  <div class="page-header"><div class="page-title">Follow-Ups</div></div>
+  <div class="tab-bar">
+    <div class="tab-btn active" onclick="filterFU('today',this)">Today</div>
+    <div class="tab-btn" onclick="filterFU('week',this)">This Week</div>
+    <div class="tab-btn" onclick="filterFU('overdue',this)">Overdue</div>
+    <div class="tab-btn" onclick="filterFU('all',this)">All</div>
+  </div>
+  <div id="fuList"></div>
+</div>
+
+<!-- ───────── SYNC PAGE ───────── -->
+<div class="page" id="pageSync">
+  <div class="page-header"><div class="page-title">Sync & Settings</div></div>
+  <div class="card">
+    <div class="form-group">
+      <label class="form-label">Apps Script URL</label>
+      <input class="form-control" id="settingsUrl" placeholder="https://script.google.com/macros/s/.../exec" onchange="saveSetting('scriptUrl',this.value)">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Your Email</label>
+      <input class="form-control" id="settingsEmail" placeholder="you@gmail.com" onchange="saveSetting('userEmail',this.value)">
+    </div>
+  </div>
+  <div class="card">
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <button class="btn btn-primary" style="width:100%" onclick="syncFromSheet()">⬇️ Pull from Sheet</button>
+      <button class="btn btn-ghost" style="width:100%;border-color:var(--red);color:var(--red)" onclick="pushToSheet()">⬆️ Push All to Sheet</button>
+      <button class="btn btn-ghost" style="width:100%" onclick="showAppsScript()">📋 Copy Apps Script Code</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><b>Sync Log</b></div>
+    <div id="syncLog" style="font-size:12px;color:var(--text2);max-height:200px;overflow-y:auto"></div>
+  </div>
+</div>
+
+</div><!-- end #app -->
+
+<!-- ── BOTTOM NAV ── -->
+<div id="nav">
+  <div class="nav-item active" onclick="showPage('Dash',this)">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    Dash
+  </div>
+  <div class="nav-item" onclick="showPage('Leads',this)">
+    <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    Leads
+  </div>
+  <div class="nav-item" onclick="showPage('FU',this)">
+    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    Follow-Up
+  </div>
+  <div class="nav-item" onclick="showPage('Sync',this)">
+    <svg viewBox="0 0 24 24"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+    Sync
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     MODALS
+════════════════════════════════════════════════════════════ -->
+
+<!-- ADD/EDIT LEAD MODAL -->
+<div class="modal-overlay" id="modalAddLead">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <button class="modal-close" onclick="closeModal('modalAddLead')">✕</button>
+    <div class="modal-title" id="addLeadTitle">Add Lead</div>
+    <input type="hidden" id="editLeadMobile">
+    <div class="form-group"><label class="form-label">Full Name *</label><input class="form-control" id="fName" placeholder="e.g. Rahul Sharma"></div>
+    <div class="form-group"><label class="form-label">Mobile *</label><input class="form-control" id="fMobile" type="tel" placeholder="10-digit mobile"></div>
+    <div class="form-group"><label class="form-label">Email</label><input class="form-control" id="fEmail" type="email" placeholder="email@example.com"></div>
+    <div class="form-group"><label class="form-label">Age</label><input class="form-control" id="fAge" type="number" placeholder="e.g. 35"></div>
+    <div class="form-group"><label class="form-label">Country</label>
+      <select class="form-control" id="fCountry">
+        <option value="">Select Country</option>
+        <option>India</option><option>UAE</option><option>Qatar</option><option>Kuwait</option>
+        <option>Bahrain</option><option>Oman</option><option>Saudi Arabia</option>
+        <option>USA</option><option>UK</option><option>Canada</option><option>Australia</option><option>Other</option>
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Status</label>
+      <select class="form-control" id="fStatus">
+        <option>Prospect</option><option>Contacted</option><option>In Progress</option><option>Converted</option><option>Dropped</option>
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Source</label>
+      <select class="form-control" id="fSource" onchange="toggleReferral()">
+        <option value="">Select Source</option>
+        <option>Referral</option><option>Social Media</option><option>Walk-in</option>
+        <option>Cold Call</option><option>Website</option><option>Event</option><option>Other</option>
+      </select>
+    </div>
+    <div class="form-group" id="referralGroup" style="display:none">
+      <label class="form-label">Referred By</label>
+      <input class="form-control" id="fReferredBy" placeholder="Name of referrer">
+    </div>
+    <div class="form-group"><label class="form-label">Est. AUM / SIP</label><input class="form-control" id="fAum" placeholder="e.g. ₹50,000 SIP / ₹10L Lumpsum"></div>
+    <div class="form-group"><label class="form-label">Next Follow-up Date</label><input class="form-control" id="fFuDate" type="date"></div>
+    <div class="form-group"><label class="form-label">Investment Products</label><input class="form-control" id="fProducts" placeholder="e.g. Mutual Fund, SIP, NPS"></div>
+    <div class="form-group"><label class="form-label">Remarks / Notes</label><textarea class="form-control" id="fRemarks" rows="3" placeholder="Any notes..."></textarea></div>
+    <button class="btn btn-primary" style="width:100%;margin-top:8px" onclick="saveLead()">Save Lead</button>
+  </div>
+</div>
+
+<!-- LEAD DETAIL MODAL -->
+<div class="modal-overlay" id="modalLeadDetail">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <button class="modal-close" onclick="closeModal('modalLeadDetail')">✕</button>
+    <div id="leadDetailContent"></div>
+  </div>
+</div>
+
+<!-- ACTIVITY LOG MODAL -->
+<div class="modal-overlay" id="modalActivityLog">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <button class="modal-close" onclick="closeModal('modalActivityLog')">✕</button>
+    <div class="modal-title" id="activityLogTitle">Activity Log</div>
+    <input type="hidden" id="activityLeadMobile">
+    <input type="hidden" id="activityLeadName">
+
+    <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:8px">Select Activity</div>
+    <div class="log-chips" id="logChips">
+      <div class="chip" onclick="selectChip(this)">📱 WhatsApp Sent</div>
+      <div class="chip" onclick="selectChip(this)">📞 Called – Not Picking</div>
+      <div class="chip" onclick="selectChip(this)">📞 Called Twice No Reply</div>
+      <div class="chip" onclick="selectChip(this)">📞 Will Call Back</div>
+      <div class="chip" onclick="selectChip(this)">📋 Brochure Sent</div>
+      <div class="chip" onclick="selectChip(this)">📄 Proposal Sent</div>
+      <div class="chip" onclick="selectChip(this)">🤝 Agreed to Meet</div>
+      <div class="chip" onclick="selectChip(this)">📅 Need to Schedule a Meet</div>
+      <div class="chip" onclick="selectChip(this)">⏰ Call Me Later</div>
+      <div class="chip" onclick="selectChip(this)">🏢 Will Visit Office</div>
+      <div class="chip" onclick="selectChip(this)">✅ Meeting Done</div>
+      <div class="chip" onclick="selectChip(this)">📝 Follow-up Done</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Additional Notes (optional)</label>
+      <textarea class="form-control" id="logNotes" rows="2" placeholder="Any extra notes..."></textarea>
+    </div>
+    <button class="btn btn-primary" style="width:100%;margin-bottom:16px" onclick="submitActivityLog()">✅ Save Activity</button>
+    
+    <div style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:10px">Activity History</div>
+    <div id="logHistoryLoading" class="log-loading" style="display:none">⏳ Loading history...</div>
+    <div id="logHistoryEmpty" class="log-empty" style="display:none">No activity logged yet for this lead.</div>
+    <div id="logHistory"></div>
+  </div>
+</div>
+
+<!-- SET DATE MODAL -->
+<div class="modal-overlay" id="modalSetDate">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <button class="modal-close" onclick="closeModal('modalSetDate')">✕</button>
+    <div class="modal-title">Set Follow-up Date</div>
+    <input type="hidden" id="setDateMobile">
+    <div style="font-size:13px;color:var(--text2);margin-bottom:10px">Quick pick:</div>
+    <div class="date-shortcuts">
+      <div class="date-btn" onclick="pickDateShortcut(1)">Tomorrow</div>
+      <div class="date-btn" onclick="pickDateShortcut(3)">3 Days</div>
+      <div class="date-btn" onclick="pickDateShortcut(7)">1 Week</div>
+      <div class="date-btn" onclick="pickDateShortcut(14)">2 Weeks</div>
+      <div class="date-btn" onclick="pickDateShortcut(30)">1 Month</div>
+    </div>
+    <div class="form-group" style="margin-top:12px">
+      <label class="form-label">Or pick a date</label>
+      <input class="form-control" type="date" id="newFuDate">
+    </div>
+    <button class="btn btn-primary" style="width:100%;margin-top:8px" onclick="saveNewFollowUpDate()">Set Date</button>
+  </div>
+</div>
+
+<!-- APPS SCRIPT MODAL -->
+<div class="modal-overlay" id="modalAppsScript">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <button class="modal-close" onclick="closeModal('modalAppsScript')">✕</button>
+    <div class="modal-title">Apps Script v1.8</div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:12px">Copy the code below and paste it into your Google Apps Script project, then deploy as a new version.</p>
+    <button class="btn btn-primary btn-sm" style="margin-bottom:10px" onclick="copyAppsScript()">📋 Copy Code</button>
+    <textarea id="appsScriptCode" style="width:100%;height:300px;font-size:11px;font-family:monospace;border:1px solid var(--border);border-radius:8px;padding:10px" readonly></textarea>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+// Wealth Matrix CRM v1.8 — Main JS
+// KEY FIXES:
+// 1. appendLog: generates unique rowId, writes to sheet via POST
+// 2. pullLog: reads from sheet on modal open, normalizes mobile
+// 3. deleteLog: matches by rowId only — 100% reliable
+// 4. deleteAllLogs: when lead is deleted, all logs removed from sheet
+// ═══════════════════════════════════════════════════════════════════
+
+// ── STORAGE KEYS ──
+const K_LEADS   = 'wm_leads_v18';
+const K_CLIENTS = 'wm_clients_v18';
+const K_LOGS    = 'wm_logs_v18';    // local cache of activity logs
+const K_SURL    = 'wm_scriptUrl';
+const K_EMAIL   = 'wm_email';
+const K_SYNCTIME= 'wm_lastSync';
+
+// ── STATE ──
+let leads    = [];
+let clients  = [];
+let logCache = {}; // {mobile: [logEntry,...]}
+let currentLeadFilter = 'All';
+let currentFUFilter   = 'today';
+
+// ── HELPERS ──
+function normMobile(m) { return String(m||'').replace(/\D/g,'').slice(-10); }
+function getScriptUrl(){ return localStorage.getItem(K_SURL)||''; }
+function getEmail(){ return localStorage.getItem(K_EMAIL)||''; }
+function saveSetting(k,v){ localStorage.setItem(k==='scriptUrl'?K_SURL:K_EMAIL,v); toast('Saved'); }
+function fmtDate(d){ if(!d)return ''; try{ return new Date(d).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}); }catch(e){return d;} }
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+function addDays(n){ const d=new Date(); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
+function nowISO(){ return new Date().toISOString(); }
+// Generate a unique rowId — timestamp + random suffix
+function genRowId(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+function toast(msg, type='', dur=2500){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='show'+(type?' '+type:'');
+  setTimeout(()=>t.className='',dur);
+}
+
+// ── PERSIST & LOAD ──
+function saveLeads(){ localStorage.setItem(K_LEADS,JSON.stringify(leads)); }
+function saveLogs(){  localStorage.setItem(K_LOGS, JSON.stringify(logCache)); }
+function loadAll(){
+  try{ leads   = JSON.parse(localStorage.getItem(K_LEADS)||'[]'); }catch(e){ leads=[];}
+  try{ clients = JSON.parse(localStorage.getItem(K_CLIENTS)||'[]'); }catch(e){ clients=[];}
+  try{ logCache= JSON.parse(localStorage.getItem(K_LOGS)||'{}'); }catch(e){ logCache={};}
+}
+
+// ── SPLASH ──
+function runSplash(){
+  let n=3;
+  const cnt=document.getElementById('splashCount');
+  const msg=document.getElementById('splashMsg');
+  cnt.textContent=n;
+  const iv=setInterval(()=>{
+    n--;
+    if(n>0){ cnt.textContent=n; }
+    else{
+      clearInterval(iv);
+      cnt.textContent='✓';
+      msg.textContent='READY';
+      setTimeout(()=>{
+        document.getElementById('splash').classList.add('hidden');
+        // Auto-sync from sheet in background
+        if(getScriptUrl()) syncFromSheet(true);
+      },600);
+    }
+  },1000);
+}
+
+// ── PAGE NAV ──
+function showPage(name, el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page'+name).classList.add('active');
+  if(el) el.classList.add('active');
+  if(name==='Dash') renderDash();
+  if(name==='Leads') renderLeads();
+  if(name==='FU') renderFU();
+  if(name==='Sync') loadSyncSettings();
+}
+
+function loadSyncSettings(){
+  const u=document.getElementById('settingsUrl');
+  const e=document.getElementById('settingsEmail');
+  if(u) u.value=localStorage.getItem(K_SURL)||'';
+  if(e) e.value=localStorage.getItem(K_EMAIL)||'';
+  const t=localStorage.getItem(K_SYNCTIME);
+  if(t){ document.getElementById('syncTime').textContent='Synced '+new Date(t).toLocaleTimeString(); document.getElementById('syncDot').className='sync-dot'; }
+}
+
+// ── MODAL ──
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+
+// ── STATUS BADGE ──
+function statusBadge(s){
+  const map={'Prospect':'prospect','Contacted':'contacted','In Progress':'inprogress','Converted':'converted','Dropped':'dropped'};
+  return `<span class="badge badge-${map[s]||'prospect'}">${s||'Prospect'}</span>`;
+}
+
+// ──────────────────────────────────────────────
+// LEADS
+// ──────────────────────────────────────────────
+function filterLeads(f, el){
+  currentLeadFilter=f;
+  document.querySelectorAll('#pageLeads .tab-btn').forEach(b=>b.classList.remove('active'));
+  if(el) el.classList.add('active');
+  renderLeads();
+}
+
+function renderLeads(){
+  const q=(document.getElementById('leadSearch')||{}).value||'';
+  let data=leads.filter(l=>currentLeadFilter==='All'||l.status===currentLeadFilter);
+  if(q){ const ql=q.toLowerCase(); data=data.filter(l=>(l.name||'').toLowerCase().includes(ql)||(l.mobile||'').includes(ql)); }
+  const el=document.getElementById('leadsList');
+  if(!data.length){ el.innerHTML=`<div class="log-empty">No leads found.</div>`; return; }
+  el.innerHTML=data.map(l=>`
+    <div class="lead-capsule" onclick="openLeadDetail('${normMobile(l.mobile)}')">
+      <div class="lead-name">${l.name||'—'}</div>
+      <div class="lead-meta">${l.mobile||''} ${l.country?'· '+l.country:''}</div>
+      <div class="lead-footer">
+        ${statusBadge(l.status)}
+        <span style="font-size:11px;color:var(--text3)">${l.nextFuDate?'📅 '+fmtDate(l.nextFuDate):''}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── LEAD DETAIL ──
+function openLeadDetail(mobile){
+  const l=leads.find(x=>normMobile(x.mobile)===normMobile(mobile));
+  if(!l) return;
+  const html=`
+    <div style="margin-bottom:12px">
+      <div style="font-size:20px;font-weight:800;color:var(--navy)">${l.name}</div>
+      <div style="font-size:13px;color:var(--text3)">${l.mobile} ${l.country?'· '+l.country:''}</div>
+      <div style="margin-top:6px">${statusBadge(l.status)}</div>
+    </div>
+    <div class="card" style="margin-bottom:10px">
+      ${row('📧 Email', l.email)}
+      ${row('🎂 Age', l.age)}
+      ${row('🌐 Source', l.source+(l.referredBy?' ('+l.referredBy+')':''))}
+      ${row('💰 Est. AUM/SIP', l.aum)}
+      ${row('📅 Next Follow-up', fmtDate(l.nextFuDate))}
+      ${row('📊 Products', l.products)}
+      ${row('📝 Remarks', l.remarks)}
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+      <button class="btn btn-primary" style="width:100%" onclick="closeModal('modalLeadDetail');openActivityLog('${normMobile(l.mobile)}','${(l.name||'').replace(/'/g,"\\'")}')">📋 Activity Log</button>
+      <button class="btn btn-ghost" style="width:100%;border-color:var(--red);color:var(--red)" onclick="closeModal('modalLeadDetail');openSetDate('${normMobile(l.mobile)}')">📅 Set Follow-up Date</button>
+      <button class="btn btn-ghost" style="width:100%" onclick="closeModal('modalLeadDetail');openEditLead('${normMobile(l.mobile)}')">✏️ Edit Lead</button>
+      <button class="btn btn-danger" style="width:100%" onclick="confirmDeleteLead('${normMobile(l.mobile)}')">🗑️ Delete Lead</button>
+    </div>
+  `;
+  document.getElementById('leadDetailContent').innerHTML=html;
+  openModal('modalLeadDetail');
+}
+
+function row(label, val){
+  if(!val) return '';
+  return `<div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)">
+    <span style="font-size:12px;color:var(--text3);min-width:120px">${label}</span>
+    <span style="font-size:13px;color:var(--text);font-weight:500">${val}</span>
+  </div>`;
+}
+
+// ── ADD / EDIT LEAD ──
+function openAddLead(){
+  document.getElementById('addLeadTitle').textContent='Add Lead';
+  document.getElementById('editLeadMobile').value='';
+  ['fName','fMobile','fEmail','fAge','fAum','fFuDate','fProducts','fRemarks','fReferredBy'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('fStatus').value='Prospect';
+  document.getElementById('fSource').value='';
+  document.getElementById('fCountry').value='';
+  document.getElementById('referralGroup').style.display='none';
+  openModal('modalAddLead');
+}
+
+function openEditLead(mobile){
+  const l=leads.find(x=>normMobile(x.mobile)===mobile);
+  if(!l) return;
+  document.getElementById('addLeadTitle').textContent='Edit Lead';
+  document.getElementById('editLeadMobile').value=normMobile(l.mobile);
+  document.getElementById('fName').value=l.name||'';
+  document.getElementById('fMobile').value=l.mobile||'';
+  document.getElementById('fEmail').value=l.email||'';
+  document.getElementById('fAge').value=l.age||'';
+  document.getElementById('fAum').value=l.aum||'';
+  document.getElementById('fFuDate').value=l.nextFuDate||'';
+  document.getElementById('fProducts').value=l.products||'';
+  document.getElementById('fRemarks').value=l.remarks||'';
+  document.getElementById('fStatus').value=l.status||'Prospect';
+  document.getElementById('fSource').value=l.source||'';
+  document.getElementById('fCountry').value=l.country||'';
+  document.getElementById('fReferredBy').value=l.referredBy||'';
+  toggleReferral();
+  openModal('modalAddLead');
+}
+
+function toggleReferral(){
+  const src=document.getElementById('fSource').value;
+  document.getElementById('referralGroup').style.display=src==='Referral'?'block':'none';
+}
+
+function saveLead(){
+  const name=(document.getElementById('fName').value||'').trim();
+  const mobile=(document.getElementById('fMobile').value||'').trim();
+  if(!name||!mobile){ toast('Name and mobile are required','error'); return; }
+  const oldMobile=document.getElementById('editLeadMobile').value;
+  const isEdit=!!oldMobile;
+  const idx=isEdit?leads.findIndex(x=>normMobile(x.mobile)===oldMobile):-1;
+  const lead={
+    name, mobile,
+    email: document.getElementById('fEmail').value||'',
+    age:   document.getElementById('fAge').value||'',
+    status:document.getElementById('fStatus').value||'Prospect',
+    source:document.getElementById('fSource').value||'',
+    referredBy: document.getElementById('fReferredBy').value||'',
+    aum:   document.getElementById('fAum').value||'',
+    nextFuDate: document.getElementById('fFuDate').value||'',
+    products:   document.getElementById('fProducts').value||'',
+    remarks:    document.getElementById('fRemarks').value||'',
+    country:    document.getElementById('fCountry').value||'',
+    modifiedDate: nowISO(),
+    createdDate: isEdit&&idx>=0 ? (leads[idx].createdDate||nowISO()) : nowISO()
+  };
+  if(isEdit&&idx>=0) leads[idx]=lead; else leads.push(lead);
+  saveLeads();
+  closeModal('modalAddLead');
+  renderLeads(); renderDash();
+  // Push to sheet in background
+  pushToSheet(true);
+  toast(isEdit?'Lead updated':'Lead added','success');
+}
+
+function confirmDeleteLead(mobile){
+  if(!confirm('Delete this lead and all their activity logs? This cannot be undone.')) return;
+  deleteLead(mobile);
+}
+
+async function deleteLead(mobile){
+  const nm=normMobile(mobile);
+  leads=leads.filter(x=>normMobile(x.mobile)!==nm);
+  // Remove from local log cache
+  Object.keys(logCache).forEach(k=>{ if(normMobile(k)===nm) delete logCache[k]; });
+  saveLeads(); saveLogs();
+  closeModal('modalLeadDetail');
+  renderLeads(); renderFU(); renderDash();
+  toast('Lead deleted');
+  // Delete all logs from sheet
+  const url=getScriptUrl();
+  if(url){
+    try{
+      await apiFetch(url,{action:'deleteAllLogs',mobile:nm});
+    }catch(e){ console.warn('deleteAllLogs sheet error:',e); }
+    pushToSheet(true);
+  }
+}
+
+// ──────────────────────────────────────────────
+// ACTIVITY LOG — THE CORE FIX
+// ──────────────────────────────────────────────
+
+let selectedChip='';
+
+function openActivityLog(mobile, name){
+  document.getElementById('activityLeadMobile').value=mobile;
+  document.getElementById('activityLeadName').value=name;
+  document.getElementById('activityLogTitle').textContent='Activity — '+name;
+  document.getElementById('logNotes').value='';
+  // Deselect chips
+  document.querySelectorAll('#logChips .chip').forEach(c=>c.classList.remove('selected'));
+  selectedChip='';
+  openModal('modalActivityLog');
+  loadLogHistory(mobile);
+}
+
+function selectChip(el){
+  document.querySelectorAll('#logChips .chip').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedChip=el.textContent.trim();
+}
+
+// ── LOAD LOG HISTORY FROM SHEET ──────────────────────────────────
+async function loadLogHistory(mobile){
+  const nm=normMobile(mobile);
+  const container=document.getElementById('logHistory');
+  const loading=document.getElementById('logHistoryLoading');
+  const empty=document.getElementById('logHistoryEmpty');
+  container.innerHTML='';
+  loading.style.display='block';
+  empty.style.display='none';
+
+  const url=getScriptUrl();
+  if(!url){
+    loading.style.display='none';
+    // Fall back to local cache
+    renderLogHistory(nm);
+    return;
+  }
+  try{
+    const res=await fetch(url+'?action=pullLog&mobile='+encodeURIComponent(nm));
+    const json=await res.json();
+    loading.style.display='none';
+    if(json.rows && json.rows.length>0){
+      // Update local cache
+      logCache[nm]=json.rows;
+      saveLogs();
+      renderLogHistory(nm);
+    } else {
+      // Try local cache
+      const local=(logCache[nm]||[]);
+      if(local.length){ renderLogHistory(nm); }
+      else { empty.style.display='block'; }
+    }
+  } catch(e){
+    loading.style.display='none';
+    console.warn('pullLog error:',e);
+    // Fall back to local cache
+    const local=(logCache[nm]||[]);
+    if(local.length){ renderLogHistory(nm); }
+    else { empty.style.display='block'; }
+    toast('Using cached log (offline)');
+  }
+}
+
+function renderLogHistory(mobile){
+  const nm=normMobile(mobile);
+  const logs=(logCache[nm]||[]).slice().sort((a,b)=>b.timestamp.localeCompare(a.timestamp));
+  const container=document.getElementById('logHistory');
+  const empty=document.getElementById('logHistoryEmpty');
+  if(!logs.length){ empty.style.display='block'; container.innerHTML=''; return; }
+  empty.style.display='none';
+  container.innerHTML=logs.map(e=>`
+    <div class="log-entry" id="logrow-${e.rowId}">
+      <div class="log-entry-activity">${e.activity}</div>
+      <div class="log-entry-meta">🕐 ${fmtDateTime(e.timestamp)} · ${e.type||'Lead'}</div>
+      ${e.notes?`<div class="log-entry-notes">📝 ${e.notes}</div>`:''}
+      <button class="log-delete" onclick="deleteLogEntry('${e.rowId}','${nm}')">Delete</button>
+    </div>
+  `).join('');
+}
+
+function fmtDateTime(ts){
+  try{ return new Date(ts).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}); }
+  catch(e){ return ts; }
+}
+
+// ── SUBMIT ACTIVITY LOG ──────────────────────────────────────────
+async function submitActivityLog(){
+  const mobile=normMobile(document.getElementById('activityLeadMobile').value);
+  const name=document.getElementById('activityLeadName').value||'';
+  const notes=(document.getElementById('logNotes').value||'').trim();
+  if(!selectedChip){ toast('Please select an activity','error'); return; }
+
+  // Build entry with unique rowId
+  const entry={
+    rowId:     genRowId(),
+    timestamp: nowISO(),
+    name:      name,
+    mobile:    mobile,
+    type:      'Lead',
+    activity:  selectedChip,
+    notes:     notes
+  };
+
+  // 1. Save to local cache IMMEDIATELY
+  if(!logCache[mobile]) logCache[mobile]=[];
+  logCache[mobile].unshift(entry);
+  saveLogs();
+
+  // 2. Update UI immediately (optimistic)
+  document.getElementById('logHistoryEmpty').style.display='none';
+  renderLogHistory(mobile);
+  document.getElementById('logNotes').value='';
+  document.querySelectorAll('#logChips .chip').forEach(c=>c.classList.remove('selected'));
+  selectedChip='';
+  toast('Activity saved','success');
+
+  // 3. Write to sheet in background
+  const url=getScriptUrl();
+  if(url){
+    try{
+      const res=await apiFetch(url,{
+        action:    'appendLog',
+        rowId:     entry.rowId,
+        timestamp: entry.timestamp,
+        name:      entry.name,
+        mobile:    entry.mobile,
+        type:      entry.type,
+        activity:  entry.activity,
+        notes:     entry.notes
+      });
+      if(res.success){ console.log('Log saved to sheet, rowId:',entry.rowId); }
+      else { console.warn('Sheet appendLog error:', res); toast('Saved locally. Sheet sync failed.','error',3000); }
+    }catch(e){
+      console.warn('Sheet write error:',e);
+      toast('Saved locally. Sheet sync failed.','error',3000);
+    }
+  }
+}
+
+// ── DELETE SINGLE LOG ENTRY ──────────────────────────────────────
+async function deleteLogEntry(rowId, mobile){
+  if(!confirm('Delete this activity log entry?')) return;
+  const nm=normMobile(mobile);
+
+  // 1. Remove from local cache immediately
+  if(logCache[nm]){
+    logCache[nm]=logCache[nm].filter(e=>e.rowId!==rowId);
+    saveLogs();
+  }
+
+  // 2. Remove from UI immediately
+  const el=document.getElementById('logrow-'+rowId);
+  if(el) el.remove();
+  if(!(logCache[nm]||[]).length) document.getElementById('logHistoryEmpty').style.display='block';
+  toast('Entry deleted');
+
+  // 3. Delete from sheet in background
+  const url=getScriptUrl();
+  if(url){
+    try{
+      const res=await apiFetch(url,{action:'deleteLog',rowId:rowId});
+      if(res.success){ console.log('Deleted from sheet, rowId:',rowId,'rows deleted:',res.deleted); }
+      else { console.warn('Sheet deleteLog error:',res); }
+    }catch(e){
+      console.warn('Sheet delete error:',e);
+    }
+  }
+}
+
+// ── API FETCH helper (POST for writes) ───────────────────────────
+async function apiFetch(url, data){
+  // Try POST first (reliable, no URL length limit)
+  try{
+    const resp=await fetch(url,{
+      method:'POST',
+      headers:{'Content-Type':'text/plain'}, // text/plain avoids CORS preflight
+      body: JSON.stringify(data)
+    });
+    const text=await resp.text();
+    return JSON.parse(text);
+  }catch(e){
+    // Fallback: GET with payload
+    const encoded=encodeURIComponent(JSON.stringify(data));
+    const resp=await fetch(url+'?payload='+encoded);
+    const text=await resp.text();
+    return JSON.parse(text);
+  }
+}
+
+// ──────────────────────────────────────────────
+// FOLLOW-UP DATE
+// ──────────────────────────────────────────────
+function openSetDate(mobile){
+  document.getElementById('setDateMobile').value=normMobile(mobile);
+  document.getElementById('newFuDate').value='';
+  openModal('modalSetDate');
+}
+
+function pickDateShortcut(days){
+  document.getElementById('newFuDate').value=addDays(days);
+}
+
+async function saveNewFollowUpDate(){
+  const mobile=document.getElementById('setDateMobile').value;
+  const newDate=document.getElementById('newFuDate').value;
+  if(!newDate){ toast('Please select a date','error'); return; }
+  const nm=normMobile(mobile);
+  const idx=leads.findIndex(x=>normMobile(x.mobile)===nm);
+  if(idx<0){ toast('Lead not found','error'); return; }
+  const oldDate=leads[idx].nextFuDate||'';
+  leads[idx].nextFuDate=newDate;
+  leads[idx].modifiedDate=nowISO();
+  saveLeads();
+  closeModal('modalSetDate');
+  renderFU(); renderLeads();
+  toast('Follow-up date updated','success');
+
+  // Log the date change as activity
+  const entry={
+    rowId:genRowId(), timestamp:nowISO(),
+    name:leads[idx].name, mobile:nm,
+    type:'Lead',
+    activity:'📅 Follow-up Date Changed',
+    notes:'Old: '+(oldDate?fmtDate(oldDate):'None')+' → New: '+fmtDate(newDate)
+  };
+  if(!logCache[nm]) logCache[nm]=[];
+  logCache[nm].unshift(entry);
+  saveLogs();
+
+  const url=getScriptUrl();
+  if(url){
+    try{ await apiFetch(url,{action:'appendLog',...entry}); }catch(e){}
+    pushToSheet(true);
+  }
+}
+
+// ──────────────────────────────────────────────
+// FOLLOW-UP PAGE
+// ──────────────────────────────────────────────
+function filterFU(f, el){
+  currentFUFilter=f;
+  document.querySelectorAll('#pageFU .tab-btn').forEach(b=>b.classList.remove('active'));
+  if(el) el.classList.add('active');
+  renderFU();
+}
+
+function renderFU(){
+  const today=todayISO();
+  const weekEnd=addDays(7);
+  let data=leads.filter(l=>l.nextFuDate);
+  if(currentFUFilter==='today')   data=data.filter(l=>l.nextFuDate===today);
+  else if(currentFUFilter==='week')    data=data.filter(l=>l.nextFuDate>today&&l.nextFuDate<=weekEnd);
+  else if(currentFUFilter==='overdue') data=data.filter(l=>l.nextFuDate<today);
+  data.sort((a,b)=>a.nextFuDate.localeCompare(b.nextFuDate));
+  const el=document.getElementById('fuList');
+  if(!data.length){ el.innerHTML=`<div class="log-empty">No follow-ups for this period.</div>`; return; }
+  el.innerHTML=data.map(l=>`
+    <div class="lead-capsule" onclick="openLeadDetail('${normMobile(l.mobile)}')">
+      <div class="lead-name">${l.name}</div>
+      <div class="lead-meta">${l.mobile} ${l.country?'· '+l.country:''}</div>
+      <div class="lead-footer">
+        ${statusBadge(l.status)}
+        <span style="font-size:12px;font-weight:700;color:${l.nextFuDate<today?'var(--red)':'var(--green)'}">📅 ${fmtDate(l.nextFuDate)}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ──────────────────────────────────────────────
+// DASHBOARD
+// ──────────────────────────────────────────────
+function renderDash(){
+  const today=todayISO();
+  document.getElementById('dTotalLeads').textContent=leads.length;
+  document.getElementById('dConverted').textContent=leads.filter(l=>l.status==='Converted').length;
+  document.getElementById('dTodayFu').textContent=leads.filter(l=>l.nextFuDate===today).length;
+  document.getElementById('dOverdue').textContent=leads.filter(l=>l.nextFuDate&&l.nextFuDate<today).length;
+
+  // Status breakdown
+  const statuses=['Prospect','Contacted','In Progress','Converted','Dropped'];
+  const sb=document.getElementById('statusBreakdown');
+  sb.innerHTML=statuses.map(s=>{
+    const cnt=leads.filter(l=>l.status===s).length;
+    const pct=leads.length?Math.round(cnt/leads.length*100):0;
+    return `<div style="margin:6px 0">
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px">
+        <span>${statusBadge(s)} ${s}</span><span style="font-weight:700">${cnt}</span>
+      </div>
+      <div style="background:var(--border);border-radius:4px;height:6px">
+        <div style="background:var(--red);width:${pct}%;height:6px;border-radius:4px;transition:width .5s"></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Country breakdown
+  const countries={};
+  leads.forEach(l=>{ const c=l.country||'Unknown'; countries[c]=(countries[c]||0)+1; });
+  const cb=document.getElementById('countryBreakdown');
+  const sorted=Object.entries(countries).sort((a,b)=>b[1]-a[1]);
+  if(!sorted.length){ cb.innerHTML='<div style="color:var(--text3);font-size:13px">No data yet</div>'; }
+  else { cb.innerHTML=sorted.map(([c,n])=>`<div class="country-row"><span class="country-name">🌐 ${c}</span><span class="country-count">${n} leads</span></div>`).join(''); }
+
+  // Age groups
+  const ages={Under30:0,'30-40':0,'40-50':0,'50+':0};
+  leads.forEach(l=>{ const a=parseInt(l.age)||0; if(a<30)ages['Under30']++; else if(a<40)ages['30-40']++; else if(a<50)ages['40-50']++; else ages['50+']++; });
+  const ab=document.getElementById('ageBreakdown');
+  ab.innerHTML=Object.entries(ages).map(([g,n])=>`<div class="country-row"><span class="country-name">${g}</span><span class="country-count">${n}</span></div>`).join('');
+}
+
+// ──────────────────────────────────────────────
+// SYNC — PUSH & PULL
+// ──────────────────────────────────────────────
+async function pushToSheet(silent=false){
+  const url=getScriptUrl();
+  if(!url){ if(!silent) toast('No script URL set','error'); return; }
+  const headers=['Name','Mobile','Email','Age','Status','Source','Referred By','Estimated AUM/SIP','Next Follow-up','Investment Products','Remarks','Country','Modified Date','Created Date'];
+  const rows=[headers,...leads.map(l=>[l.name,l.mobile,l.email,l.age,l.status,l.source,l.referredBy,l.aum,l.nextFuDate,l.products,l.remarks,l.country,l.modifiedDate,l.createdDate])];
+  try{
+    const res=await apiFetch(url,{action:'pushLeads',rows});
+    if(!silent) toast('Pushed to sheet ✓','success');
+    addSyncLog('Push: '+(res.written||0)+' leads written');
+    updateSyncTime();
+  }catch(e){ if(!silent) toast('Push failed: '+e.message,'error'); }
+}
+
+async function syncFromSheet(silent=false){
+  const url=getScriptUrl();
+  if(!url){ if(!silent) toast('No script URL set','error'); return; }
+  if(!silent) toast('Pulling from sheet...');
+  try{
+    const res=await fetch(url+'?action=read&tab=LEADS');
+    const json=await res.json();
+    if(json.rows && json.rows.length){
+      leads=json.rows.map(r=>({
+        name:r['Name']||'', mobile:r['Mobile']||'', email:r['Email']||'',
+        age:r['Age']||'', status:r['Status']||'Prospect', source:r['Source']||'',
+        referredBy:r['Referred By']||'', aum:r['Estimated AUM/SIP']||'',
+        nextFuDate:r['Next Follow-up']||'', products:r['Investment Products']||'',
+        remarks:r['Remarks']||'', country:r['Country']||'',
+        modifiedDate:r['Modified Date']||'', createdDate:r['Created Date']||''
+      }));
+      saveLeads();
+      renderLeads(); renderFU(); renderDash();
+      if(!silent) toast('Pulled '+leads.length+' leads','success');
+      addSyncLog('Pull: '+leads.length+' leads');
+      updateSyncTime();
+    } else { if(!silent) toast('No data in sheet'); }
+  }catch(e){ if(!silent) toast('Pull failed: '+e.message,'error'); }
+}
+
+function updateSyncTime(){
+  const t=new Date().toISOString();
+  localStorage.setItem(K_SYNCTIME,t);
+  document.getElementById('syncTime').textContent='Synced '+new Date(t).toLocaleTimeString();
+  document.getElementById('syncDot').className='sync-dot';
+}
+function addSyncLog(msg){
+  const el=document.getElementById('syncLog');
+  if(!el) return;
+  el.innerHTML=`<div style="padding:3px 0;border-bottom:1px solid var(--border)">${new Date().toLocaleTimeString()} — ${msg}</div>`+el.innerHTML;
+}
+
+// ── APPS SCRIPT CODE ──
+const APPS_SCRIPT_CODE = `// ═══════════════════════════════════════════════════════════════════
+// Wealth Matrix CRM — Apps Script v1.8
+// ═══════════════════════════════════════════════════════════════════
+const SHEET_ID   = 'YOUR_SHEET_ID_HERE';
+const LEADS_TAB  = 'LEADS';
+const CLIENTS_TAB= 'CLIENTS';
+const LOG_TAB    = 'ACTIVITY_LOG';
+const LOG_HEADERS = ['rowId','Timestamp','Name','Mobile','Type','Activity','Notes'];
+const LEADS_HEADERS = ['Name','Mobile','Email','Age','Status','Source','Referred By','Estimated AUM/SIP','Next Follow-up','Investment Products','Remarks','Country','Modified Date','Created Date'];
+
+function out(obj){return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);}
+function normMobile(m){return String(m||'').replace(/\\D/g,'').slice(-10);}
+
+function ensureLogTab(ss){
+  var sh=ss.getSheetByName(LOG_TAB);
+  if(!sh){
+    sh=ss.insertSheet(LOG_TAB);
+    var hr=sh.getRange(1,1,1,LOG_HEADERS.length);
+    hr.setValues([LOG_HEADERS]);
+    hr.setFontWeight('bold').setBackground('#C0392B').setFontColor('#FFFFFF');
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+
+function doGet(e){
+  try{
+    var p=e.parameter||{};
+    var action=p.action||'';
+    if(action==='pullLog'){
+      if(!p.mobile)return out({error:'mobile required'});
+      var ss=SpreadsheetApp.openById(SHEET_ID);
+      var sh=ensureLogTab(ss);
+      var last=sh.getLastRow();
+      if(last<2)return out({rows:[]});
+      var data=sh.getRange(2,1,last-1,LOG_HEADERS.length).getValues();
+      var target=normMobile(p.mobile);
+      var result=[];
+      for(var i=0;i<data.length;i++){
+        if(normMobile(data[i][3])===target){
+          result.push({rowId:String(data[i][0]),timestamp:String(data[i][1]),name:String(data[i][2]),mobile:String(data[i][3]),type:String(data[i][4]),activity:String(data[i][5]),notes:String(data[i][6])});
+        }
+      }
+      result.sort(function(a,b){return b.timestamp.localeCompare(a.timestamp);});
+      return out({rows:result});
+    }
+    if(action==='read'||!action){
+      var tabName=p.tab||LEADS_TAB;
+      var ss2=SpreadsheetApp.openById(SHEET_ID);
+      var sh2=ss2.getSheetByName(tabName);
+      if(!sh2||sh2.getLastRow()<2)return out({rows:[]});
+      var vals=sh2.getRange(2,1,sh2.getLastRow()-1,sh2.getLastColumn()).getValues();
+      var hdrs=sh2.getRange(1,1,1,sh2.getLastColumn()).getValues()[0];
+      var rows=vals.map(function(r){var obj={};hdrs.forEach(function(h,i){obj[h]=String(r[i]||'');});return obj;});
+      return out({rows:rows});
+    }
+    if(p.payload)return writeData(JSON.parse(decodeURIComponent(p.payload)));
+    return out({error:'Unknown action: '+action});
+  }catch(err){return out({error:err.message});}
+}
+
+function doPost(e){
+  try{var data=JSON.parse(e.postData.contents);return writeData(data);}
+  catch(err){return out({error:err.message});}
+}
+
+function writeData(data){
+  var ss=SpreadsheetApp.openById(SHEET_ID);
+  var action=data.action||'';
+  if(action==='appendLog'){
+    var sh=ensureLogTab(ss);
+    var lastRow=sh.getLastRow();
+    if(lastRow>1){
+      var existingIds=sh.getRange(2,1,lastRow-1,1).getValues();
+      for(var i=0;i<existingIds.length;i++){if(String(existingIds[i][0])===String(data.rowId))return out({success:true,note:'duplicate skipped'});}
+    }
+    sh.appendRow([String(data.rowId||''),String(data.timestamp||new Date().toISOString()),String(data.name||''),String(data.mobile||''),String(data.type||''),String(data.activity||''),String(data.notes||'')]);
+    sh.getRange(sh.getLastRow(),1,1,LOG_HEADERS.length).setNumberFormat('@');
+    return out({success:true,rowId:data.rowId});
+  }
+  if(action==='deleteLog'){
+    if(!data.rowId)return out({error:'rowId required'});
+    var logSh=ensureLogTab(ss);
+    var logLast=logSh.getLastRow();
+    if(logLast<2)return out({success:true,deleted:0});
+    var ids=logSh.getRange(2,1,logLast-1,1).getValues();
+    for(var j=ids.length-1;j>=0;j--){
+      if(String(ids[j][0])===String(data.rowId)){logSh.deleteRow(j+2);return out({success:true,deleted:1});}
+    }
+    return out({success:true,deleted:0});
+  }
+  if(action==='deleteAllLogs'){
+    if(!data.mobile)return out({error:'mobile required'});
+    var logSh2=ensureLogTab(ss);
+    var logLast2=logSh2.getLastRow();
+    if(logLast2<2)return out({success:true,deleted:0});
+    var allData=logSh2.getRange(2,1,logLast2-1,LOG_HEADERS.length).getValues();
+    var target2=normMobile(data.mobile);
+    var toDelete=[];
+    for(var k=0;k<allData.length;k++){if(normMobile(allData[k][3])===target2)toDelete.push(k+2);}
+    for(var d=toDelete.length-1;d>=0;d--)logSh2.deleteRow(toDelete[d]);
+    return out({success:true,deleted:toDelete.length});
+  }
+  var tabMap={pushLeads:LEADS_TAB,pushClients:CLIENTS_TAB};
+  if(tabMap[action]){
+    var tabName=tabMap[action];
+    var rows=data.rows;
+    if(!rows||rows.length===0)return out({error:'No rows'});
+    var sh2=ss.getSheetByName(tabName)||ss.insertSheet(tabName);
+    sh2.clearContents();
+    var rng=sh2.getRange(1,1,rows.length,rows[0].length);
+    rng.setNumberFormat('@');rng.setValues(rows);
+    var hdr=sh2.getRange(1,1,1,rows[0].length);
+    hdr.setFontWeight('bold').setBackground('#C0392B').setFontColor('#FFFFFF');
+    sh2.setFrozenRows(1);
+    return out({success:true,written:rows.length-1});
+  }
+  return out({error:'Unknown action: '+action});
+}`;
+
+function showAppsScript(){
+  document.getElementById('appsScriptCode').value=APPS_SCRIPT_CODE;
+  openModal('modalAppsScript');
+}
+function copyAppsScript(){
+  navigator.clipboard.writeText(APPS_SCRIPT_CODE).then(()=>toast('Copied!','success')).catch(()=>{ document.getElementById('appsScriptCode').select(); document.execCommand('copy'); toast('Copied!','success'); });
+}
+
+// ── INIT ──
+document.addEventListener('DOMContentLoaded',()=>{
+  loadAll();
+  runSplash();
+  loadSyncSettings();
+});
+</script>
+</body></html>
