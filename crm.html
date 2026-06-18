@@ -1374,12 +1374,18 @@ async function scriptGet(tab,retries){
 
 function sheetPost(data, onDone){
   if(!hasScript()) return;
-  var payload = encodeURIComponent(JSON.stringify(data));
-  // Use GET with payload — this is what Apps Script reliably accepts
+  var body = JSON.stringify(data);
+  var payload = encodeURIComponent(body);
   var url = cfg_.scriptUrl + '?payload=' + payload + '&t=' + Date.now();
-  fetch(url, {mode:'no-cors'})
-    .then(function(){ if(onDone) onDone(true); })
-    .catch(function(e){ console.warn('sheetPost failed:', e.message); if(onDone) onDone(false); });
+  // XHR GET — no CORS preflight, reliable for Apps Script
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', url, true);
+  xhr.onload = function(){ if(onDone) onDone(true); };
+  xhr.onerror = function(){
+    // Fallback: no-cors fetch
+    fetch(url, {mode:'no-cors'}).then(function(){ if(onDone) onDone(true); }).catch(function(){ if(onDone) onDone(false); });
+  };
+  xhr.send();
 }
 async function scriptPost(action,rows){
   // Apps Script only works via GET from browser (CORS restriction)
@@ -1879,12 +1885,15 @@ function logActivity(mob, type, activity, notes){
   activityLog.push(entry);
   saveActivityLog();
 
-  // Append ONE row to ACTIVITY_LOG sheet via reliable GET request
+  // Append ONE row to ACTIVITY_LOG sheet
   if(hasScript()){
     var row = [ts, name, mob, type.toUpperCase(), activity, notes||''];
     var payload = encodeURIComponent(JSON.stringify({action:'appendLog', row:row}));
-    fetch(cfg_.scriptUrl + '?payload=' + payload + '&t=' + Date.now(), {mode:'no-cors'})
-      .catch(function(){});
+    var url = cfg_.scriptUrl + '?payload=' + payload + '&t=' + Date.now();
+    var xhr2 = new XMLHttpRequest();
+    xhr2.open('GET', url, true);
+    xhr2.onerror = function(){ fetch(url,{mode:'no-cors'}).catch(function(){}); };
+    xhr2.send();
   }
 }
 
@@ -1927,11 +1936,15 @@ function leadsRows(){
            'Estimated AUM/SIP','Next Follow-up','Investment Products','Mode of Contact',
            'Remarks','Modified Date','Created Date'];
   return [hdr].concat(leads.map(function(l){
+    // Keep only last 3 lines of remarks (manual notes, not full log history)
+    var rem = (l.remarks||'').trim();
+    var remLines = rem ? rem.split('\n').filter(function(x){return x.trim();}) : [];
+    var shortRem = remLines.slice(-3).join('\n'); // last 3 lines max
     return [
       l.name||'', l.mobile||'', l.email||'', l.age||'', l.country||'',
       l.status||'', l.source||'', l.referral||'',
       l.aum||'', l.nextFollowUp||'', l.products||'', l.contactMode||'',
-      l.remarks||'',
+      shortRem,
       l.modifiedDate?l.modifiedDate.split('T')[0]:'',
       l.createdDate?l.createdDate.split('T')[0]:''
     ];
@@ -2080,17 +2093,13 @@ function deleteActivityEntry(mob, ts){
       var data=JSON.stringify({action:'deleteLogEntry',mobile:mob,ts:ts});
       var payload=encodeURIComponent(data);
       // Try XHR POST
+      // XHR GET — no CORS preflight, reliable for Apps Script
+      var delUrl = cfg_.scriptUrl+'?payload='+payload+'&t='+Date.now();
       var xhr=new XMLHttpRequest();
-      xhr.open('POST',cfg_.scriptUrl,true);
-      xhr.setRequestHeader('Content-Type','text/plain');
-      xhr.onload=function(){toast('Entry deleted');};
-      xhr.onerror=function(){
-        // Fallback: GET with payload
-        fetch(cfg_.scriptUrl+'?payload='+payload+'&t='+Date.now(),{mode:'no-cors'})
-          .then(function(){toast('Entry deleted');})
-          .catch(function(){toast('Deleted locally (sheet sync pending)');});
-      };
-      xhr.send(data);
+      xhr.open('GET', delUrl, true);
+      xhr.onload=function(){};
+      xhr.onerror=function(){ fetch(delUrl,{mode:'no-cors'}).catch(function(){}); };
+      xhr.send();
     }
     // Refresh panel
     var el=document.getElementById('fu-hist-'+mob)||document.getElementById('cl-hist-'+mob);
@@ -2520,27 +2529,19 @@ function makeFuItem(l,itemType){
   var mob=l.mobile;
   var lastRem='';
   var entries=getActivity(mob);
-  if(entries.length){
-    var last=entries[entries.length-1];
-    lastRem=(last.activity+(last.notes?' — '+last.notes:'')).substring(0,45)+'…';
-  } else if(l.remarks){
-    var rl=(l.remarks||'').trim().split('\n').filter(function(x){return x.trim();});
-    if(rl.length){var la=rl[rl.length-1];var mm=la.match(/^\[([^\]]+)\]\s*(.*)/);lastRem=mm?mm[2].substring(0,45)+'…':la.substring(0,45)+'…';}
-  }
+  if(entries.length){var last=entries[entries.length-1];lastRem=(last.activity||'').substring(0,45);}
   var sc=leadScore(l);var heat=leadHeat(sc);
   var fuDue=l.nextFollowUp&&daysUntil(l.nextFollowUp)<=0;
   var sColors={'PROSPECT':'#777','CONTACTED':'#999','IN PROGRESS':'#BBB'};
   var sColor=sColors[(l.status||'').toUpperCase()]||'#777';
-  var borderStyle=itemType==='overdue'?'border-left:3px solid var(--accent);':itemType==='soon'?'border-left:3px solid #666;':'';
-  var botimUrl='botim://call/'+digits;
+  var borderStyle=itemType==='overdue'?'border-left:3px solid var(--accent);':'';
   var heatTag='<span style="font-size:10px;font-weight:700;color:'+heat.color+'">'+heat.emoji+' '+heat.label+'</span>';
   var aumTag=l.aum?'<span style="font-size:9px;color:var(--accent);font-weight:700;background:var(--accent2);border:1px solid rgba(192,57,43,.25);border-radius:999px;padding:1px 5px">'+l.aum+'</span>':'';
-
-  // Default next date = tomorrow
-  var defDate=(function(){var dn=new Date();dn.setDate(dn.getDate()+1);return dn.toISOString().split('T')[0];})();
+  var curDate=l.nextFollowUp&&/^\d{4}-\d{2}-\d{2}$/.test(l.nextFollowUp)?l.nextFollowUp:'';
+  var fuColor=!curDate?'var(--t3)':fuDue?'var(--accent)':daysUntil(curDate)<=3?'#FFB300':'#888';
 
   return '<div class="fu-item" style="'+borderStyle+'">'
-    // Top row: name + days (tapping anywhere opens detail)
+    // Top row — tapping anywhere opens detail
     +'<div class="fu-row" data-action="fu-open" data-mob="'+mob+'">'
     +'<div class="av" style="width:36px;height:36px;min-width:36px;font-size:12px">'+ini(l.name)+'</div>'
     +'<div style="flex:1;min-width:0">'
@@ -2548,7 +2549,6 @@ function makeFuItem(l,itemType){
     +'<div style="display:flex;gap:4px;align-items:center;margin-top:2px;flex-wrap:wrap">'+heatTag+(aumTag?aumTag:'')+'</div>'
     +'<div style="font-size:10px;font-weight:700;color:'+sColor+';margin-top:2px">'+l.status+'</div>'
     +(lastRem?'<div style="font-size:10px;color:var(--t3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+lastRem+'</div>':'')
-    +(l.nextFollowUp?'<div style="font-size:10px;color:'+(fuDue?'var(--accent)':'#666')+';margin-top:1px">📅 '+fmt(l.nextFollowUp)+'</div>':'')
     +'</div>'
     +'<div style="font-size:11px;color:var(--accent);font-weight:700;flex-shrink:0">'+d+'d</div>'
     +'</div>'
@@ -2557,25 +2557,42 @@ function makeFuItem(l,itemType){
     +'<a href="whatsapp://send?phone='+waNum+'&text='+msg+'" class="fu-icon-btn wa" data-action="fu-wa-app" data-mob="'+mob+'">'+waIcon()+'</a>'
     +'<a href="https://web.whatsapp.com/send?phone='+waNum+'&text='+msg+'" target="_blank" class="fu-icon-btn wa">'+waIcon()+'<span style="font-size:9px">W</span></a>'
     +'<a href="tel:'+mob+'" class="fu-icon-btn call"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg></a>'
-    +'<a href="'+botimUrl+'" class="fu-icon-btn call"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg></a>'
-    // 📅 Date button — replaces "Open →"
-    +'<button class="fu-open-btn" style="background:var(--s2);color:var(--text);border-color:var(--border)" data-action="fu-set-date" data-mob="'+mob+'" data-defdate="'+defDate+'">📅 Date</button>'
+    +'<a href="botim://call/'+digits+'" class="fu-icon-btn call">📱</a>'
+    // Direct date input — tap to change, auto-saves immediately
+    +'<div style="display:flex;flex-direction:column;align-items:center;gap:2px">'
+    +'<input type="date" id="fucard-date-'+mob+'" value="'+curDate+'" '
+    +'style="width:90px;font-size:10px;font-weight:700;color:'+fuColor+';background:transparent;border:1.5px solid '+fuColor+';border-radius:6px;padding:4px 5px;cursor:pointer;-webkit-appearance:none" '
+    +'onchange="saveFuCardDate(\''+mob+'\',this.value)" '
+    +'title="Tap to change follow-up date">'
+    +(curDate?'<span style="font-size:9px;color:'+fuColor+'">'+(fuDue?'Overdue':fmt(curDate).split(' ').slice(0,2).join(' '))+'</span>':'<span style="font-size:9px;color:var(--t3)">Set date</span>')
     +'</div>'
-    // Inline date input (hidden by default, shown on 📅 Date tap)
-    +'<div id="fu-inline-date-'+mob+'" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">'
-    +'<div style="font-size:10px;color:var(--t3);margin-bottom:6px">Current: <b style="color:var(--text)">'+(l.nextFollowUp?fmt(l.nextFollowUp):'Not set')+'</b> → Set new:</div>'
-    +'<div style="display:flex;gap:6px;align-items:center">'
-    +'<input type="date" id="fu-inline-input-'+mob+'" class="fi" value="'+defDate+'" style="flex:1;padding:7px 9px;font-size:13px;font-weight:600;background:var(--bg)">'
-    +'<button class="btn btn-gold" style="padding:7px 12px;font-size:12px;flex-shrink:0" data-action="fu-confirm-date" data-mob="'+mob+'">Save</button>'
-    +'<button class="btn btn-ghost" style="padding:7px 10px;font-size:12px" data-action="fu-cancel-date" data-mob="'+mob+'">✕</button>'
     +'</div>'
-    +'<div style="display:flex;gap:4px;margin-top:6px;flex-wrap:wrap">'
-    +[['Tmrw',1],['3D',3],['10D',10],['2WK',14],['1M',30],['2M',60],['3M',90]].map(function(x){
-      var ds=new Date();ds.setDate(ds.getDate()+x[1]);var val=ds.toISOString().split('T')[0];
-      return '<button class="btn btn-ghost" style="padding:3px 7px;font-size:10px" data-action="fu-sc" data-mob="'+mob+'" data-date="'+val+'">'+x[0]+'</button>';
-    }).join('')
-    +'</div></div>'
     +'</div>';
+}
+
+// Save date from FU card directly — immediate push to sheet
+function saveFuCardDate(mob, newDate){
+  if(!newDate||!/^\d{4}-\d{2}-\d{2}$/.test(newDate)) return;
+  var l=leads.find(function(x){return x.mobile===mob;});if(!l)return;
+  l.nextFollowUp=newDate;
+  l.modifiedDate=now();
+  saveL();
+  // Push to sheet via XHR GET (reliable)
+  var payload=encodeURIComponent(JSON.stringify({action:'pushLeads',rows:leadsRows()}));
+  var url=cfg_.scriptUrl+'?payload='+payload+'&t='+Date.now();
+  var xhr=new XMLHttpRequest();
+  xhr.open('GET',url,true);
+  xhr.onerror=function(){fetch(url,{mode:'no-cors'}).catch(function(){});};
+  xhr.send();
+  toast('📅 '+fmt(newDate));
+  // Update the card colors immediately
+  var inp=document.getElementById('fucard-date-'+mob);
+  if(inp){
+    var fd=daysUntil(newDate);
+    var fc=fd<=0?'var(--accent)':fd<=3?'#FFB300':'#888';
+    inp.style.borderColor=fc;inp.style.color=fc;
+  }
+  setTimeout(function(){renderFU();},400);
 }
 
 // ── FU LIST event delegation (handles new date actions) ──
@@ -2752,28 +2769,17 @@ function saveLead(){
 
 // ── OVERRIDE pushLeads to use reliable queue ──
 function pushLeads(){
-  if(!hasScript())return;
+  if(!hasScript()) return;
   showSyncPush('leads');
-  var data={action:'pushLeads',rows:leadsRows()};
-  var payload=encodeURIComponent(JSON.stringify(data));
-  // If too long for GET, use XHR which has higher limits
-  if(payload.length>6000){
-    var xhr=new XMLHttpRequest();
-    xhr.open('POST',cfg_.scriptUrl,true);
-    xhr.setRequestHeader('Content-Type','text/plain');
-    xhr.onload=function(){showSyncPush('ok');};
-    xhr.onerror=function(){
-      // Fallback: GET with no-cors
-      fetch(cfg_.scriptUrl+'?payload='+payload+'&t='+Date.now(),{method:'GET',mode:'no-cors'})
-        .then(function(){showSyncPush('ok');})
-        .catch(function(e){showSyncPush('err');console.warn('pushLeads:',e);});
-    };
-    xhr.send(JSON.stringify(data));
-  } else {
-    fetch(cfg_.scriptUrl+'?payload='+payload+'&t='+Date.now(),{method:'GET',mode:'no-cors'})
-      .then(function(){showSyncPush('ok');})
-      .catch(function(e){showSyncPush('err');console.warn('pushLeads:',e);});
-  }
+  var payload = encodeURIComponent(JSON.stringify({action:'pushLeads', rows:leadsRows()}));
+  var url = cfg_.scriptUrl + '?payload=' + payload + '&t=' + Date.now();
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', url, true);
+  xhr.onload = function(){ showSyncPush('ok'); };
+  xhr.onerror = function(){
+    fetch(url, {mode:'no-cors'}).then(function(){showSyncPush('ok');}).catch(function(){showSyncPush('err');});
+  };
+  xhr.send();
 }
 
 // ── RELIABLE BOOTSEQUENCE with loading screen + dash landing ──
