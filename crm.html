@@ -2055,47 +2055,46 @@ function buildHistoryHtml(mob, type){
 function deleteActivityEntry(mob, ts){
   mob = String(mob||'').trim();
   ts  = String(ts||'').trim();
-  if(!mob || !ts){ toast('Cannot delete: invalid entry'); return; }
+  if(!mob||!ts){toast('Invalid entry');return;}
 
-  // Custom modal (no confirm() touch-through bug)
-  var ov = document.createElement('div');
-  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
-  ov.innerHTML = '<div style="background:var(--s1);border-radius:12px;width:100%;max-width:340px;overflow:hidden">'
-    + '<div style="padding:16px 16px 10px;font-size:14px;font-weight:800;border-bottom:1px solid var(--border)">Delete this entry?</div>'
-    + '<div style="padding:10px 16px;font-size:11px;color:var(--t2)">This will be removed from the app and the sheet.</div>'
-    + '<div style="display:flex;border-top:1px solid var(--border)">'
-    + '<button id="_del_cancel" style="flex:1;padding:13px;border:none;background:none;color:var(--t2);font-size:13px;cursor:pointer;border-right:1px solid var(--border)">Cancel</button>'
-    + '<button id="_del_ok" style="flex:1;padding:13px;border:none;background:none;color:var(--accent);font-size:13px;font-weight:700;cursor:pointer">Delete</button>'
-    + '</div></div>';
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.innerHTML='<div style="background:var(--s1);border-radius:12px;width:100%;max-width:320px;overflow:hidden">'
+    +'<div style="padding:16px;font-size:14px;font-weight:800;border-bottom:1px solid var(--border)">Delete log entry?</div>'
+    +'<div style="padding:10px 16px;font-size:11px;color:var(--t2)">Removes from app and sheet permanently.</div>'
+    +'<div style="display:flex;border-top:1px solid var(--border)">'
+    +'<button id="_dc" style="flex:1;padding:12px;border:none;background:none;color:var(--t2);cursor:pointer;border-right:1px solid var(--border)">Cancel</button>'
+    +'<button id="_dk" style="flex:1;padding:12px;border:none;background:none;color:var(--accent);font-weight:700;cursor:pointer">Delete</button>'
+    +'</div></div>';
   document.body.appendChild(ov);
-
-  document.getElementById('_del_cancel').onclick = function(){ document.body.removeChild(ov); };
-  document.getElementById('_del_ok').onclick = function(){
-    document.body.removeChild(ov);
-
-    // 1. Remove from local cache
-    activityLog = activityLog.filter(function(e){
-      return !(String(e.mobile||'').trim()===mob && String(e.ts||'').trim()===ts);
+  document.getElementById('_dc').onclick=function(){ov.remove();};
+  document.getElementById('_dk').onclick=function(){
+    ov.remove();
+    // Local remove
+    activityLog=activityLog.filter(function(e){
+      return !(String(e.mobile||'').trim()===mob&&String(e.ts||'').trim()===ts);
     });
     saveActivityLog();
-
-    // 2. Delete from sheet — send exact mobile+ts to Apps Script
-    //    Apps Script uses deleteRow() for one-to-one matching
+    // Sheet delete — try XHR first (most reliable), then no-cors GET
     if(hasScript()){
-      var payload = encodeURIComponent(JSON.stringify({
-        action: 'deleteLogEntry',
-        mobile: mob,
-        ts:     ts
-      }));
-      fetch(cfg_.scriptUrl + '?payload=' + payload + '&t=' + Date.now(), {mode:'no-cors'})
-        .catch(function(){});
+      var data=JSON.stringify({action:'deleteLogEntry',mobile:mob,ts:ts});
+      var payload=encodeURIComponent(data);
+      // Try XHR POST
+      var xhr=new XMLHttpRequest();
+      xhr.open('POST',cfg_.scriptUrl,true);
+      xhr.setRequestHeader('Content-Type','text/plain');
+      xhr.onload=function(){toast('Entry deleted');};
+      xhr.onerror=function(){
+        // Fallback: GET with payload
+        fetch(cfg_.scriptUrl+'?payload='+payload+'&t='+Date.now(),{mode:'no-cors'})
+          .then(function(){toast('Entry deleted');})
+          .catch(function(){toast('Deleted locally (sheet sync pending)');});
+      };
+      xhr.send(data);
     }
-
-    toast('Entry deleted');
-
-    // 3. Refresh history panel
-    var el = document.getElementById('fu-hist-'+mob) || document.getElementById('cl-hist-'+mob);
-    if(el){ el.innerHTML = buildHistoryHtml(mob, _detailOpenType||'lead'); el.scrollTop = el.scrollHeight; }
+    // Refresh panel
+    var el=document.getElementById('fu-hist-'+mob)||document.getElementById('cl-hist-'+mob);
+    if(el){el.innerHTML=buildHistoryHtml(mob,_detailOpenType||'lead');el.scrollTop=el.scrollHeight;}
   };
 }
 
@@ -2122,19 +2121,21 @@ function chipHtml(mob){
 
 // ── SAVE FOLLOW-UP DATE with activity log entry ──
 function saveFuDateV17(mob, newDate){
-  if(!newDate||!/^\d{4}-\d{2}-\d{2}$/.test(newDate)){toast('Pick a valid date');return;}
-  // Check 15 per day limit
+  if(!newDate||!/^\d{4}-\d{2}-\d{2}$/.test(newDate)) return;
   var sameDay=leads.filter(function(x){return x.nextFollowUp===newDate&&x.mobile!==mob;}).length;
-  if(sameDay>=15){toast('Already 15 leads on '+fmt(newDate)+'! Postpone.',4000);return;}
+  if(sameDay>=15){toast('Already 15 leads on '+fmt(newDate)+'! Pick another day.',4000);return;}
   var l=leads.find(function(x){return x.mobile===mob;});if(!l)return;
-  var oldDate=l.nextFollowUp||'';
-  // Update lead (no activity log for date changes per user preference)
   l.nextFollowUp=newDate;
   l.modifiedDate=now();
   saveL(); pushLeads();
-  toast('Follow-up set: '+fmt(newDate));
-  // Re-render detail panel and leads list
-  if(_detailOpenMobile===mob) renderFuDetailInner(mob);
+  toast('✅ Follow-up: '+fmt(newDate));
+  // Refresh the date display color
+  var dateInp=document.getElementById('fnd-'+mob);
+  if(dateInp){
+    var fd=daysUntil(newDate);
+    var fc=fd<=0?'var(--accent)':fd<=3?'#FFB300':'#888';
+    dateInp.style.borderColor=fc;dateInp.style.color=fc;
+  }
   setTimeout(function(){renderFU();renderLeads();},300);
 }
 
@@ -2142,67 +2143,40 @@ function saveFuDateV17(mob, newDate){
 function renderFuDetailInner(mob){
   var l=leads.find(function(x){return x.mobile===mob;});if(!l)return;
   var d=daysAgo(l.modifiedDate||l.createdDate);
-  var defNext=(function(){var dn=new Date();dn.setDate(dn.getDate()+7);return dn.toISOString().split('T')[0];})();
   var hasCurrent=!!(l.nextFollowUp&&/^\d{4}-\d{2}-\d{2}$/.test(l.nextFollowUp));
   var fuDays=hasCurrent?daysUntil(l.nextFollowUp):null;
-  var fuLabel=hasCurrent?(fuDays<0?Math.abs(fuDays)+' days overdue':fuDays===0?'Due today':fuDays+' days away'):'Not set';
-  var fuColor=!hasCurrent?'var(--t3)':fuDays<=0?'var(--accent)':fuDays<=3?'#AAA':'#888';
-  var sc=leadScore(l);var heat=leadHeat(sc);
-  var ref=(l.referral||'').toUpperCase().trim();
-  var age=parseInt(l.age||0);
-  var aum_sc=AUM_SCORE_MAP[l.aum||'']||0;
-
-  // Score card
-  var scoreHtml='<div style="display:flex;align-items:center;gap:10px;margin:10px 14px 0">'
-    +'<div style="flex:1;background:'+heat.color+'14;border:1px solid '+heat.color+'30;border-radius:var(--r);padding:10px 12px">'
-    +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
-    +'<span style="font-size:20px">'+heat.emoji+'</span>'
-    +'<div><div style="font-size:14px;font-weight:900;color:'+heat.color+'">'+heat.label+' Lead</div>'
-    +'<div style="font-size:11px;color:'+heat.color+'">'+sc+' pts'+(l.aum?' · '+l.aum:'')+'</div></div></div>'
-    +'<div style="display:flex;flex-wrap:wrap;gap:3px">'
-    +(ref&&ref!=='SELF'?'<span style="font-size:9px;background:var(--s2);color:var(--t2);border-radius:999px;padding:2px 7px;border:1px solid var(--border)">Referral +30</span>':'')
-    +(age>=35&&age<=55?'<span style="font-size:9px;background:var(--s2);color:var(--t2);border-radius:999px;padding:2px 7px;border:1px solid var(--border)">Age 35-55 +15</span>':'')
-    +(aum_sc>0?'<span style="font-size:9px;background:var(--s2);color:var(--t2);border-radius:999px;padding:2px 7px;border:1px solid var(--border)">AUM +'+aum_sc+'</span>':'')
-    +'</div></div></div>';
+  var fuColor=!hasCurrent?'var(--t3)':fuDays<=0?'var(--accent)':fuDays<=3?'#FFB300':'#888';
 
   // Status tabs
   var statusOpts=[['PROSPECT','#C0C0C0'],['CONTACTED','#4FC3F7'],['IN PROGRESS','#FFB300'],['CONVERTED','#C0392B'],['DROPPED','#888888']];
   var statusHtml='<div style="display:flex;overflow-x:auto;scrollbar-width:none;border-bottom:2px solid var(--border);padding:0 14px">'
     +statusOpts.map(function(x){
       var active=(l.status||'').toUpperCase()===x[0];
-      return '<button style="flex-shrink:0;border:none;padding:8px 10px;font-size:10px;font-weight:800;cursor:pointer;border-bottom:3px solid '+(active?x[1]:'transparent')+';margin-bottom:-2px;background:'+(active?x[1]+'22':'transparent')+';color:'+(active?x[1]:'#666');
+      return '<button style="flex-shrink:0;border:none;padding:8px 9px;font-size:10px;font-weight:800;cursor:pointer;border-bottom:3px solid '+(active?x[1]:'transparent')+';margin-bottom:-2px;background:'+(active?x[1]+'22':'transparent')+';color:'+(active?x[1]:'#666')+';transition:all .15s" data-action="fu-status" data-mob="'+mob+'" data-status="'+x[0]+'">'+x[0].charAt(0)+x[0].slice(1).toLowerCase()+'</button>';
     }).join('')+'</div>';
 
-  // Mode of contact chips
+  // Mode of contact — COMPACT 3-per-row wrap grid
   var modes=['Not contacted','Phone','WhatsApp','Botim','Physically met','Zoom/GMeet'];
-  var modeIcons={'Not contacted':'🚫','Phone':'📞','WhatsApp':'💬','Botim':'📱','Physically met':'🤝','Zoom/GMeet':'📹'};
-  var modeColors={'Not contacted':'#888','Phone':'#AAA','WhatsApp':'#25D366','Botim':'#00B4D8','Physically met':'#FFB300','Zoom/GMeet':'#4FC3F7'};
+  var modeEmoji={'Not contacted':'🚫','Phone':'📞','WhatsApp':'💬','Botim':'📱','Physically met':'🤝','Zoom/GMeet':'📹'};
+  var modeColors={'Not contacted':'#777','Phone':'#AAA','WhatsApp':'#25D366','Botim':'#00B4D8','Physically met':'#FFB300','Zoom/GMeet':'#4FC3F7'};
   var curMode=l.contactMode||'Not contacted';
-  var modeHtml='<div style="padding:8px 14px 4px;border-bottom:1px solid var(--border);background:var(--s2)">'
-    +'<div style="font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Mode of contact</div>'
-    +'<div style="display:flex;overflow-x:auto;scrollbar-width:none;gap:5px;padding-bottom:6px">'
+  var modeHtml='<div style="padding:8px 10px 6px;border-bottom:1px solid var(--border);background:var(--s2)">'
+    +'<div style="font-size:9px;color:var(--t3);text-transform:uppercase;font-weight:700;letter-spacing:.4px;margin-bottom:5px">Contact mode</div>'
+    +'<div style="display:flex;flex-wrap:wrap;gap:4px">'
     +modes.map(function(m){
       var isCur=curMode===m;var col=modeColors[m];
-      return '<button style="flex-shrink:0;border:2px solid '+(isCur?col:'var(--border)')+';border-radius:999px;padding:4px 10px;font-size:10px;font-weight:'+(isCur?'800':'600')+';cursor:pointer;background:'+(isCur?col+'22':'transparent')+';color:'+(isCur?col:'var(--t3)')+';white-space:nowrap" data-action="fu-mode" data-mob="'+mob+'" data-mode="'+m+'">'+(modeIcons[m]||'')+' '+m+'</button>';
+      return '<button style="flex:0 0 calc(33% - 3px);border:1.5px solid '+(isCur?col:'var(--border)')+';border-radius:6px;padding:4px 4px;font-size:10px;font-weight:'+(isCur?'700':'500')+';cursor:pointer;background:'+(isCur?col+'18':'transparent')+';color:'+(isCur?col:'var(--t3)')+';text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" data-action="fu-mode" data-mob="'+mob+'" data-mode="'+m+'">'+(modeEmoji[m]||'')+' '+m+'</button>';
     }).join('')+'</div></div>';
 
-  // Activity log
+  // Activity history
   var histHtml=buildHistoryHtml(mob,'lead');
 
   // Chips
   var chipsHtml=V17_CHIPS.map(function(c){
-    return '<div class="qlog-chip" style="padding:5px 9px;font-size:11px" data-action="fu-qlog" data-mob="'+mob+'" data-note="'+c[0]+' '+c[1]+'">'+c[0]+' '+c[1]+'</div>';
+    return '<div class="qlog-chip" style="padding:4px 8px;font-size:11px" data-action="fu-qlog" data-mob="'+mob+'" data-note="'+c[0]+' '+c[1]+'">'+c[0]+' '+c[1]+'</div>';
   }).join('');
 
-  // Date shortcuts
-  var shortcuts=[['Tmrw',1],['3D',3],['10D',10],['2WK',14],['1M',30],['2M',60],['3M',90]];
-  var shortHtml='<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:8px">'
-    +shortcuts.map(function(x){
-      var ds=new Date();ds.setDate(ds.getDate()+x[1]);var val=ds.toISOString().split('T')[0];
-      return '<button class="btn btn-ghost" style="padding:5px 9px;font-size:11px" onclick="document.getElementById(\'fnd-'+mob+'\').value=\''+val+'\'">'+x[0]+'</button>';
-    }).join('')+'</div>';
-
-  // Contact buttons (WA App, WA Web, Call, Botim, Meet — NO auto-logging)
+  // Contact buttons
   var digits=(l.mobile||'').replace(/\D/g,'');
   var waNum=digits.length===10?'91'+digits:digits;
   var wmsg=encodeURIComponent(waMsg(l));
@@ -2212,60 +2186,68 @@ function renderFuDetailInner(mob){
   var fcc=function(dd){return dd.toISOString().replace(/[-:]/g,'').split('.')[0]+'Z';};
   var meetUrl='https://calendar.google.com/calendar/render?action=TEMPLATE&text='+meetTitle+'&dates='+fcc(ms2)+'/'+fcc(me2)+'&add=meet';
 
+  // Follow-up date: direct tappable date input
+  var curFuDate=hasCurrent?l.nextFollowUp:'';
+  var fuDisplayHtml='<div style="padding:10px 14px;border-bottom:1px solid var(--border);background:var(--s2)">'
+    +'<div style="font-size:9px;color:var(--t3);text-transform:uppercase;font-weight:700;letter-spacing:.4px;margin-bottom:6px">📅 Next follow-up</div>'
+    +'<div style="position:relative">'
+    // Native date input styled to look like a big date button
+    +'<input type="date" id="fnd-'+mob+'" value="'+curFuDate+'" '
+    +'style="width:100%;padding:10px 12px;font-size:16px;font-weight:800;color:'+(hasCurrent?fuColor:'var(--t3)')+';background:var(--bg);border:2px solid '+(hasCurrent?fuColor:'var(--border)')+';border-radius:var(--r2);box-sizing:border-box;cursor:pointer;-webkit-appearance:none" '
+    +'onchange="saveFuDateV17(\''+mob+'\',this.value)">'
+    +'</div>'
+    +'<div style="font-size:10px;color:'+fuColor+';margin-top:4px;font-weight:600">'+(hasCurrent?(fuDays<0?Math.abs(fuDays)+' days overdue':fuDays===0?'Due today':fuDays+' days away'):'Tap to set date')+'</div>'
+    +'</div>';
+
   var html=
     '<div class="sh-handle"></div>'
+    // Header
     +'<div style="padding:12px 14px 8px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)">'
-    +'<div><div style="font-size:16px;font-weight:800">'+toTitle(l.name)+'</div>'
-    +'<div style="font-size:10px;color:var(--accent);font-weight:700;margin-top:2px">'+d+' days since last activity</div></div>'
-    +'<button class="sh-x" onclick="checkUnsavedNoteAndClose()">✕</button></div>'
+    +'<div>'
+    +'<div style="font-size:16px;font-weight:800">'+toTitle(l.name)+'</div>'
+    +(l.aum?'<div style="font-size:10px;font-weight:700;color:var(--accent);margin-top:2px">💰 '+l.aum+(l.source?' · '+l.source:'')+'</div>':'')
+    +'<div style="font-size:10px;color:var(--t3);margin-top:1px">'+d+' days since last activity</div>'
+    +'</div>'
+    +'<button class="sh-x" onclick="checkUnsavedNoteAndClose()">✕</button>'
+    +'</div>'
+    // Status tabs
     +statusHtml
+    // Mode of contact (compact wrap)
     +modeHtml
-    +scoreHtml
-    // Contact buttons — quick action links only, no activity logging
-    +'<div style="display:flex;gap:5px;padding:10px 14px 0">'
-    +'<a href="whatsapp://send?phone='+waNum+'&text='+wmsg+'" class="btn btn-wa" style="flex:1;text-decoration:none;font-size:10px;padding:7px 3px;justify-content:center;gap:3px">'+waIcon()+' App</a>'
-    +'<a href="https://web.whatsapp.com/send?phone='+waNum+'&text='+wmsg+'" target="_blank" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:10px;padding:7px 3px;justify-content:center;gap:3px;border-color:#25D366;color:#25D366">'+waIcon()+' Web</a>'
-    +'<a href="tel:'+l.mobile+'" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:10px;padding:7px 3px;justify-content:center">📞 Call</a>'
-    +'<a href="botim://call/'+digits+'" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:10px;padding:7px 3px;justify-content:center">📱 Botim</a>'
-    +'<a href="'+meetUrl+'" target="_blank" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:10px;padding:7px 3px;justify-content:center">📹 Meet</a>'
+    // Follow-up date (tappable, auto-saves)
+    +fuDisplayHtml
+    // Contact quick actions
+    +'<div style="display:flex;gap:5px;padding:8px 14px;border-bottom:1px solid var(--border)">'
+    +'<a href="whatsapp://send?phone='+waNum+'&text='+wmsg+'" class="btn btn-wa" style="flex:1;text-decoration:none;font-size:10px;padding:6px 3px;justify-content:center;gap:2px">'+waIcon()+' App</a>'
+    +'<a href="https://web.whatsapp.com/send?phone='+waNum+'&text='+wmsg+'" target="_blank" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:10px;padding:6px 3px;justify-content:center;gap:2px;border-color:#25D366;color:#25D366">'+waIcon()+' Web</a>'
+    +'<a href="tel:'+l.mobile+'" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:10px;padding:6px 3px;justify-content:center">📞 Call</a>'
+    +'<a href="botim://call/'+digits+'" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:10px;padding:6px 3px;justify-content:center">📱 Botim</a>'
+    +'<a href="'+meetUrl+'" target="_blank" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:10px;padding:6px 3px;justify-content:center">📹 Meet</a>'
     +'</div>'
-    // Follow-up date
-    +'<div style="margin:10px 14px 0;border:1px solid var(--border);border-radius:var(--r);overflow:hidden">'
-    +'<div style="background:var(--s2);padding:10px 12px;border-bottom:1px solid var(--border)">'
-    +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin-bottom:4px">📅 Follow-up date</div>'
-    +'<div style="font-size:18px;font-weight:900;color:'+fuColor+'">'+(hasCurrent?fmt(l.nextFollowUp):'Not set')+'</div>'
-    +'<div style="font-size:11px;color:'+fuColor+';margin-top:2px;font-weight:600">'+fuLabel+'</div>'
-    +'</div>'
-    +'<div style="background:var(--s1);padding:10px 12px">'
-    +'<div style="font-size:10px;font-weight:700;color:var(--t3);margin-bottom:7px">Set new date</div>'
-    +'<div style="display:flex;gap:6px">'
-    +'<input type="date" id="fnd-'+mob+'" class="fi" value="'+defNext+'" style="flex:1;padding:9px 11px;font-size:14px;font-weight:700;color:var(--text);background:var(--bg)">'
-    +'<button class="btn btn-gold" style="padding:9px 14px;font-size:12px;flex-shrink:0;font-weight:700" onclick="saveFuDateV17(\''+mob+'\',document.getElementById(\'fnd-'+mob+'\').value)">💾 Save</button>'
-    +'</div>'
-    +shortHtml+'</div></div>'
     // Activity log
-    +'<div style="padding:10px 14px 0">'
-    +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin-bottom:6px">📋 Activity log <span style="font-size:9px;font-weight:400">(tap × to delete)</span></div>'
-    +'<div id="fu-hist-'+mob+'" style="max-height:160px;overflow-y:auto;background:var(--bg);border:1px solid var(--border);border-radius:var(--r2);padding:8px 10px">'+histHtml+'</div>'
+    +'<div style="padding:8px 14px 0">'
+    +'<div style="font-size:9px;color:var(--t3);text-transform:uppercase;font-weight:700;letter-spacing:.4px;margin-bottom:5px">📋 Activity log <span style="font-weight:400;text-transform:none">(× to delete)</span></div>'
+    +'<div id="fu-hist-'+mob+'" style="max-height:150px;overflow-y:auto;background:var(--bg);border:1px solid var(--border);border-radius:var(--r2);padding:6px 8px">'+histHtml+'</div>'
     +'</div>'
     // Log now
-    +'<div style="padding:10px 14px 0">'
-    +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin-bottom:7px">⚡ Log now</div>'
-    +'<div class="qlog-grid" style="margin-bottom:8px">'+chipsHtml+'</div>'
+    +'<div style="padding:8px 14px 0">'
+    +'<div style="font-size:9px;color:var(--t3);text-transform:uppercase;font-weight:700;letter-spacing:.4px;margin-bottom:5px">⚡ Log now</div>'
+    +'<div class="qlog-grid" style="margin-bottom:6px">'+chipsHtml+'</div>'
     +'<div style="display:flex;gap:6px">'
-    +'<input class="fi" id="fu-note-input-'+mob+'" placeholder="Custom note…" style="flex:1;padding:8px 10px;font-size:13px;background:var(--bg)">'
-    +'<button class="btn btn-gold" style="padding:8px 12px;font-size:12px;flex-shrink:0" data-action="fu-save-note" data-mob="'+mob+'">Log →</button>'
+    +'<input class="fi" id="fu-note-input-'+mob+'" placeholder="Custom note…" style="flex:1;padding:7px 10px;font-size:13px;background:var(--bg)">'
+    +'<button class="btn btn-gold" style="padding:7px 11px;font-size:12px;flex-shrink:0" data-action="fu-save-note" data-mob="'+mob+'">Log →</button>'
     +'</div></div>'
-    // Delete lead
-    +'<div style="padding:10px 14px 20px">'
-    +'<button class="btn btn-red" style="width:100%;font-size:12px" data-action="fu-delete" data-mob="'+mob+'">🗑️ Delete this lead</button>'
+    // Bottom actions: Edit + Delete
+    +'<div style="display:flex;gap:8px;padding:10px 14px 20px">'
+    +'<button class="btn btn-ghost" style="flex:1;font-size:12px;border-color:#4FC3F7;color:#4FC3F7" data-action="fu-edit" data-mob="'+mob+'">✏️ Edit Lead</button>'
+    +'<button class="btn btn-red" style="flex:1;font-size:12px" data-action="fu-delete" data-mob="'+mob+'">🗑️ Delete</button>'
     +'</div>';
 
   document.getElementById('fu-detail-sh').innerHTML=html;
   var histEl=document.getElementById('fu-hist-'+mob);
   if(histEl) histEl.scrollTop=histEl.scrollHeight;
 
-  // Event delegation — NO auto-logging for contact buttons
+  // Event delegation
   document.getElementById('fu-detail-sh').onclick=function(e){
     var btn=e.target.closest('[data-action]');if(!btn)return;
     var action=btn.dataset.action;var m=btn.dataset.mob;
@@ -2285,14 +2267,25 @@ function renderFuDetailInner(mob){
       var l2=leads.find(function(x){return x.mobile===m;});
       if(!l2)return;
       l2.contactMode=btn.dataset.mode;l2.modifiedDate=now();
-      saveL();pushLeads();
-      renderFuDetailInner(m);toast('Mode: '+btn.dataset.mode);
+      saveL();pushLeads();renderFuDetailInner(m);
     }
     if(action==='fu-status') quickStatus(m,btn.dataset.status);
     if(action==='del-log') deleteActivityEntry(btn.dataset.delmob||m, btn.dataset.delts||'');
+    if(action==='fu-edit'){
+      // Close popup, open edit lead form pre-filled
+      closeFuDetail();
+      setTimeout(function(){editLeadOpen(m);},150);
+    }
     if(action==='fu-delete'){
       var ln=leads.find(function(x){return x.mobile===m;});
-      if(ln&&confirm('Delete '+toTitle(ln.name)+'?')){deleteLead(m);closeFuDetail();}
+      if(ln){
+        var ov2=document.createElement('div');
+        ov2.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+        ov2.innerHTML='<div style="background:var(--s1);border-radius:12px;width:100%;max-width:320px;overflow:hidden"><div style="padding:16px;font-size:14px;font-weight:800;border-bottom:1px solid var(--border)">Delete '+toTitle(ln.name)+'?</div><div style="display:flex;border-top:1px solid var(--border)"><button id="_ld_no" style="flex:1;padding:12px;border:none;background:none;color:var(--t2);cursor:pointer;border-right:1px solid var(--border)">Cancel</button><button id="_ld_yes" style="flex:1;padding:12px;border:none;background:none;color:var(--accent);font-weight:700;cursor:pointer">Delete</button></div></div>';
+        document.body.appendChild(ov2);
+        document.getElementById('_ld_no').onclick=function(){ov2.remove();};
+        document.getElementById('_ld_yes').onclick=function(){ov2.remove();deleteLead(m);closeFuDetail();};
+      }
     }
   };
 }
