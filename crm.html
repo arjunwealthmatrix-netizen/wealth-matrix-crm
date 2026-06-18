@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="WM CRM">
-<title>Wealth Matrix CRM v2.0</title>
+<title>Wealth Matrix CRM v2.1</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -52,12 +52,12 @@
 }
 html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;overscroll-behavior:none;-webkit-font-smoothing:antialiased;transition:background .2s,color .2s}
 #app{display:flex;flex-direction:column;height:100vh;height:100dvh;max-width:520px;margin:0 auto;position:relative;overflow-x:hidden}
-#content{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:calc(84px + env(safe-area-inset-bottom, 10px))}
-#nav{position:fixed;bottom:0;left:0;right:0;background:rgba(12,20,32,.97);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--border);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom,4px)}
+#content{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:calc(90px + env(safe-area-inset-bottom, 10px))}
+#nav{position:fixed;bottom:calc(8px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);width:calc(100% - 28px);max-width:460px;background:rgba(12,20,32,.97);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid var(--border2);border-radius:16px;display:flex;z-index:100;box-shadow:0 6px 22px rgba(0,0,0,.32);overflow:hidden}
 .dark-mode #nav{background:rgba(248,250,252,.97)}
-.nb{flex:1;padding:9px 2px 7px;display:flex;flex-direction:column;align-items:center;gap:3px;border:none;background:none;color:var(--t3);cursor:pointer;font-size:10px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;transition:color .15s;min-width:0;position:relative;-webkit-user-select:none;user-select:none}
+.nb{flex:1;padding:8px 2px 6px;display:flex;flex-direction:column;align-items:center;gap:2px;border:none;background:none;color:var(--t3);cursor:pointer;font-size:9px;font-weight:700;letter-spacing:.2px;text-transform:uppercase;transition:color .15s;min-width:0;position:relative;-webkit-user-select:none;user-select:none}
 .nb.active{color:var(--accent)}
-.nb svg{width:23px;height:23px;flex-shrink:0}
+.nb svg{width:21px;height:21px;flex-shrink:0}
 .nb-badge{position:absolute;top:4px;right:calc(50% - 14px);background:var(--red);color:#fff;font-size:9px;font-weight:800;min-width:16px;height:16px;border-radius:999px;display:flex;align-items:center;justify-content:center;padding:0 3px}
 .page{display:none}
 .page.active{display:block}
@@ -292,7 +292,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div style="display:flex;align-items:center;gap:8px">
       <button onclick="toggleDark()" style="background:none;border:none;cursor:pointer;font-size:16px" id="dark-btn">🌙</button>
       <button onclick="manualSync()" style="background:none;border:none;cursor:pointer;font-size:16px">🔄</button>
-      <span style="font-size:9px;font-weight:700;color:var(--accent);background:var(--accent2);padding:2px 7px;border-radius:999px;border:1px solid var(--accent)">v2.0</span>
+      <span style="font-size:9px;font-weight:700;color:var(--accent);background:var(--accent2);padding:2px 7px;border-radius:999px;border:1px solid var(--accent)">v2.1</span>
     </div>
   </div>
   <div style="display:flex;gap:10px;padding:0 14px 12px">
@@ -319,7 +319,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   <div class="sec" id="dash-alert"></div>
   <div class="sec" id="goal-section-wrap"></div>
   <div class="sec"><div class="lbl" style="color:var(--accent)">⭐ North Star Matrix</div><div class="card ns-wrap"><table class="ns-table" id="ns-table"></table></div></div>
-  <div class="sec"><div class="lbl">Analytics</div><div class="ana-grid" id="analytics"></div></div>
 
 
 
@@ -353,8 +352,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div><h1>Clients</h1><div class="sub" id="clients-sub"></div></div>
     <button class="btn btn-gold" style="padding:7px 12px;font-size:12px" onclick="openAddClient()">+ Add</button>
   </div>
-  <div style="padding:0 12px 9px;position:sticky;top:0;z-index:20;background:var(--bg)"><input class="sbox" id="client-search" placeholder="Search clients…" oninput="renderClients()"></div>
-  <div id="client-list" style="padding-bottom:24px"></div>
+  <div style="padding:0 12px 9px"><input class="sbox" id="client-search" placeholder="Search clients…" oninput="renderClients()"></div>
+  <div id="client-list"></div>
 </div>
 
 <!-- SYNC -->
@@ -1558,14 +1557,16 @@ function writeData(data){
     if(logSh2&&logSh2.getLastRow()>1){
       var lr2=logSh2.getLastRow();
       var mob2=String(data.mobile||'').trim();
+      var name2=String(data.name||'').trim().toLowerCase();
       var ts2=normTs(data.ts);
       var act2=String(data.activity||'').trim();
       var vals=logSh2.getRange(2,1,lr2-1,6).getValues();
       if(data.action==='deleteLogEntry'&&ts2){
+        // Match a single row by NAME (col B) + timestamp (col A). Mobile is NOT used.
         var target=-1,fallback=-1;
         for(var ri=vals.length-1;ri>=0;ri--){
           var rv=vals[ri];
-          if(String(rv[2]||'').trim()!==mob2)continue;
+          if(name2&&String(rv[1]||'').trim().toLowerCase()!==name2)continue;
           if(normTs(rv[0])!==ts2)continue;
           if(fallback<0)fallback=ri;
           if(act2&&String(rv[4]||'').trim()===act2){target=ri;break;}
@@ -1573,8 +1574,28 @@ function writeData(data){
         var del=(target>=0)?target:fallback;
         if(del>=0)logSh2.deleteRow(del+2);
       }else{
+        // Bulk delete (whole-lead removal) still uses mobile.
         for(var ri2=vals.length-1;ri2>=0;ri2--){
           if(String(vals[ri2][2]||'').trim()===mob2)logSh2.deleteRow(ri2+2);
+        }
+      }
+    }
+    return out({success:true});
+  }
+
+  if(data.action==='updateLeadField'){
+    var lsh=ss.getSheetByName(LEADS_TAB);
+    if(lsh&&lsh.getLastRow()>1){
+      var mobU=String(data.mobile||'').trim();
+      var lrU=lsh.getLastRow();
+      var mobCol=lsh.getRange(2,2,lrU-1,1).getValues();
+      for(var ui=0;ui<mobCol.length;ui++){
+        if(String(mobCol[ui][0]||'').trim()===mobU){
+          var rowNum=ui+2;
+          var colN=parseInt(data.col)||0;
+          if(colN>0){var cell=lsh.getRange(rowNum,colN);cell.setNumberFormat('@');cell.setValue(String(data.value||''));}
+          var mc=lsh.getRange(rowNum,14);mc.setNumberFormat('@');mc.setValue(String(data.modified||'').substring(0,10));
+          break;
         }
       }
     }
@@ -1622,7 +1643,7 @@ function testConnection(){Logger.log('OK: '+SpreadsheetApp.openById(SHEET_ID).ge
   var ov=document.createElement('div');
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:flex-end;justify-content:center;padding:10px';
   ov.innerHTML='<div style="background:var(--s1);border-radius:12px;width:100%;max-width:540px;max-height:90vh;overflow-y:auto;padding:16px">'
-    +'<div style="font-weight:800;font-size:14px;margin-bottom:6px;color:var(--accent)">Apps Script v2.0 (reliable row delete) — Copy &amp; REDEPLOY</div>'
+    +'<div style="font-weight:800;font-size:14px;margin-bottom:6px;color:var(--accent)">Apps Script v2.1 (instant J/L sync + name-based log delete) — Copy &amp; REDEPLOY</div>'
     +'<div style="font-size:11px;color:var(--t2);margin-bottom:8px;background:var(--s2);padding:8px;border-radius:6px">'
     +'⚠️ You MUST redeploy for activity-log sync to work.<br>'
     +'1. script.google.com → Your project → Select all → Delete → Paste this → Save<br>'
@@ -1722,6 +1743,8 @@ function nav(name,btn){
   var pg=document.getElementById('pg-'+name);
   if(pg) pg.classList.add('active');
   if(btn) btn.classList.add('active');
+  // Always land at the top of the freshly-shown page (scroll position otherwise persists across tabs)
+  var ct=document.getElementById('content'); if(ct) ct.scrollTop=0;
   // Render on page switch
   if(name==='analytics') renderAnalytics();
   if(name==='clients'){ renderClients(); setTimeout(addSearchClose,100); }
@@ -2264,24 +2287,23 @@ function deleteActivityEntry(mob, ts){
     ov.remove();
     // Normalize timestamps for comparison (handles both old DD/MM/YYYY and new YYYY-MM-DD formats)
     var normTgt=ts.replace(/\//g,'-').substring(0,16);
-    // Capture the activity text of the entry being deleted so the sheet can match
-    // the EXACT row (guards against two entries sharing the same minute).
+    // Capture the NAME and activity text of the entry being deleted so the sheet can
+    // match the exact row by NAME + timestamp (mobile is intentionally not used).
     var matched=activityLog.filter(function(e){
       var ets=String(e.ts||'').trim().replace(/\//g,'-').substring(0,16);
       return String(e.mobile||'').trim()===mob && ets===normTgt;
     });
     var actText=matched.length?String(matched[0].activity||''):'';
+    var nameText=matched.length?String(matched[0].name||''):'';
     // Local remove
     activityLog=activityLog.filter(function(e){
       var ets=String(e.ts||'').trim().replace(/\//g,'-').substring(0,16);
       return !(String(e.mobile||'').trim()===mob && ets===normTgt);
     });
     saveActivityLog();
-    // Sheet delete — reliable no-cors GET (same pattern as deleteLogFromSheet / pushLeads).
-    // The old CORS XMLHttpRequest could not complete against Apps Script's redirect,
-    // so deletes never reached the sheet.
+    // Sheet delete — reliable no-cors GET. Matches on NAME + timestamp server-side.
     if(hasScript()){
-      var data=JSON.stringify({action:'deleteLogEntry',mobile:mob,ts:ts,activity:actText});
+      var data=JSON.stringify({action:'deleteLogEntry',name:nameText,ts:ts,activity:actText,mobile:mob});
       var payload=encodeURIComponent(data);
       var delUrl = cfg_.scriptUrl+'?payload='+payload+'&t='+Date.now();
       fetch(delUrl,{method:'GET',mode:'no-cors'}).catch(function(){});
@@ -2321,7 +2343,7 @@ function saveFuDateV17(mob, newDate){
   var l=leads.find(function(x){return x.mobile===mob;});if(!l)return;
   l.nextFollowUp=newDate;
   l.modifiedDate=now();
-  saveL(); pushLeads();
+  saveL(); updateLeadField(mob,10,newDate); // Column J = Next Follow-up (instant)
   toast('✅ Follow-up: '+fmt(newDate));
   // Refresh the date display color
   var dateInp=document.getElementById('fnd-'+mob);
@@ -2461,7 +2483,9 @@ function renderFuDetailInner(mob){
       var l2=leads.find(function(x){return x.mobile===m;});
       if(!l2)return;
       l2.contactMode=btn.dataset.mode;l2.modifiedDate=now();
-      saveL();pushLeads();renderFuDetailInner(m);
+      saveL();
+      updateLeadField(m,12,l2.contactMode); // Column L = Mode of Contact (instant)
+      renderFuDetailInner(m);
     }
     if(action==='fu-status') quickStatus(m,btn.dataset.status);
     if(action==='del-log') deleteActivityEntry(btn.dataset.delmob||m, btn.dataset.delts||'');
@@ -2488,7 +2512,7 @@ function renderFuDetailInner(mob){
 
 
 // Version marker
-var APP_VERSION='2.0';
+var APP_VERSION='2.1';
 
 
 
@@ -2762,13 +2786,7 @@ function saveFuCardDate(mob, newDate){
   l.nextFollowUp=newDate;
   l.modifiedDate=now();
   saveL();
-  // Push to sheet via XHR GET (reliable)
-  var payload=encodeURIComponent(JSON.stringify({action:'pushLeads',rows:leadsRows()}));
-  var url=cfg_.scriptUrl+'?payload='+payload+'&t='+Date.now();
-  var xhr=new XMLHttpRequest();
-  xhr.open('GET',url,true);
-  xhr.onerror=function(){fetch(url,{mode:'no-cors'}).catch(function(){});};
-  xhr.send();
+  updateLeadField(mob,10,newDate); // Column J = Next Follow-up (instant)
   toast('📅 '+fmt(newDate));
   // Update the card colors immediately
   var inp=document.getElementById('fucard-date-'+mob);
@@ -2953,6 +2971,15 @@ function saveLead(){
 }
 
 // ── OVERRIDE pushLeads to use reliable queue ──
+// Instant targeted update of ONE lead cell in the sheet (by mobile), without
+// rewriting the whole tab. col is 1-indexed: 10=Next Follow-up (J), 12=Mode of Contact (L).
+function updateLeadField(mob, col, value){
+  if(!hasScript()) return;
+  var data=JSON.stringify({action:'updateLeadField',mobile:String(mob||'').trim(),col:col,value:String(value||''),modified:today()});
+  var url=cfg_.scriptUrl+'?payload='+encodeURIComponent(data)+'&t='+Date.now();
+  fetch(url,{method:'GET',mode:'no-cors'}).catch(function(){});
+}
+
 function pushLeads(){
   if(!hasScript()) return;
   showSyncPush('leads');
