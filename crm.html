@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="WM CRM">
-<title>Wealth Matrix CRM v1.9</title>
+<title>Wealth Matrix CRM v2.0</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -292,7 +292,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div style="display:flex;align-items:center;gap:8px">
       <button onclick="toggleDark()" style="background:none;border:none;cursor:pointer;font-size:16px" id="dark-btn">🌙</button>
       <button onclick="manualSync()" style="background:none;border:none;cursor:pointer;font-size:16px">🔄</button>
-      <span style="font-size:9px;font-weight:700;color:var(--accent);background:var(--accent2);padding:2px 7px;border-radius:999px;border:1px solid var(--accent)">v1.9</span>
+      <span style="font-size:9px;font-weight:700;color:var(--accent);background:var(--accent2);padding:2px 7px;border-radius:999px;border:1px solid var(--accent)">v2.0</span>
     </div>
   </div>
   <div style="display:flex;gap:10px;padding:0 14px 12px">
@@ -1517,6 +1517,9 @@ function readTab(t){
       return String(c).trim();
     });
   });
+  // For the activity log, keep the full minute-precision timestamp (the generic
+  // mapper above reduces Dates to date-only, which would break delete matching).
+  if(t===LOG_TAB){for(var i=1;i<cleaned.length;i++){cleaned[i][0]=normTs(raw[i][0]);}}
   return out({rows:cleaned});
 }
 
@@ -1559,14 +1562,16 @@ function writeData(data){
       var act2=String(data.activity||'').trim();
       var vals=logSh2.getRange(2,1,lr2-1,6).getValues();
       if(data.action==='deleteLogEntry'&&ts2){
+        var target=-1,fallback=-1;
         for(var ri=vals.length-1;ri>=0;ri--){
           var rv=vals[ri];
           if(String(rv[2]||'').trim()!==mob2)continue;
           if(normTs(rv[0])!==ts2)continue;
-          if(act2&&String(rv[4]||'').trim()!==act2)continue;
-          logSh2.deleteRow(ri+2);
-          break;
+          if(fallback<0)fallback=ri;
+          if(act2&&String(rv[4]||'').trim()===act2){target=ri;break;}
         }
+        var del=(target>=0)?target:fallback;
+        if(del>=0)logSh2.deleteRow(del+2);
       }else{
         for(var ri2=vals.length-1;ri2>=0;ri2--){
           if(String(vals[ri2][2]||'').trim()===mob2)logSh2.deleteRow(ri2+2);
@@ -1617,7 +1622,7 @@ function testConnection(){Logger.log('OK: '+SpreadsheetApp.openById(SHEET_ID).ge
   var ov=document.createElement('div');
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:flex-end;justify-content:center;padding:10px';
   ov.innerHTML='<div style="background:var(--s1);border-radius:12px;width:100%;max-width:540px;max-height:90vh;overflow-y:auto;padding:16px">'
-    +'<div style="font-weight:800;font-size:14px;margin-bottom:6px;color:var(--accent)">Apps Script v1.9 (Activity Log sync fix) — Copy &amp; REDEPLOY</div>'
+    +'<div style="font-weight:800;font-size:14px;margin-bottom:6px;color:var(--accent)">Apps Script v2.0 (reliable row delete) — Copy &amp; REDEPLOY</div>'
     +'<div style="font-size:11px;color:var(--t2);margin-bottom:8px;background:var(--s2);padding:8px;border-radius:6px">'
     +'⚠️ You MUST redeploy for activity-log sync to work.<br>'
     +'1. script.google.com → Your project → Select all → Delete → Paste this → Save<br>'
@@ -2483,7 +2488,7 @@ function renderFuDetailInner(mob){
 
 
 // Version marker
-var APP_VERSION='1.9';
+var APP_VERSION='2.0';
 
 
 
