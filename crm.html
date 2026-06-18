@@ -321,6 +321,17 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   <div id="fu-list"></div>
 </div>
 
+<!-- ANALYTICS -->
+<div class="page" id="pg-analytics">
+  <div class="ph"><h1>Analytics</h1><div id="ana-sub" class="sub"></div></div>
+  <div class="sec"><div class="lbl">Contact rate (last 30 days)</div><div class="card" id="ana-contact-rate"></div></div>
+  <div class="sec"><div class="lbl">Monthly trend — leads contacted</div><div class="card" style="padding:14px" id="ana-trend"></div></div>
+  <div class="sec"><div class="lbl">Country — leads count</div><div class="card" style="padding:12px" id="ana-country"></div></div>
+  <div class="sec"><div class="lbl">Age groups</div><div class="card" style="padding:12px" id="ana-age"></div></div>
+  <div class="sec"><div class="lbl">Mode of contact</div><div class="card" style="padding:12px" id="ana-mode"></div></div>
+  <div class="sec"><div class="lbl">Drop reasons</div><div class="card" style="padding:12px" id="ana-drop"></div></div>
+</div>
+
 <!-- CLIENTS -->
 <div class="page" id="pg-clients">
   <div class="ph">
@@ -408,7 +419,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 <nav id="nav">
   <button class="nb" onclick="nav('leads',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>Leads</button>
   <button class="nb active" onclick="nav('dash',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dash</button>
-  <button class="nb" onclick="nav('fu',this)" id="nav-fu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>Follow-up</button>
+  <button class="nb" onclick="nav('analytics',this)" id="nav-analytics"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Analytics</button>
   <button class="nb" onclick="nav('clients',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Clients</button>
   <button class="nb" onclick="nav('sync',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg>Sync</button>
   <button class="nb" onclick="nav('settings',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Settings</button>
@@ -455,6 +466,16 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         <option value="50-100L">Lumpsum 50–100L</option>
         <option value="25-50L">Lumpsum 25–50L</option>
         <option value="<25L">Lumpsum &lt; 25L</option>
+      </select>
+    </div>
+    <div class="fg"><label class="fl">Mode of contact</label>
+      <select class="fi fi-sel" id="lf-mode">
+        <option value="Not contacted">Not contacted</option>
+        <option value="Phone">Phone</option>
+        <option value="WhatsApp">WhatsApp</option>
+        <option value="Botim">Botim</option>
+        <option value="Physically met">Physically met</option>
+        <option value="Zoom/GMeet">Zoom/GMeet</option>
       </select>
     </div>
     <div class="fg"><label class="fl">Next follow-up date</label><input class="fi" id="lf-followup" type="date"></div>
@@ -951,8 +972,91 @@ function openDetail(mob,type){
     }
     return; // skip the detail-sh render below
   }
-    document.getElementById('detail-sh').innerHTML=html;
+    // ── CLIENT DETAIL ──
+  var c = rec;
+  var histHtml = buildHistoryHtml(mob,'client');
+  var digits = (c.mobile||'').replace(/\D/g,'');
+  var waNum = digits.length===10?'91'+digits:digits;
+  var wmsg = encodeURIComponent('Hello '+toTitle(c.name)+', this is Arjun from Wealth Matrix Finserv.');
+  html = '<div class="sh-handle"></div>'
+    + '<div style="padding:12px 14px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)">'
+    + '<div><div style="font-size:16px;font-weight:800;color:var(--text)">'+toTitle(c.name)+'</div>'
+    + '<div style="font-size:10px;color:var(--green);font-weight:700;margin-top:2px">✅ CLIENT</div></div>'
+    + '<button class="sh-x" data-action="close-client">✕</button></div>'
+    // Contact buttons
+    + '<div style="display:flex;gap:5px;padding:10px 14px 0">'
+    + '<a href="whatsapp://send?phone='+waNum+'&text='+wmsg+'" class="btn btn-wa" style="flex:1;text-decoration:none;font-size:10px;padding:7px 3px;justify-content:center">'+waIcon()+' App</a>'
+    + '<a href="https://web.whatsapp.com/send?phone='+waNum+'&text='+wmsg+'" target="_blank" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:10px;padding:7px 3px;justify-content:center;border-color:#25D366;color:#25D366">'+waIcon()+' Web</a>'
+    + '<a href="tel:'+c.mobile+'" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:10px;padding:7px 3px;justify-content:center">📞 Call</a>'
+    + '<a href="botim://call/'+digits+'" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:10px;padding:7px 3px;justify-content:center">📱 Botim</a>'
+    + '</div>'
+    // Info grid
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 14px 0">'
+    + (c.mobile?'<div style="background:var(--s2);border-radius:var(--r2);padding:8px 10px"><div style="font-size:9px;color:var(--t3);text-transform:uppercase">Mobile</div><div style="font-size:12px;font-weight:700;margin-top:2px">'+c.mobile+'</div></div>':'')
+    + (c.email?'<div style="background:var(--s2);border-radius:var(--r2);padding:8px 10px"><div style="font-size:9px;color:var(--t3);text-transform:uppercase">Email</div><div style="font-size:12px;font-weight:700;margin-top:2px">'+c.email+'</div></div>':'')
+    + (c.country?'<div style="background:var(--s2);border-radius:var(--r2);padding:8px 10px"><div style="font-size:9px;color:var(--t3);text-transform:uppercase">Country</div><div style="font-size:12px;font-weight:700;margin-top:2px">'+c.country+'</div></div>':'')
+    + (c.products?'<div style="background:var(--s2);border-radius:var(--r2);padding:8px 10px;grid-column:span 2"><div style="font-size:9px;color:var(--t3);text-transform:uppercase">Products</div><div style="font-size:12px;font-weight:700;margin-top:2px">'+c.products+'</div></div>':'')
+    + (c.convertedDate?'<div style="background:var(--s2);border-radius:var(--r2);padding:8px 10px"><div style="font-size:9px;color:var(--t3);text-transform:uppercase">Client since</div><div style="font-size:12px;font-weight:700;margin-top:2px">'+fmt(c.convertedDate)+'</div></div>':'')
+    + '</div>'
+    // Activity log
+    + '<div style="padding:10px 14px 0">'
+    + '<div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--t3);margin-bottom:6px;letter-spacing:.5px">📋 Activity log</div>'
+    + '<div id="cl-hist-'+mob+'" style="max-height:160px;overflow-y:auto;background:var(--bg);border:1px solid var(--border);border-radius:var(--r2);padding:8px 10px">'+histHtml+'</div>'
+    + '</div>'
+    // Log now
+    + '<div style="padding:10px 14px 0">'
+    + '<div class="qlog-grid" style="margin-bottom:8px">'+chipHtml(mob)+'</div>'
+    + '<div style="display:flex;gap:6px">'
+    + '<input class="fi" id="cl-note-'+mob+'" placeholder="Log a note..." style="flex:1;padding:8px 10px;font-size:13px;background:var(--bg)">'
+    + '<button class="btn btn-gold" style="padding:8px 12px;font-size:12px" data-action="log-client-note" data-mob="'+mob+'">Log →</button>'
+    + '</div></div>'
+    + '<div style="padding:10px 14px 20px">'
+    + '<button class="btn btn-ghost btn-full" style="font-size:12px" data-action="edit-client" data-mob="'+mob+'">✏️ Edit client</button>'
+    + '</div>';
+  document.getElementById('detail-sh').innerHTML = html;
   document.getElementById('ov-detail').classList.add('open');
+  // Event delegation for client popup
+  document.getElementById('detail-sh').onclick = function(e){
+    var btn = e.target.closest('[data-action]'); if(!btn) return;
+    var action = btn.dataset.action;
+    if(action==='close-client-detail'||action==='close-client') closeOv('ov-detail');
+    if(action==='edit-client') editClientOpen(btn.dataset.mob||mob);
+    if(action==='log-client-note'){
+      var inp=document.getElementById('cl-note-'+(btn.dataset.mob||mob));
+      var txt=(inp?inp.value:'').trim(); if(!txt){toast('Type a note');return;}
+      logActivity(btn.dataset.mob||mob,'client',txt,'');
+      if(inp)inp.value='';
+      var el=document.getElementById('cl-hist-'+(btn.dataset.mob||mob));
+      if(el){el.innerHTML=buildHistoryHtml(btn.dataset.mob||mob,'client');el.scrollTop=el.scrollHeight;}
+      toast('Logged');
+    }
+    if(action==='fu-qlog'){
+      logActivity(btn.dataset.mob||mob,'client',btn.dataset.note,'');
+      btn.style.background='var(--accent)';btn.style.color='#fff';
+      setTimeout(function(){btn.style.background='';btn.style.color='';},800);
+      var el2=document.getElementById('cl-hist-'+(btn.dataset.mob||mob));
+      setTimeout(function(){if(el2){el2.innerHTML=buildHistoryHtml(btn.dataset.mob||mob,'client');el2.scrollTop=el2.scrollHeight;}},350);
+    }
+  };
+  // Pull fresh activity
+  if(hasScript()){
+    var hEl = document.getElementById('cl-hist-'+mob);
+    if(hEl) hEl.innerHTML='<div style="color:var(--t3);font-size:11px;text-align:center;padding:8px">🔄 Loading...</div>';
+    pullLeadActivity(mob).then(function(){
+      var el2=document.getElementById('cl-hist-'+mob);
+      if(el2){el2.innerHTML=buildHistoryHtml(mob,'client');el2.scrollTop=el2.scrollHeight;}
+    });
+  }
+}
+
+function logClientNote(mob){
+  var inp=document.getElementById('cl-note-'+mob);
+  var txt=(inp?inp.value:'').trim(); if(!txt)return;
+  logActivity(mob,'client',txt,'');
+  if(inp)inp.value='';
+  var el=document.getElementById('cl-hist-'+mob);
+  if(el){el.innerHTML=buildHistoryHtml(mob,'client');el.scrollTop=el.scrollHeight;}
+  toast('Logged');
 }
 
 // ═══════════════════════════════════════════════
@@ -1347,21 +1451,23 @@ function closeOv(id){
 }
 document.querySelectorAll('.ov').forEach(function(o){o.addEventListener('click',function(e){if(e.target===o){if(o.id==='ov-fu-detail')closeFuDetail();else closeOv(o.id);}});});
 function fabAdd(){var activePage=document.querySelector('.page.active');if(activePage&&activePage.id==='pg-clients')openAddClient();else openAddLead();}
-function renderAll(){renderDash();renderLeads();renderFU();renderClients();}
+function renderAll(){
+  renderDash();renderLeads();renderFU();renderClients();
+  var anaPage=document.getElementById('pg-analytics');
+  if(anaPage&&anaPage.classList.contains('active')) renderAnalytics();
+  setTimeout(addSearchClose,100);
+}
 function nav(name,btn){
   document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
   document.querySelectorAll('.nb').forEach(function(b){b.classList.remove('active');});
-  document.getElementById('pg-'+name).classList.add('active');
-  if(btn)btn.classList.add('active');
-  var fab=document.getElementById('fab-add');
-  if(fab)fab.classList.toggle('hidden',name!=='leads'&&name!=='clients');
-  // Show/hide bottom search bar based on active page
-  var bsl=document.getElementById('bottom-search-bar');
-  var bsc=document.getElementById('bottom-search-clients');
-  if(bsl)bsl.style.display=(name==='leads')?'block':'none';
-  if(bsc)bsc.style.display=(name==='clients')?'block':'none';
-  var r={dash:renderDash,leads:renderLeads,fu:renderFU,clients:renderClients,sync:renderSync,settings:renderSettings};
-  if(r[name])r[name]();
+  var pg=document.getElementById('pg-'+name);
+  if(pg) pg.classList.add('active');
+  if(btn) btn.classList.add('active');
+  // Render on page switch
+  if(name==='analytics') renderAnalytics();
+  if(name==='dash'){renderDash();setTimeout(addSearchClose,100);}
+  if(name==='leads') setTimeout(addSearchClose,100);
+  if(name==='clients') setTimeout(addSearchClose,100);
 }
 
 // ═══════════════════════════════════════════════
@@ -1728,13 +1834,14 @@ async function pullActivityLog(){
 // Modified Date(11) Created Date(12)
 function leadsRows(){
   var hdr=['Name','Mobile','Email','Age','Country','Status','Source','Referred By',
-           'Estimated AUM/SIP','Next Follow-up','Investment Products','Remarks',
-           'Modified Date','Created Date'];
+           'Estimated AUM/SIP','Next Follow-up','Investment Products','Mode of Contact',
+           'Remarks','Modified Date','Created Date'];
   return [hdr].concat(leads.map(function(l){
     return [
       l.name||'', l.mobile||'', l.email||'', l.age||'', l.country||'',
       l.status||'', l.source||'', l.referral||'',
-      l.aum||'', l.nextFollowUp||'', l.products||'', l.remarks||'',
+      l.aum||'', l.nextFollowUp||'', l.products||'', l.contactMode||'',
+      l.remarks||'',
       l.modifiedDate?l.modifiedDate.split('T')[0]:'',
       l.createdDate?l.createdDate.split('T')[0]:''
     ];
@@ -1856,20 +1963,35 @@ function buildHistoryHtml(mob, type){
 }
 
 function deleteActivityEntry(mob, ts){
-  if(!confirm('Delete this log entry?')) return;
   mob = String(mob||'').trim();
   ts  = String(ts||'').trim();
-  // Remove locally
-  activityLog = activityLog.filter(function(e){
-    return !(String(e.mobile||'').trim()===mob && String(e.ts||'').trim()===ts);
-  });
-  saveActivityLog();
-  // Delete from sheet
-  sheetPost({ action:'deleteLogEntry', mobile:mob, ts:ts });
-  toast('Entry deleted');
-  // Refresh panel
-  var el = document.getElementById('fu-hist-'+mob);
-  if(el){ el.innerHTML = buildHistoryHtml(mob, _detailOpenType||'lead'); el.scrollTop = el.scrollHeight; }
+  if(!mob || !ts){ toast('Invalid entry'); return; }
+  // Use custom modal — avoids touch-through that triggers lead deletion
+  var ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.innerHTML = '<div style="background:var(--s1);border-radius:12px;width:100%;max-width:340px;overflow:hidden">'
+    + '<div style="padding:16px 16px 10px;font-size:14px;font-weight:800;border-bottom:1px solid var(--border)">Delete log entry?</div>'
+    + '<div style="padding:10px 16px;font-size:12px;color:var(--t2)">This entry will be deleted from the app and the sheet permanently.</div>'
+    + '<div style="display:flex;border-top:1px solid var(--border)">'
+    + '<button id="del-cancel" style="flex:1;padding:13px;border:none;background:none;color:var(--t2);font-size:13px;cursor:pointer;border-right:1px solid var(--border)">Cancel</button>'
+    + '<button id="del-confirm" style="flex:1;padding:13px;border:none;background:none;color:var(--accent);font-size:13px;font-weight:700;cursor:pointer">Delete</button>'
+    + '</div></div>';
+  document.body.appendChild(ov);
+  document.getElementById('del-cancel').onclick = function(){ document.body.removeChild(ov); };
+  document.getElementById('del-confirm').onclick = function(){
+    document.body.removeChild(ov);
+    // Remove from local cache
+    activityLog = activityLog.filter(function(e){
+      return !(String(e.mobile||'').trim()===mob && String(e.ts||'').trim()===ts);
+    });
+    saveActivityLog();
+    // Delete from sheet
+    sheetPost({ action:'deleteLogEntry', mobile:mob, ts:ts });
+    toast('Entry deleted');
+    // Refresh panel
+    var el = document.getElementById('fu-hist-'+mob);
+    if(el){ el.innerHTML = buildHistoryHtml(mob, _detailOpenType||'lead'); el.scrollTop = el.scrollHeight; }
+  };
 }
 
 // ── NEW CHIPS (v1.7) ──
@@ -1967,6 +2089,21 @@ function renderFuDetailInner(mob){
       return '<button style="flex-shrink:0;border:none;padding:8px 10px;font-size:10px;font-weight:800;cursor:pointer;border-bottom:3px solid '+(active?x[1]:'transparent')+';margin-bottom:-2px;background:'+(active?x[1]+'22':'transparent')+';color:'+(active?x[1]:'#666')+';transition:all .15s;border-radius:'+(active?'6px 6px 0 0':'0')+'" data-action="fu-status" data-mob="'+mob+'" data-status="'+x[0]+'">'+x[0].charAt(0)+x[0].slice(1).toLowerCase()+'</button>';
     }).join('')+'</div>';
 
+  // Mode of contact chips — shown below status tabs
+  var modes=['Not contacted','Phone','WhatsApp','Botim','Physically met','Zoom/GMeet'];
+  var modeIcons={'Not contacted':'🚫','Phone':'📞','WhatsApp':'💬','Botim':'📱','Physically met':'🤝','Zoom/GMeet':'📹'};
+  var modeColors={'Not contacted':'#888','Phone':'#AAA','WhatsApp':'#25D366','Botim':'#00B4D8','Physically met':'#FFB300','Zoom/GMeet':'#4FC3F7'};
+  var curMode=l.contactMode||'Not contacted';
+  var modeHtml='<div style="padding:8px 14px 4px;border-bottom:1px solid var(--border);background:var(--s2)">'
+    +'<div style="font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Mode of contact</div>'
+    +'<div style="display:flex;overflow-x:auto;scrollbar-width:none;gap:5px;padding-bottom:6px">'
+    +modes.map(function(m){
+      var isCur=curMode===m;
+      var col=modeColors[m];
+      return '<button style="flex-shrink:0;border:2px solid '+(isCur?col:'var(--border)')+';border-radius:999px;padding:4px 10px;font-size:10px;font-weight:'+(isCur?'800':'600')+';cursor:pointer;background:'+(isCur?col+'22':'transparent')+';color:'+(isCur?col:'var(--t3)')+';white-space:nowrap;transition:all .2s" data-action="fu-mode" data-mob="'+mob+'" data-mode="'+m+'">'+(modeIcons[m]||'')+'&nbsp;'+m+'</button>';
+    }).join('')
+    +'</div></div>';
+
   // Contact buttons
   var digits=(l.mobile||'').replace(/\D/g,'');
   var waNum=digits.length===10?'91'+digits:digits;
@@ -1984,6 +2121,7 @@ function renderFuDetailInner(mob){
     +'<div style="font-size:10px;color:var(--accent);font-weight:700;margin-top:2px">'+d+' days since last activity</div></div>'
     +'<button class="sh-x" onclick="checkUnsavedNoteAndClose()">✕</button></div>'
     +statusHtml
+    +modeHtml
     +scoreHtml
     // Contact buttons
     +'<div style="display:flex;gap:5px;padding:10px 14px 0">'
@@ -2067,6 +2205,20 @@ function renderFuDetailInner(mob){
       setTimeout(function(){var el=document.getElementById('fu-hist-'+m);if(el){el.innerHTML=buildHistoryHtml(m,'lead');el.scrollTop=el.scrollHeight;}},350);
     }
     if(action==='fu-status') quickStatus(m,btn.dataset.status);
+    if(action==='fu-mode'){
+      var l2=leads.find(function(x){return x.mobile===m;});
+      if(!l2) return;
+      var oldMode=l2.contactMode||'Not contacted';
+      var newMode=btn.dataset.mode;
+      if(oldMode===newMode) return;
+      l2.contactMode=newMode;
+      l2.modifiedDate=now();
+      logActivity(m,'lead','Mode of contact changed: '+oldMode+' → '+newMode,'');
+      saveL(); pushLeads();
+      // Re-render mode chips only
+      renderFuDetailInner(m);
+      toast('Mode updated: '+newMode);
+    }
     if(action==='fu-delete'){
       var ln=leads.find(function(x){return x.mobile===m;});
       if(ln&&confirm('Delete '+toTitle(ln.name)+'?')){deleteLead(m);closeFuDetail();}
@@ -2182,28 +2334,33 @@ function renderCountryLeadsChart(){
 
 // ── OVERRIDE renderDash to include country leads chart + last sync ──
 function renderDash(){
-  // Date header
-  var el=document.getElementById('dash-date');
-  if(el)el.textContent='📅 '+new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   // Last sync
   var lsEl=document.getElementById('last-sync-time');
-  if(lsEl&&cfg_.lastSyncDisplay)lsEl.textContent='Last sync: '+cfg_.lastSyncDisplay;
+  if(lsEl&&cfg_.lastSyncDisplay) lsEl.textContent='Last sync: '+cfg_.lastSyncDisplay;
 
   renderGoals();
 
-  // Overdue alert
+  // Follow-up due banner
   var fd=parseInt(cfg_.followUpDays)||14;
   var overdue=leads.filter(function(l){
     if(!['PROSPECT','CONTACTED','IN PROGRESS'].includes((l.status||'').toUpperCase()))return false;
-    if(l.nextFollowUp)return daysUntil(l.nextFollowUp)<=0;
+    if(l.nextFollowUp&&/^\d{4}-\d{2}-\d{2}$/.test(l.nextFollowUp)) return daysUntil(l.nextFollowUp)<=0;
     return daysAgo(l.modifiedDate||l.createdDate)>=fd;
   }).length;
   var alertEl=document.getElementById('dash-alert');
-  if(alertEl)alertEl.innerHTML=overdue>0
-    ?'<div class="alert" onclick="nav(\'fu\',document.querySelectorAll(\'.nb\')[2])"><div style="font-size:17px">🔔</div><div><div style="font-weight:700;font-size:12px;color:var(--orange)">'+overdue+' follow-up'+(overdue>1?'s':'')+' due</div><div style="font-size:11px;color:var(--t2)">Tap to open Follow-ups →</div></div></div>'
-    :'';
+  if(alertEl) alertEl.innerHTML=overdue>0
+    ?'<div class="alert" onclick="openFuOverlay()" style="cursor:pointer">'
+      +'<div style="font-size:20px">🔔</div>'
+      +'<div style="flex:1"><div style="font-weight:800;font-size:13px;color:var(--orange)">'+overdue+' follow-up'+(overdue>1?'s':'')+' due today</div>'
+      +'<div style="font-size:11px;color:var(--t2);margin-top:2px">Tap to view → prioritised by value</div></div>'
+      +'<div style="font-size:12px;color:var(--accent);font-weight:700">›</div>'
+      +'</div>'
+    :'<div style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--s1);border-radius:var(--r);border:1px solid var(--border)">'
+      +'<div style="font-size:18px">🎉</div>'
+      +'<div style="font-size:12px;color:var(--t2)">All follow-ups done for today!</div>'
+      +'</div>';
 
-  // North Star Matrix
+  // North Star Matrix only
   var nsRows=[
     {l:'Total Leads',s:'Total',c:'var(--accent)',cl:'row-total'},
     {l:'Prospect',s:'PROSPECT',c:'#888',cl:''},
@@ -2213,54 +2370,78 @@ function renderDash(){
     {l:'Dropped',s:'DROPPED',c:'#555',cl:''}
   ];
   var cols=[{k:'total',h:'Total'},{k:'ftd',h:'FTD'},{k:'wtd',h:'WTD'},{k:'mtd',h:'MTD'},{k:'ytd',h:'YTD'}];
+  var convLeads=leads.filter(function(l){return (l.status||'').toUpperCase()==='CONVERTED'&&l.createdDate;});
+  var avgCycleDays=convLeads.length?Math.round(convLeads.reduce(function(s,l){return s+Math.max(0,Math.floor((new Date(l.modifiedDate||l.createdDate)-new Date(l.createdDate))/86400000));},0)/convLeads.length):null;
   var nt='<thead><tr><th></th>'+cols.map(function(c){return '<th>'+c.h+'</th>';}).join('')+'</tr></thead><tbody>';
   nsRows.forEach(function(r){
     nt+='<tr class="'+r.cl+'"><td style="color:'+r.c+'">'+r.l+'</td>';
     cols.forEach(function(c){var n=nsCount(leads,r.s,c.k);nt+='<td><span class="ns-num'+(n===0?' zero':'')+'">'+n+'</span></td>';});
     nt+='</tr>';
   });
-  var convLeads=leads.filter(function(l){return (l.status||'').toUpperCase()==='CONVERTED'&&l.createdDate;});
-  var avgCycleDays=convLeads.length?Math.round(convLeads.reduce(function(sum,l){return sum+Math.max(0,Math.floor((new Date(l.modifiedDate||l.createdDate)-new Date(l.createdDate))/86400000));},0)/convLeads.length):null;
-  nt+='<tr style="border-top:2px solid var(--border)"><td style="color:var(--green);font-weight:700">⏱ Avg Cycle</td><td colspan="5" style="text-align:center;color:var(--green);font-size:15px;font-weight:900">'+(avgCycleDays!==null?avgCycleDays+'d':'—')+'</td></tr>';
+  nt+='<tr style="border-top:2px solid var(--border)"><td style="color:var(--green);font-weight:700">⏱ Avg cycle</td><td colspan="5" style="text-align:center;color:var(--green);font-size:15px;font-weight:900">'+(avgCycleDays!==null?avgCycleDays+'d':'—')+'</td></tr>';
   var nsEl=document.getElementById('ns-table');if(nsEl)nsEl.innerHTML=nt+'</tbody>';
 
-  // Analytics
-  var total=leads.length;
-  var conv=leads.filter(function(l){return (l.status||'').toUpperCase()==='CONVERTED';}).length;
-  var drop=leads.filter(function(l){return (l.status||'').toUpperCase()==='DROPPED';}).length;
-  var thirtyAgo=new Date();thirtyAgo.setDate(thirtyAgo.getDate()-30);
-  var recentCont=leads.filter(function(l){return (l.status||'').toUpperCase()==='CONTACTED'&&new Date(l.modifiedDate||l.createdDate)>=thirtyAgo;}).length;
-  var convRate=total?Math.round(conv/total*100):0;
-  var dropRate=total?Math.round(drop/total*100):0;
-  var avgPerWeek=(recentCont/4.3).toFixed(1);
-  var anaEl=document.getElementById('analytics');
-  if(anaEl)anaEl.innerHTML=
-    '<div class="ana-card"><div class="ana-val" style="color:var(--accent)">'+avgPerWeek+'</div><div class="ana-lbl">Contacted/week</div></div>'
-    +'<div class="ana-card"><div class="ana-val" style="color:#AAA">'+convRate+'%</div><div class="ana-lbl">Conversion rate</div></div>'
-    +'<div class="ana-card"><div class="ana-val" style="color:var(--accent)">'+dropRate+'%</div><div class="ana-lbl">Drop rate</div></div>'
-    +'<div class="ana-card"><div class="ana-val" style="color:#888">'+(avgCycleDays!==null?avgCycleDays+'d':'—')+'</div><div class="ana-lbl">Avg cycle</div></div>';
-
-  // Monthly trend (Contacted per calendar month)
-  var months=[];for(var i=5;i>=0;i--){var d=new Date();d.setMonth(d.getMonth()-i);months.push({y:d.getFullYear(),m:d.getMonth(),lbl:d.toLocaleDateString('en-IN',{month:'short'})});}
-  var mCounts=months.map(function(mo){return leads.filter(function(l){var d2=new Date(l.createdDate||'');return (l.status||'').toUpperCase()==='CONTACTED'&&d2.getFullYear()===mo.y&&d2.getMonth()===mo.m;}).length;});
-  var maxM=Math.max.apply(null,mCounts.concat([1]));
-  var tbEl=document.getElementById('trend-bars');
-  if(tbEl)tbEl.innerHTML=months.map(function(mo,i){return '<div class="trend-col"><div class="trend-n">'+(mCounts[i]||'')+'</div><div class="trend-bar" style="height:'+Math.max(mCounts[i]/maxM*68,mCounts[i]>0?4:0)+'px"></div><div class="trend-lbl">'+mo.lbl+'</div></div>';}).join('');
-
-  // Country chart (leads — count only)
-  var cc={};leads.forEach(function(l){var c=(l.country||'Not set').toUpperCase().trim();if(!cc[c])cc[c]=0;cc[c]++;});
-  var sortedC=Object.entries(cc).sort(function(a,b){return b[1]-a[1];});
-  var ctEl=document.getElementById('country-chart');
-  if(ctEl)ctEl.innerHTML=sortedC.length?sortedC.map(function(x){return '<div class="fn-row"><div class="fn-lbl" style="font-size:11px;font-weight:700">'+x[0]+'</div><div class="fn-track"><div class="fn-bar" style="width:'+x[1]/(sortedC[0][1]||1)*100+'%;background:var(--accent)">&nbsp;</div></div><div class="fn-n" style="color:var(--accent);font-size:13px;font-weight:800">'+x[1]+'</div></div>';}).join(''):'<div style="color:var(--t3);font-size:11px">No data</div>';
-
-  // Age chart
-  var ageGroups=[['<25',0,24],['25-34',25,34],['35-44',35,44],['45-54',45,54],['55+',55,120]];
-  var ageCounts=ageGroups.map(function(g){return leads.filter(function(l){var a=parseInt(l.age||0);return a>=g[1]&&a<=g[2];}).length;});
-  var mxA=Math.max.apply(null,ageCounts.concat([1]));
-  var ageEl=document.getElementById('age-chart');
-  if(ageEl)ageEl.innerHTML=ageGroups.map(function(g,i){return '<div class="fn-row"><div class="fn-lbl" style="font-size:10px">'+g[0]+' yrs</div><div class="fn-track"><div class="fn-bar" style="width:'+ageCounts[i]/mxA*100+'%;background:var(--accent)">&nbsp;</div></div><div class="fn-n" style="color:var(--accent)">'+ageCounts[i]+'</div></div>';}).join('');
-
   updateFUBadge();
+  // Show popup for leads/clients not physically met in 1+ year
+  checkPhysicalMeetReminder();
+}
+
+function checkPhysicalMeetReminder(){
+  var oneYearAgo=new Date();
+  oneYearAgo.setFullYear(oneYearAgo.getFullYear()-1);
+  // Find active leads/clients where contactMode is NOT 'Physically met' for 1+ year
+  // OR where contactMode is 'Physically met' but lastMet > 1 year ago (check activity log)
+  var notMet=leads.filter(function(l){
+    if(['DROPPED','CONVERTED'].includes((l.status||'').toUpperCase())) return false;
+    // Check if they've been physically met in last year via activity log
+    var entries=getActivity(l.mobile);
+    var recentMeet=entries.find(function(e){
+      return (e.activity||'').toLowerCase().includes('physically met')&&new Date(e.ts.split(' ')[0].split('/').reverse().join('-'))>oneYearAgo;
+    });
+    if(recentMeet) return false;
+    // Also check contactMode
+    if(l.contactMode==='Physically met'){
+      // Has been met but check when
+      var modDate=new Date(l.modifiedDate||l.createdDate);
+      return modDate<oneYearAgo;
+    }
+    // Never met and lead is old enough
+    var createDate=new Date(l.createdDate||l.modifiedDate);
+    return createDate<oneYearAgo;
+  });
+  var notMetClients=clients.filter(function(c){
+    var entries=getActivity(c.mobile);
+    var recentMeet=entries.find(function(e){
+      return (e.activity||'').toLowerCase().includes('physically met')&&new Date(e.ts.split(' ')[0].split('/').reverse().join('-'))>oneYearAgo;
+    });
+    if(recentMeet) return false;
+    var convDate=new Date(c.convertedDate||'');
+    return convDate<oneYearAgo;
+  });
+  var total=notMet.length+notMetClients.length;
+  if(!total) return;
+  // Only show once per session
+  if(window._physMetShown) return;
+  window._physMetShown=true;
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:flex-end;justify-content:center;padding:10px';
+  var listHtml=notMet.slice(0,5).map(function(l){return '<div style="padding:6px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between"><span style="font-size:12px;font-weight:700">'+toTitle(l.name)+'</span><span style="font-size:11px;color:var(--t3)">Lead · '+daysAgo(l.modifiedDate||l.createdDate)+'d ago</span></div>';}).join('');
+  listHtml+=notMetClients.slice(0,5).map(function(c){return '<div style="padding:6px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between"><span style="font-size:12px;font-weight:700">'+toTitle(c.name)+'</span><span style="font-size:11px;color:var(--green)">Client</span></div>';}).join('');
+  if(total>10) listHtml+='<div style="font-size:11px;color:var(--t3);padding:6px 0">…and '+(total-10)+' more</div>';
+  ov.innerHTML='<div style="background:var(--s1);border-radius:16px 16px 0 0;width:100%;max-width:520px;border-top:3px solid #FFB300">'
+    +'<div style="padding:14px 16px 10px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)">'
+    +'<div style="font-size:24px">🤝</div>'
+    +'<div><div style="font-size:14px;font-weight:800;color:#FFB300">Physical meeting overdue</div>'
+    +'<div style="font-size:11px;color:var(--t2);margin-top:2px">'+total+' lead'+(total>1?'s/clients':'/client')+' not met physically in 1+ year</div></div>'
+    +'<button id="phys-close" style="margin-left:auto;background:none;border:none;font-size:18px;color:var(--t3);cursor:pointer">✕</button>'
+    +'</div>'
+    +'<div style="padding:10px 16px;max-height:220px;overflow-y:auto">'+listHtml+'</div>'
+    +'<div style="padding:10px 16px 20px">'
+    +'<button id="phys-ok" class="btn btn-gold btn-full" style="font-size:13px">Got it — will schedule meetings</button>'
+    +'</div></div>';
+  document.body.appendChild(ov);
+  document.getElementById('phys-close').onclick=function(){ov.remove();};
+  document.getElementById('phys-ok').onclick=function(){ov.remove();};
 }
 
 // ── FOLLOW-UP CARD: Set Date button replaces Open → ──
@@ -2459,6 +2640,7 @@ function editLeadOpen(mob){
   var srcEl=document.getElementById('lf-source');if(srcEl)srcEl.value=l.source||'';
   var refEl=document.getElementById('lf-referral');if(refEl)refEl.value=l.referral||'SELF';
   var aumEl=document.getElementById('lf-aum');if(aumEl)aumEl.value=l.aum||'';
+  var modeEl2=document.getElementById('lf-mode');if(modeEl2)modeEl2.value=l.contactMode||'Not contacted';
   var defNext=(function(){var d=new Date();d.setDate(d.getDate()+7);return d.toISOString().split('T')[0];})();
   var fuEl=document.getElementById('lf-followup');if(fuEl)fuEl.value=l.nextFollowUp||defNext;
   document.querySelectorAll('#ov-lead .pt').forEach(function(t){t.classList.toggle('on',!!(l.products&&l.products.toUpperCase().includes(t.dataset.p)));});
@@ -2475,6 +2657,7 @@ function saveLead(){
   var refEl=document.getElementById('lf-referral');var referral=refEl?refEl.value.trim()||'SELF':'SELF';
   var aumEl=document.getElementById('lf-aum');var aum=aumEl?aumEl.value:'';
   var cEl=document.getElementById('lf-country');var country=caps(cEl?cEl.value:'');
+  var modeEl=document.getElementById('lf-mode');var contactMode=modeEl?modeEl.value:'';
   var nextFU=document.getElementById('lf-followup')?document.getElementById('lf-followup').value:'';
   var noteText=caps(document.getElementById('lf-rem')?document.getElementById('lf-rem').value.trim():'');
   if(nextFU){
@@ -2484,14 +2667,14 @@ function saveLead(){
   if(editLead){
     var idx=leads.findIndex(function(l){return l.mobile===editLead;});if(idx<0)return;
     var prev=(leads[idx].status||'PROSPECT').toUpperCase();
-    leads[idx]=Object.assign({},leads[idx],{name:name,mobile:mob,email:caps(document.getElementById('lf-email').value),country:country,age:document.getElementById('lf-age').value,gender:caps(document.getElementById('lf-gender')?document.getElementById('lf-gender').value:''),status:status,source:source,referral:referral,products:prods,aum:aum,nextFollowUp:nextFU,modifiedDate:now()});
+    leads[idx]=Object.assign({},leads[idx],{name:name,mobile:mob,email:caps(document.getElementById('lf-email').value),country:country,age:document.getElementById('lf-age').value,gender:caps(document.getElementById('lf-gender')?document.getElementById('lf-gender').value:''),status:status,source:source,referral:referral,products:prods,aum:aum,contactMode:contactMode,nextFollowUp:nextFU,modifiedDate:now()});
     if(prev!==status){leads[idx].remarks=appendRemark(migrateRemarks(leads[idx].remarks||''),'Status changed: '+prev+' → '+status);}
     if(noteText)leads[idx].remarks=appendRemark(leads[idx].remarks||'',noteText);
     saveL();if(status==='CONVERTED'&&prev!=='CONVERTED')autoConvert(leads[idx]);
     toast('Lead updated');
   } else {
     if(leads.find(function(l){return l.mobile===mob;})){toast('Mobile already exists');return;}
-    var newLead={name:name,mobile:mob,email:caps(document.getElementById('lf-email').value),country:country,age:document.getElementById('lf-age').value,gender:caps(document.getElementById('lf-gender')?document.getElementById('lf-gender').value:''),status:status,source:source,referral:referral,products:prods,aum:aum,nextFollowUp:nextFU,remarks:'',notes:[],createdDate:now(),modifiedDate:now()};
+    var newLead={name:name,mobile:mob,email:caps(document.getElementById('lf-email').value),country:country,age:document.getElementById('lf-age').value,gender:caps(document.getElementById('lf-gender')?document.getElementById('lf-gender').value:''),status:status,source:source,referral:referral,products:prods,aum:aum,contactMode:contactMode,nextFollowUp:nextFU,remarks:'',notes:[],createdDate:now(),modifiedDate:now()};
     newLead.remarks=appendRemark('','Lead created as '+status+(aum?' | AUM: '+aum:'')+(country?' | '+country:''));
     if(noteText)newLead.remarks=appendRemark(newLead.remarks,noteText);
     leads.push(newLead);saveL();if(status==='CONVERTED')autoConvert(newLead);toast('✅ Lead added');
@@ -2548,7 +2731,7 @@ async function bootSequenceV17(){
     if(ld&&ld.rows&&ld.rows.length>1){
       var hdr=ld.rows[0].map(function(h){return (h||'').toLowerCase().trim();});
       var ci=function(keys){for(var ki=0;ki<keys.length;ki++)for(var hi=0;hi<hdr.length;hi++)if(hdr[hi].includes(keys[ki]))return hi;return -1;};
-      var C={name:ci(['name']),mob:ci(['mobile','phone']),email:ci(['email']),age:ci(['age']),country:ci(['country']),status:ci(['status']),source:ci(['source']),ref:ci(['referred','referral']),aum:ci(['aum','sip','estimated']),fu:ci(['follow']),prod:ci(['product','investment']),rem:ci(['remark','note']),mod:ci(['modified']),created:ci(['created'])};
+      var C={name:ci(['name']),mob:ci(['mobile','phone']),email:ci(['email']),age:ci(['age']),country:ci(['country']),contactMode:ci(['mode','contact']),status:ci(['status']),source:ci(['source']),ref:ci(['referred','referral']),aum:ci(['aum','sip','estimated']),fu:ci(['follow']),prod:ci(['product','investment']),rem:ci(['remark','note']),mod:ci(['modified']),created:ci(['created'])};
       function g(r,k,fb){var i=C[k]>=0?C[k]:fb;return i>=0&&i<r.length?String(r[i]||''):'';}
       ld.rows.slice(1).forEach(function(r){
         var mob=g(r,'mob',1).trim();if(!mob)return;
@@ -2576,6 +2759,129 @@ async function bootSequenceV17(){
     setTopSync('err','Sync failed — tap 🔄');setSyncBanner('err');
     console.warn('Boot sync:',err.message);
   }finally{syncInProgress=false;}
+}
+
+
+
+// ── ANALYTICS + FU OVERLAY + SEARCH CLOSE ──
+function renderAnalytics(){
+  var sub=document.getElementById('ana-sub');
+  if(sub) sub.textContent=leads.length+' leads · '+clients.length+' clients';
+
+  // Contact rate card
+  var total=leads.length;
+  var conv=leads.filter(function(l){return (l.status||'').toUpperCase()==='CONVERTED';}).length;
+  var drop=leads.filter(function(l){return (l.status||'').toUpperCase()==='DROPPED';}).length;
+  var thirtyAgo=new Date();thirtyAgo.setDate(thirtyAgo.getDate()-30);
+  var recentCont=leads.filter(function(l){
+    return ['CONTACTED','IN PROGRESS','CONVERTED'].includes((l.status||'').toUpperCase())
+      &&new Date(l.modifiedDate||l.createdDate)>=thirtyAgo;
+  }).length;
+  var convRate=total?Math.round(conv/total*100):0;
+  var dropRate=total?Math.round(drop/total*100):0;
+  var avgPerWeek=(recentCont/4.3).toFixed(1);
+  var convLeads=leads.filter(function(l){return (l.status||'').toUpperCase()==='CONVERTED'&&l.createdDate;});
+  var avgCycle=convLeads.length?Math.round(convLeads.reduce(function(s,l){return s+Math.max(0,Math.floor((new Date(l.modifiedDate||l.createdDate)-new Date(l.createdDate))/86400000));},0)/convLeads.length):null;
+
+  var rateEl=document.getElementById('ana-contact-rate');
+  if(rateEl) rateEl.innerHTML='<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:12px">'
+    +'<div style="background:var(--s2);border-radius:var(--r2);padding:12px;text-align:center"><div style="font-size:22px;font-weight:900;color:var(--accent)">'+avgPerWeek+'</div><div style="font-size:11px;color:var(--t2);margin-top:3px">Contacted/week</div></div>'
+    +'<div style="background:var(--s2);border-radius:var(--r2);padding:12px;text-align:center"><div style="font-size:22px;font-weight:900;color:#AAA">'+convRate+'%</div><div style="font-size:11px;color:var(--t2);margin-top:3px">Conversion rate</div></div>'
+    +'<div style="background:var(--s2);border-radius:var(--r2);padding:12px;text-align:center"><div style="font-size:22px;font-weight:900;color:var(--accent)">'+dropRate+'%</div><div style="font-size:11px;color:var(--t2);margin-top:3px">Drop rate</div></div>'
+    +'<div style="background:var(--s2);border-radius:var(--r2);padding:12px;text-align:center"><div style="font-size:22px;font-weight:900;color:#888">'+(avgCycle!==null?avgCycle+'d':'—')+'</div><div style="font-size:11px;color:var(--t2);margin-top:3px">Avg cycle</div></div>'
+    +'</div>';
+
+  // Monthly trend
+  var months=[];for(var i=5;i>=0;i--){var d=new Date();d.setMonth(d.getMonth()-i);months.push({y:d.getFullYear(),m:d.getMonth(),lbl:d.toLocaleDateString('en-IN',{month:'short'})});}
+  var mCounts=months.map(function(mo){return leads.filter(function(l){var d2=new Date(l.createdDate||'');return (l.status||'').toUpperCase()==='CONTACTED'&&d2.getFullYear()===mo.y&&d2.getMonth()===mo.m;}).length;});
+  var maxM=Math.max.apply(null,mCounts.concat([1]));
+  var trendEl=document.getElementById('ana-trend');
+  if(trendEl) trendEl.innerHTML='<div style="display:flex;align-items:flex-end;gap:8px;height:80px">'+months.map(function(mo,i){return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><div style="font-size:10px;font-weight:700;color:var(--accent)">'+(mCounts[i]||'')+'</div><div style="width:100%;background:var(--accent);border-radius:3px 3px 0 0" title="'+mo.lbl+': '+mCounts[i]+'"></div></div>';}).join('')+'</div><div style="display:flex;gap:8px;margin-top:4px">'+months.map(function(mo){return '<div style="flex:1;text-align:center;font-size:10px;color:var(--t3)">'+mo.lbl+'</div>';}).join('')+'</div>';
+  // Fix heights
+  if(trendEl) trendEl.querySelectorAll('div[style*="background:var(--accent)"]').forEach(function(el,i){el.style.height=Math.max(mCounts[i]/maxM*60,mCounts[i]>0?4:0)+'px';});
+
+  // Country
+  var cc={};leads.forEach(function(l){var c=(l.country||'Not set').toUpperCase().trim();cc[c]=(cc[c]||0)+1;});
+  var sortedC=Object.entries(cc).sort(function(a,b){return b[1]-a[1];});
+  var ctEl=document.getElementById('ana-country');
+  if(ctEl) ctEl.innerHTML=sortedC.map(function(x){return '<div class="fn-row"><div class="fn-lbl" style="font-size:11px;font-weight:700">'+x[0]+'</div><div class="fn-track"><div class="fn-bar" style="width:'+x[1]/(sortedC[0][1]||1)*100+'%;background:var(--accent)"></div></div><div class="fn-n">'+x[1]+'</div></div>';}).join('')||'<div style="color:var(--t3);font-size:11px">No data</div>';
+
+  // Age groups
+  var ageGroups=[['<25',0,24],['25-34',25,34],['35-44',35,44],['45-54',45,54],['55+',55,120]];
+  var ageCounts=ageGroups.map(function(g){return leads.filter(function(l){var a=parseInt(l.age||0);return a>=g[1]&&a<=g[2];}).length;});
+  var mxA=Math.max.apply(null,ageCounts.concat([1]));
+  var ageEl=document.getElementById('ana-age');
+  if(ageEl) ageEl.innerHTML=ageGroups.map(function(g,i){return '<div class="fn-row"><div class="fn-lbl" style="font-size:11px">'+g[0]+' yrs</div><div class="fn-track"><div class="fn-bar" style="width:'+ageCounts[i]/mxA*100+'%;background:var(--accent)"></div></div><div class="fn-n">'+ageCounts[i]+'</div></div>';}).join('');
+
+  // Mode of contact
+  var modes=['Not contacted','Phone','WhatsApp','Botim','Physically met','Zoom/GMeet'];
+  var mc={};leads.forEach(function(l){var m=l.contactMode||'Not contacted';mc[m]=(mc[m]||0)+1;});
+  var modeEl=document.getElementById('ana-mode');
+  var modeEntries=Object.entries(mc).sort(function(a,b){return b[1]-a[1];});
+  if(modeEl) modeEl.innerHTML=modeEntries.map(function(x){return '<div class="fn-row"><div class="fn-lbl" style="font-size:11px">'+x[0]+'</div><div class="fn-track"><div class="fn-bar" style="width:'+x[1]/(modeEntries[0][1]||1)*100+'%;background:#888"></div></div><div class="fn-n">'+x[1]+'</div></div>';}).join('')||'<div style="color:var(--t3);font-size:11px">No data</div>';
+}
+
+function openFuOverlay(){
+  var ov=document.createElement('div');
+  ov.id='fu-overlay';
+  ov.style.cssText='position:fixed;inset:0;z-index:8000;background:var(--bg);overflow-y:auto;display:flex;flex-direction:column';
+  ov.innerHTML='<div style="display:flex;align-items:center;padding:14px 14px;border-bottom:1px solid var(--border);background:var(--s1);position:sticky;top:0;z-index:1">'
+    +'<div style="flex:1"><div style="font-size:16px;font-weight:800">Follow-ups Due</div><div id="ov-fu-sub" style="font-size:11px;color:var(--t3);margin-top:2px"></div></div>'
+    +'<button onclick="document.getElementById(\'fu-overlay\').remove()" style="background:none;border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:13px;color:var(--text);cursor:pointer">✕ Close</button>'
+    +'</div>'
+    +'<div id="fu-overlay-list" style="flex:1"></div>';
+  document.body.appendChild(ov);
+  // Render FU list inside overlay
+  renderFuInElement(document.getElementById('fu-overlay-list'), document.getElementById('ov-fu-sub'));
+}
+
+function renderFuInElement(container, subEl){
+  if(!container)return;
+  var fd=parseInt(cfg_.followUpDays)||14;
+  var active=leads.filter(function(l){return ['PROSPECT','CONTACTED','IN PROGRESS'].includes((l.status||'').toUpperCase());});
+  var due=active.filter(function(l){
+    if(l.nextFollowUp&&/^\d{4}-\d{2}-\d{2}$/.test(l.nextFollowUp)) return daysUntil(l.nextFollowUp)<=0;
+    return daysAgo(l.modifiedDate||l.createdDate)>=fd;
+  });
+  due.sort(function(a,b){var d=aumScore(a)-aumScore(b);return d!==0?d:leadScore(b)-leadScore(a);});
+  if(subEl) subEl.textContent=due.length+' lead'+(due.length!==1?'s':'')+' due';
+  if(!due.length){container.innerHTML='<div class="empty"><div class="empty-ico">🎉</div><div class="empty-t">All caught up!</div></div>';return;}
+  container.innerHTML=due.map(function(l){return makeFuItem(l,'overdue');}).join('');
+  container.onclick=function(e){
+    var btn=e.target.closest('[data-action]');if(!btn)return;
+    var mob=btn.dataset.mob;var action=btn.dataset.action;
+    if(action==='fu-open') openFuDetail(mob);
+    if(action==='fu-set-date'){
+      document.querySelectorAll('[id^="fu-inline-date-"]').forEach(function(p){p.style.display='none';});
+      var p=document.getElementById('fu-inline-date-'+mob);if(p)p.style.display='block';
+    }
+    if(action==='fu-sc'){var inp=document.getElementById('fu-inline-input-'+mob);if(inp)inp.value=btn.dataset.date;}
+    if(action==='fu-confirm-date'){
+      var nd=(document.getElementById('fu-inline-input-'+mob)||{}).value;
+      if(!nd){toast('Pick a date');return;}
+      saveFuDateV17(mob,nd);
+      var p2=document.getElementById('fu-inline-date-'+mob);if(p2)p2.style.display='none';
+    }
+    if(action==='fu-cancel-date'){var p3=document.getElementById('fu-inline-date-'+mob);if(p3)p3.style.display='none';}
+    if(action==='fu-wa-app'){bumpM(mob);logActivity(mob,'lead','WhatsApp sent','');}
+  };
+}
+
+function addSearchClose(){
+  ['lead-search','client-search'].forEach(function(id){
+    var inp=document.getElementById(id);
+    if(!inp||inp.parentNode.querySelector('.search-clear'))return;
+    var wrap=inp.parentNode;
+    wrap.style.position='relative';
+    inp.style.paddingRight='32px';
+    var btn=document.createElement('button');
+    btn.className='search-clear';
+    btn.textContent='×';
+    btn.style.cssText='position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:18px;color:var(--t3);cursor:pointer;line-height:1;padding:0;display:none';
+    btn.onclick=function(){inp.value='';inp.dispatchEvent(new Event('input'));btn.style.display='none';};
+    inp.addEventListener('input',function(){btn.style.display=inp.value?'block':'none';});
+    wrap.appendChild(btn);
+  });
 }
 
 
