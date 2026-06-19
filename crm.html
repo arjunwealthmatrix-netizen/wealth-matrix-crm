@@ -901,24 +901,38 @@ function openFuDetail(mob){
 async function pullLeadActivity(mob){
   if(!hasScript()) return;
   mob = String(mob||'').trim();
+  var mobDigits = mob.replace(/\D/g,'');
   try{
-    var url = cfg_.scriptUrl + '?action=pullLog&mobile=' + encodeURIComponent(mob) + '&t=' + Date.now();
+    // Read the FULL activity log tab (more reliable than server-side filter)
+    var url = cfg_.scriptUrl + '?tab=ACTIVITY_LOG&t=' + Date.now();
     var resp = await fetch(url);
     if(!resp.ok) throw new Error('HTTP '+resp.status);
     var d = await resp.json();
-    if(d && d.rows){
+    if(d && d.rows && d.rows.length > 1){
       // Columns: A=Timestamp B=Name C=Mobile D=Type E=Activity F=Notes G=RowId
-      var fresh = d.rows.map(function(r){
+      var fresh = d.rows.slice(1).map(function(r){
         return {
           ts:String(r[0]||'').trim(), name:String(r[1]||'').trim(),
-          mobile:mob, type:String(r[3]||'LEAD').trim(),
+          mobile:String(r[2]||'').trim(), type:String(r[3]||'LEAD').trim(),
           activity:String(r[4]||'').trim(), notes:String(r[5]||'').trim(),
           rowId:String(r[6]||'').trim()
         };
-      }).filter(function(e){ return e.activity; });
-      activityLog = activityLog.filter(function(e){ return String(e.mobile||'').trim() !== mob; });
-      activityLog = activityLog.concat(fresh);
-      saveActivityLog();
+      }).filter(function(e){
+        // Match by digits-only comparison (tolerant of formatting)
+        var eDigits = String(e.mobile||'').replace(/\D/g,'');
+        return e.activity && (eDigits===mobDigits || e.mobile===mob);
+      });
+      // Only replace this mobile's entries if we found some (don't wipe on empty)
+      if(fresh.length > 0){
+        activityLog = activityLog.filter(function(e){
+          var eDigits = String(e.mobile||'').replace(/\D/g,'');
+          return eDigits !== mobDigits;
+        });
+        // Normalize the mobile to the lead's mobile so display matches
+        fresh.forEach(function(f){ f.mobile = mob; });
+        activityLog = activityLog.concat(fresh);
+        saveActivityLog();
+      }
     }
   } catch(e){ console.warn('pullLeadActivity:', e.message); }
 }
@@ -2096,8 +2110,12 @@ async function logActivity(mob, type, activity, notes){
 // Get activity history for a mobile number (local + optional sheet pull)
 function getActivity(mob){
   var m = String(mob||'').trim();
+  var mDigits = m.replace(/\D/g,'');
   return activityLog
-    .filter(function(e){ return String(e.mobile||'').trim() === m; })
+    .filter(function(e){
+      var eMob = String(e.mobile||'').trim();
+      return eMob === m || eMob.replace(/\D/g,'') === mDigits;
+    })
     .sort(function(a,b){ return (a.ts||'').localeCompare(b.ts||''); });
 }
 
