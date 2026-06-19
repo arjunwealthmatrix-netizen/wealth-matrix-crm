@@ -524,7 +524,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         <div class="pt" data-p="WILL" onclick="tp(this)">📜 WILL</div>
       </div>
     </div>
-    <div class="fg"><label class="fl">Add note to log</label><textarea class="fi fi-ta" id="lf-rem" placeholder="Add a new entry to the communication log… (optional)" oninput="autoCaps(this)"></textarea><div style="font-size:10px;color:var(--t3);margin-top:3px">This will be added as a new timestamped entry. Leave blank to keep existing log.</div></div>
+    <div class="fg"><label class="fl">Remarks</label><textarea class="fi fi-ta" id="lf-rem" placeholder="Notes about this lead (saved to Remarks)…" oninput="autoCaps(this)"></textarea><div style="font-size:10px;color:var(--t3);margin-top:3px">Saved to the Remarks column. Shown under the lead name. Separate from the activity log.</div></div>
     <button class="btn btn-gold btn-full" onclick="saveLead()" style="margin-top:4px">Save Lead</button>
     <div style="height:8px"></div>
   </div>
@@ -2084,25 +2084,12 @@ async function logActivity(mob, type, activity, notes){
   activityLog.push(entry);
   saveActivityLog();
 
-  // Update lead remarks (last 3 activities)
-  if(rec && type==='lead'){
-    var noteText = activity + (notes ? ' - '+notes : '');
-    var existingRem = (rec.remarks||'').trim();
-    var remParts = existingRem ? existingRem.split(' | ').filter(function(x){return x.trim();}) : [];
-    remParts.push(noteText);
-    rec.remarks = remParts.slice(-3).join(' | ');
-    rec.modifiedDate = now();
-    saveL();
-  }
-
   // Append to ACTIVITY_LOG sheet — row includes rowId as column 1
   if(hasScript()){
     var row = [ts, name, mob, type.toUpperCase(), activity, notes||'', rowId]; // rowId in column G
     var res = await sheetWrite({action:'appendLog', row:row});
     if(res && res.error){ console.warn('appendLog failed:', res.error); }
-    if(rec && type==='lead'){
-      await sheetWrite({action:'pushLeads', rows:leadsRows()});
-    }
+
   }
 }
 
@@ -2961,6 +2948,7 @@ function editLeadOpen(mob){
   var defNext=(function(){var d=new Date();d.setDate(d.getDate()+7);return d.toISOString().split('T')[0];})();
   var fuEl=document.getElementById('lf-followup');if(fuEl)fuEl.value=l.nextFollowUp||defNext;
   document.querySelectorAll('#ov-lead .pt').forEach(function(t){t.classList.toggle('on',!!(l.products&&l.products.toUpperCase().includes(t.dataset.p)));});
+  var remEl=document.getElementById('lf-rem');if(remEl)remEl.value=l.remarks||'';
   document.getElementById('ov-lead').classList.add('open');
 }
 
@@ -2985,6 +2973,7 @@ async function saveLead(){
   var age=document.getElementById('lf-age')?document.getElementById('lf-age').value:'';
   var country=document.getElementById('lf-country')?caps(document.getElementById('lf-country').value):'';
   var gender=document.getElementById('lf-gender')?caps(document.getElementById('lf-gender').value):'';
+  var remarks=document.getElementById('lf-rem')?caps(document.getElementById('lf-rem').value.trim()):'';
 
   if(editLead){
     var idx=leads.findIndex(function(x){return x.mobile===editLead;});
@@ -2992,7 +2981,7 @@ async function saveLead(){
       leads[idx]=Object.assign({},leads[idx],{
         name:name,mobile:mob,email:email,country:country,age:age,gender:gender,
         status:status,source:source,referral:referral,products:prods,aum:aum,
-        contactMode:contactMode,nextFollowUp:nextFU,modifiedDate:now()
+        contactMode:contactMode,nextFollowUp:nextFU,remarks:remarks,modifiedDate:now()
       });
     }
     saveL();renderAll();closeOv('ov-lead');
@@ -3007,7 +2996,7 @@ async function saveLead(){
     if(leads.find(function(x){return x.mobile===mob;})){toast('Mobile already exists');return;}
     var newLead={name:name,mobile:mob,email:email,country:country,age:age,gender:gender,
       status:status,source:source,referral:referral,products:prods,aum:aum,
-      contactMode:contactMode,nextFollowUp:nextFU,remarks:'',notes:[],
+      contactMode:contactMode,nextFollowUp:nextFU,remarks:remarks,notes:[],
       createdDate:today(),modifiedDate:now()};
     leads.push(newLead);saveL();
     renderAll();
