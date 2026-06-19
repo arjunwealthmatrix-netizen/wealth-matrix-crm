@@ -425,7 +425,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <button class="btn btn-full" style="background:var(--accent);color:#fff;border:none;font-size:13px;font-weight:700;padding:11px;border-radius:var(--r2)" onclick="runFullSyncTest()">🧪 Run Full Test</button>
     <div id="diag-del-result" style="font-size:10px;margin-top:8px;color:var(--text);white-space:pre-wrap;font-family:monospace;line-height:1.4;background:var(--bg);border-radius:6px;padding:8px;max-height:300px;overflow-y:auto"></div>
     <button class="btn btn-ghost btn-full" style="margin-top:8px" onclick="diagActivityDelete()">🔍 Show all log Raw IDs (sheet vs app)</button>
-    <button class="btn btn-ghost btn-full" style="margin-top:6px" onclick="testDeleteFirstLog()">🧪 Test delete first log entry</button>
+    <button class="btn btn-ghost btn-full" style="margin-top:6px" onclick="testDeleteFirstLog()">🧪 Test delete first log entry</button><button class="btn btn-ghost btn-full" style="margin-top:6px" onclick="diagLeadActivity()">🔬 Diagnose lead activity pull</button>
     <div id="full-test-result" style="font-size:11px;margin-top:10px;color:var(--text);white-space:pre-wrap;font-family:monospace;line-height:1.5;background:var(--bg);border-radius:6px;padding:8px;max-height:400px;overflow-y:auto"></div>
   </div>
   <div class="syc"><div class="sy-t">📥 Import MASTER LIST</div>
@@ -902,14 +902,14 @@ async function pullLeadActivity(mob){
   if(!hasScript()) return;
   mob = String(mob||'').trim();
   var mobDigits = mob.replace(/\D/g,'');
+  var mobLast10 = mobDigits.slice(-10); // last 10 digits (ignore country code)
   try{
-    // Read the FULL activity log tab (more reliable than server-side filter)
     var url = cfg_.scriptUrl + '?tab=ACTIVITY_LOG&t=' + Date.now();
     var resp = await fetch(url);
     if(!resp.ok) throw new Error('HTTP '+resp.status);
     var d = await resp.json();
     if(d && d.rows && d.rows.length > 1){
-      // Columns: A=Timestamp B=Name C=Mobile D=Type E=Activity F=Notes G=RowId
+      // Columns: A=Timestamp B=Name C=Mobile D=Type E=Activity F=Notes G=RawId
       var fresh = d.rows.slice(1).map(function(r){
         return {
           ts:String(r[0]||'').trim(), name:String(r[1]||'').trim(),
@@ -918,21 +918,21 @@ async function pullLeadActivity(mob){
           rowId:String(r[6]||'').trim()
         };
       }).filter(function(e){
-        // Match by digits-only comparison (tolerant of formatting)
+        if(!e.activity) return false;
         var eDigits = String(e.mobile||'').replace(/\D/g,'');
-        return e.activity && (eDigits===mobDigits || e.mobile===mob);
+        var eLast10 = eDigits.slice(-10);
+        // Match on full digits OR last-10-digits (tolerant of country code/formatting)
+        return eDigits===mobDigits || (eLast10 && eLast10===mobLast10);
       });
-      // Only replace this mobile's entries if we found some (don't wipe on empty)
-      if(fresh.length > 0){
-        activityLog = activityLog.filter(function(e){
-          var eDigits = String(e.mobile||'').replace(/\D/g,'');
-          return eDigits !== mobDigits;
-        });
-        // Normalize the mobile to the lead's mobile so display matches
-        fresh.forEach(function(f){ f.mobile = mob; });
-        activityLog = activityLog.concat(fresh);
-        saveActivityLog();
-      }
+      // Replace this mobile's local entries with fresh sheet data
+      activityLog = activityLog.filter(function(e){
+        var eDigits = String(e.mobile||'').replace(/\D/g,'');
+        var eLast10 = eDigits.slice(-10);
+        return !(eDigits===mobDigits || (eLast10 && eLast10===mobLast10));
+      });
+      fresh.forEach(function(f){ f.mobile = mob; }); // normalize for display
+      activityLog = activityLog.concat(fresh);
+      saveActivityLog();
     }
   } catch(e){ console.warn('pullLeadActivity:', e.message); }
 }
@@ -2111,10 +2111,13 @@ async function logActivity(mob, type, activity, notes){
 function getActivity(mob){
   var m = String(mob||'').trim();
   var mDigits = m.replace(/\D/g,'');
+  var mLast10 = mDigits.slice(-10);
   return activityLog
     .filter(function(e){
       var eMob = String(e.mobile||'').trim();
-      return eMob === m || eMob.replace(/\D/g,'') === mDigits;
+      var eDigits = eMob.replace(/\D/g,'');
+      var eLast10 = eDigits.slice(-10);
+      return eMob===m || eDigits===mDigits || (eLast10 && eLast10===mLast10);
     })
     .sort(function(a,b){ return (a.ts||'').localeCompare(b.ts||''); });
 }
@@ -3606,6 +3609,54 @@ async function testDeleteFirstLog(){
     });
     log(stillThere?'❌ STILL in sheet — delete did NOT work':'✅ GONE from sheet — delete worked!');
   }catch(er){ log('Verify error: '+er.message); }
+}
+
+
+
+async function diagLeadActivity(){
+  var el=document.getElementById('diag-del-result');
+  function log(m){ if(el) el.textContent+=m+'\n'; }
+  if(el) el.textContent='';
+  if(!hasScript()){ log('No script URL'); return; }
+  var nameQuery=prompt('Enter part of the lead name (e.g. SHANAVAS):');
+  if(!nameQuery) return;
+  nameQuery=nameQuery.toUpperCase().trim();
+  var lead=leads.find(function(l){return (l.name||'').toUpperCase().includes(nameQuery);});
+  if(!lead){ log('No lead found matching "'+nameQuery+'"'); return; }
+  log('LEAD FOUND:');
+  log('  name: '+lead.name);
+  log('  mobile (app): "'+lead.mobile+'"');
+  log('  last 10: "'+String(lead.mobile||'').replace(/\D/g,'').slice(-10)+'"');
+  log('');
+  log('Reading ACTIVITY_LOG sheet...');
+  try{
+    var resp=await fetch(cfg_.scriptUrl+'?tab=ACTIVITY_LOG&t='+Date.now());
+    var d=await resp.json();
+    if(!d.rows||d.rows.length<2){ log('Sheet has no log rows.'); return; }
+    log('Header: '+JSON.stringify(d.rows[0]));
+    log('Total rows: '+(d.rows.length-1));
+    log('');
+    var leadLast10=String(lead.mobile||'').replace(/\D/g,'').slice(-10);
+    var matchCount=0;
+    for(var i=1;i<d.rows.length;i++){
+      var r=d.rows[i];
+      var rowMob=String(r[2]||'');
+      var rowLast10=rowMob.replace(/\D/g,'').slice(-10);
+      var isMatch=(rowLast10===leadLast10 && leadLast10);
+      if(isMatch) matchCount++;
+      log((i)+'. colC="'+rowMob+'" last10="'+rowLast10+'" act="'+(r[4]||'')+'" '+(isMatch?'MATCH':'-'));
+    }
+    log('');
+    log('RESULT: '+matchCount+' rows match this lead.');
+    if(matchCount>0){
+      log('Running pullLeadActivity...');
+      await pullLeadActivity(lead.mobile);
+      var loaded=getActivity(lead.mobile);
+      log('After pull: getActivity returned '+loaded.length+' entries.');
+    }else{
+      log('The lead mobile does NOT match any sheet row mobile.');
+    }
+  }catch(err){ log('ERROR: '+err.message); }
 }
 
 
