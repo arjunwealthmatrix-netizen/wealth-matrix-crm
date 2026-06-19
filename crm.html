@@ -298,7 +298,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   <div style="display:flex;gap:10px;padding:0 14px 12px">
     <div style="flex:1;background:var(--s1);border:2px solid var(--accent);border-radius:var(--r);padding:14px 12px;text-align:center">
       <div id="dash-total-leads" style="font-size:36px;font-weight:900;color:var(--accent);line-height:1">—</div>
-      <div style="font-size:11px;color:var(--t2);margin-top:5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">Active Leads</div>
+      <div style="font-size:11px;color:var(--t2);margin-top:5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">Total Leads</div>
     </div>
     <div style="flex:1;background:var(--s1);border:2px solid #4FC3F7;border-radius:var(--r);padding:14px 12px;text-align:center">
       <div id="dash-total-clients" style="font-size:36px;font-weight:900;color:#4FC3F7;line-height:1">—</div>
@@ -351,9 +351,19 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 <div class="page" id="pg-clients">
   <div class="ph">
     <div><h1>Clients</h1><div class="sub" id="clients-sub"></div></div>
-    <button class="btn btn-gold" style="padding:7px 12px;font-size:12px" onclick="openAddClient()">+ Add</button>
+    <div style="display:flex;gap:6px">
+      <button class="btn btn-ghost" id="client-select-btn" style="padding:7px 10px;font-size:12px" onclick="toggleClientBulk()">Select</button>
+      <button class="btn btn-gold" style="padding:7px 12px;font-size:12px" onclick="openAddClient()">+ Add</button>
+    </div>
   </div>
   <div style="padding:0 12px 9px"><input class="sbox" id="client-search" placeholder="Search clients…" oninput="renderClients()"></div>
+  <div id="client-bulk-bar" style="display:none;padding:8px 12px;background:rgba(192,57,43,.08);border-bottom:1px solid var(--border);align-items:center;justify-content:space-between">
+    <span id="client-sel-count" style="font-size:12px;font-weight:700;color:var(--accent)">0 selected</span>
+    <div style="display:flex;gap:6px">
+      <button class="btn btn-ghost" style="padding:5px 10px;font-size:11px" onclick="clientSelectAll()">All</button>
+      <button class="btn btn-red" style="padding:5px 10px;font-size:11px" onclick="deleteSelectedClients()">🗑 Delete</button>
+    </div>
+  </div>
   <div id="client-list"></div>
 </div>
 
@@ -984,12 +994,90 @@ function closeFuDetail(){
 // ═══════════════════════════════════════════════
 // CLIENTS
 // ═══════════════════════════════════════════════
+var clientBulkMode=false, selectedClients=new Set();
+
+function toggleClientBulk(){
+  clientBulkMode=!clientBulkMode;
+  selectedClients.clear();
+  var btn=document.getElementById('client-select-btn');
+  var bar=document.getElementById('client-bulk-bar');
+  if(btn) btn.textContent=clientBulkMode?'Cancel':'Select';
+  if(bar) bar.style.display=clientBulkMode?'flex':'none';
+  renderClients();
+}
+
+function toggleClientSelect(mob){
+  if(selectedClients.has(mob)) selectedClients.delete(mob);
+  else selectedClients.add(mob);
+  var cnt=document.getElementById('client-sel-count');
+  if(cnt) cnt.textContent=selectedClients.size+' selected';
+  renderClients();
+}
+
+function clientSelectAll(){
+  var q=(document.getElementById('client-search')?document.getElementById('client-search').value||'':'').toLowerCase();
+  var arr=clients.filter(function(c){return !q||c.name.toLowerCase().includes(q)||(c.mobile||'').includes(q);});
+  if(selectedClients.size===arr.length){ selectedClients.clear(); }
+  else { arr.forEach(function(c){selectedClients.add(c.mobile);}); }
+  var cnt=document.getElementById('client-sel-count');
+  if(cnt) cnt.textContent=selectedClients.size+' selected';
+  renderClients();
+}
+
+async function deleteSelectedClients(){
+  if(selectedClients.size===0){toast('Select clients first');return;}
+  var n=selectedClients.size;
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.innerHTML='<div style="background:var(--s1);border-radius:12px;width:100%;max-width:320px;overflow:hidden">'
+    +'<div style="padding:16px;font-size:14px;font-weight:800;border-bottom:1px solid var(--border)">Delete '+n+' client'+(n>1?'s':'')+'?</div>'
+    +'<div style="padding:10px 16px;font-size:11px;color:var(--t2)">Removes them from the app and CLIENTS sheet permanently.</div>'
+    +'<div style="display:flex;border-top:1px solid var(--border)">'
+    +'<button id="_csn" style="flex:1;padding:12px;border:none;background:none;color:var(--t2);cursor:pointer;border-right:1px solid var(--border)">Cancel</button>'
+    +'<button id="_csy" style="flex:1;padding:12px;border:none;background:none;color:var(--accent);font-weight:700;cursor:pointer">Delete</button>'
+    +'</div></div>';
+  document.body.appendChild(ov);
+  document.getElementById('_csn').onclick=function(){ov.remove();};
+  document.getElementById('_csy').onclick=async function(){
+    ov.remove();
+    clients=clients.filter(function(c){return !selectedClients.has(c.mobile);});
+    saveC();
+    selectedClients.clear();clientBulkMode=false;
+    var bar=document.getElementById('client-bulk-bar');if(bar)bar.style.display='none';
+    var btn=document.getElementById('client-select-btn');if(btn)btn.textContent='Select';
+    renderClients();
+    if(hasScript()){
+      var res=await sheetWrite({action:'pushClients',rows:clientsRows()});
+      if(res&&res.error) toast('⚠️ Deleted locally, sheet failed',4000);
+      else toast(n+' client'+(n>1?'s':'')+' deleted');
+    }else{ toast(n+' deleted'); }
+  };
+}
+
 function renderClients(){
   var q=(document.getElementById('client-search')?document.getElementById('client-search').value||'':'').toLowerCase();
   var arr=clients.filter(function(c){return !q||c.name.toLowerCase().includes(q)||(c.mobile||'').includes(q);});
   var sub=document.getElementById('clients-sub');if(sub)sub.textContent=arr.length+' clients';
   var cl=document.getElementById('client-list');
-  if(cl)cl.innerHTML=arr.length?arr.map(function(c){return '<div class="ci" onclick="openDetail(\''+c.mobile+'\',\'client\')"><div class="ci-av" style="background:rgba(192,57,43,.1);color:var(--accent)">'+ini(c.name)+'</div><div class="li-info"><div class="li-name">'+toTitle(c.name)+'</div><div class="li-meta">'+c.mobile+(c.country?' · '+c.country:'')+'</div>'+(c.products?'<div class="li-prod">'+c.products+'</div>':'')+'</div><div class="li-right"><span style="font-size:9px;color:var(--green);font-weight:700">CLIENT</span>'+(c.reviewDate?'<span class="days" style="color:var(--orange)">Review: '+fmt(c.reviewDate)+'</span>':'')+'</div></div>';}).join(''):'<div class="empty"><div class="empty-ico">💼</div><div class="empty-t">No clients yet</div></div>';
+  if(!cl)return;
+  if(!arr.length){
+    cl.innerHTML='<div class="empty"><div class="empty-ico">👥</div><div class="empty-t">No clients yet</div><div class="empty-s">Convert a lead to create your first client.</div></div>';
+    return;
+  }
+  cl.innerHTML=arr.map(function(c){
+    var sel=selectedClients.has(c.mobile);
+    var clickAction=clientBulkMode?'toggleClientSelect(\''+c.mobile+'\')':'openDetail(\''+c.mobile+'\',\'client\')';
+    return '<div class="li'+(sel?' selected':'')+'" onclick="'+clickAction+'">'
+      +(clientBulkMode?'<div style="width:20px;height:20px;border-radius:50%;border:2px solid var(--accent);background:'+(sel?'var(--accent)':'transparent')+';display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:8px;margin-right:8px">'+(sel?'<svg width="10" height="10" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>':'')+'</div>':'')
+      +'<div class="av" style="background:rgba(192,57,43,.1);color:var(--accent)">'+ini(c.name)+'</div>'
+      +'<div class="li-info">'
+      +'<div class="li-name">'+toTitle(c.name)+'<span style="font-size:9px;color:var(--green);font-weight:700;margin-left:6px">✅ CLIENT</span></div>'
+      +'<div class="li-meta">'+(c.mobile||'')+(c.age?' · 🎂'+c.age:'')+(c.country?' · '+c.country:'')+'</div>'
+      +(c.products?'<div class="li-prod">'+c.products+'</div>':'')
+      +(c.convertedDate?'<div style="font-size:10px;color:var(--t3);margin-top:1px">Client since '+fmt(c.convertedDate)+'</div>':'')
+      +'</div>'
+      +'</div>';
+  }).join('');
 }
 
 // ═══════════════════════════════════════════════
@@ -1199,10 +1287,19 @@ function autoConvert(l){
     age:l.age||'',gender:l.gender||'',products:l.products||'',remarks:l.remarks||'',
     pan:'',convertedDate:onboard,createdDate:today(),dob:'',spouseDob:'',anniversary:'',
     reviewDate:firstAnn,firstAnniversary:firstAnn,appInstalled:false,broadcastAdded:false};
-  clients.push(c);saveC();pushClients();
-  renderAll(); // Refresh all pages including clients
+  clients.push(c);saveC();
+  // Remove the converted lead from leads array (moves out of LEADS into CLIENTS)
+  leads=leads.filter(function(x){return x.mobile!==l.mobile;});
+  saveL();
+  renderAll();
   showConvertedBanner(toTitle(l.name));
-  logAnalytics(6, 1); // Log conversion to Analytics sheet
+  logAnalytics(6, 1);
+  // Push both sheets: CLIENTS gets new client, LEADS loses the converted row
+  if(hasScript()){
+    sheetWrite({action:'pushClients',rows:clientsRows()});
+    sheetWrite({action:'pushLeads',rows:leadsRows()});
+    // Also remove this mobile's activity log from sheet (optional - keep history)
+  }
 }
 
 function showConvertedBanner(name){
@@ -1910,9 +2007,9 @@ function renderLeads(){
       +(bulkMode?'<div style="width:20px;height:20px;border-radius:50%;border:2px solid var(--accent);background:'+(sel?'var(--accent)':'transparent')+';display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:8px">'+(sel?'<svg width="10" height="10" viewBox="0 0 24 24" fill="white"><path d="M20 6L9 17l-5-5"/></svg>':'')+'</div>':'')
       +'<div class="av">'+ini(l.name)+'</div>'
       +'<div class="li-info"><div class="li-name" style="display:flex;align-items:center;flex-wrap:wrap;gap:3px">'+toTitle(l.name)+badge+aumTag+'</div>'
-      +'<div class="li-meta">'+(l.mobile||'')+(l.country?' · '+l.country:'')+'</div>'
-      +(l.products?'<div class="li-prod">'+l.products+'</div>':'')
-      +(lastRem?'<div style="font-size:10px;color:var(--t3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+lastRem+'</div>':'')
+      +'<div class="li-meta">'+(l.mobile||'')+(l.age?' · 🎂'+l.age:'')+(l.country?' · '+l.country:'')+'</div>'
+      +((l.products||l.nextFollowUp)?'<div class="li-prod" style="display:flex;gap:6px;flex-wrap:wrap">'+(l.products?'<span>'+l.products+'</span>':'')+(l.nextFollowUp&&/^\d{4}-\d{2}-\d{2}$/.test(l.nextFollowUp)?'<span style="color:var(--accent)">📅 '+fmt(l.nextFollowUp)+'</span>':'')+'</div>':'')
+      +(lastRem?'<div style="font-size:10px;color:var(--t3);margin-top:2px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">📝 '+lastRem+'</div>':'')
       +'</div>'
       +'<div class="li-right"><span class="pill '+scls(l.status)+'">'+(l.status||'').charAt(0)+(l.status||'').slice(1).toLowerCase()+'</span><span class="days'+(hot?' hot':'')+'">'+(d===0?'Today':d+'d ago')+'</span></div>'
       +'</div>';
@@ -1960,17 +2057,29 @@ async function logActivity(mob, type, activity, notes){
   var ts = fmtStamp(new Date());
   var entry = { ts:ts, name:name, mobile:mob, type:type.toUpperCase(), activity:activity, notes:notes||'' };
 
-  // Save locally first (instant UI)
+  // Save to activity log locally
   activityLog.push(entry);
   saveActivityLog();
 
-  // Append to sheet — AWAIT the write so we know it succeeded
+  // ALSO update the lead's remarks field (latest 3 activities, single line)
+  if(rec && type==='lead'){
+    var noteText = activity + (notes ? ' - '+notes : '');
+    var existingRem = (rec.remarks||'').trim();
+    var remParts = existingRem ? existingRem.split(' | ').filter(function(x){return x.trim();}) : [];
+    remParts.push(noteText);
+    rec.remarks = remParts.slice(-3).join(' | '); // keep last 3
+    rec.modifiedDate = now();
+    saveL();
+  }
+
+  // Append to ACTIVITY_LOG sheet
   if(hasScript()){
     var row = [ts, name, mob, type.toUpperCase(), activity, notes||''];
     var res = await sheetWrite({action:'appendLog', row:row});
-    if(res && res.error){
-      console.warn('appendLog failed:', res.error);
-      toast('⚠️ Log saved locally, sheet sync failed');
+    if(res && res.error){ console.warn('appendLog failed:', res.error); }
+    // Also push updated leads (so remarks column M updates)
+    if(rec && type==='lead'){
+      await sheetWrite({action:'pushLeads', rows:leadsRows()});
     }
   }
 }
@@ -2542,9 +2651,10 @@ function renderDash(){
   var nsEl=document.getElementById('ns-table');if(nsEl)nsEl.innerHTML=nt+'</tbody>';
 
   // Update prominent totals
-  var activeLeads=leads.filter(function(l){return !['DROPPED','CONVERTED'].includes((l.status||'').toUpperCase());}).length;
+  // Total leads = all rows in LEADS sheet (= leads.length)
+  var totalLeads=leads.length;
   var totalClients=clients.length;
-  var tlEl=document.getElementById('dash-total-leads');if(tlEl)tlEl.textContent=activeLeads;
+  var tlEl=document.getElementById('dash-total-leads');if(tlEl)tlEl.textContent=totalLeads;
   var tcEl=document.getElementById('dash-total-clients');if(tcEl)tcEl.textContent=totalClients;
   updateFUBadge();
   // Show popup for leads/clients not physically met in 1+ year
@@ -2809,7 +2919,7 @@ function editLeadOpen(mob){
   document.getElementById('ov-lead').classList.add('open');
 }
 
-function saveLead(){
+async function saveLead(){
   var name=caps(document.getElementById('lf-name').value);
   var mob=document.getElementById('lf-mob').value.trim();
   if(!name||!mob){toast('Name and mobile required');return;}
@@ -2835,10 +2945,14 @@ function saveLead(){
         contactMode:contactMode,nextFollowUp:nextFU,modifiedDate:now()
       });
     }
-    saveL();pushLeads();
+    saveL();renderAll();closeOv('ov-lead');
+    if(hasScript()){
+      var res2=await sheetWrite({action:'pushLeads',rows:leadsRows()});
+      if(res2&&res2.error){ toast('⚠️ Saved locally, sheet failed',5000); }
+      else{ toast('✅ Lead updated & synced'); }
+    }else{ toast('✅ Lead updated'); }
     if(status==='CONVERTED') autoConvert(leads[idx]);
-    closeOv('ov-lead');renderAll();editLead=null;
-    toast('✅ Lead updated');
+    editLead=null;
   }else{
     if(leads.find(function(x){return x.mobile===mob;})){toast('Mobile already exists');return;}
     var newLead={name:name,mobile:mob,email:email,country:country,age:age,gender:gender,
@@ -2846,11 +2960,18 @@ function saveLead(){
       contactMode:contactMode,nextFollowUp:nextFU,remarks:'',notes:[],
       createdDate:today(),modifiedDate:now()};
     leads.push(newLead);saveL();
-    pushLeads(); // push to sheet
-    logAnalytics(2,1); // log new lead entry
+    renderAll();
+    closeOv('ov-lead');
+    // Push to sheet and await result to surface errors
+    if(hasScript()){
+      var res=await sheetWrite({action:'pushLeads',rows:leadsRows()});
+      if(res&&res.error){ toast('⚠️ Saved locally, sheet failed: '+res.error,5000); }
+      else{ toast('✅ Lead added & synced'); }
+    }else{
+      toast('✅ Lead added (local only)');
+    }
+    logAnalytics(2,1);
     if(status==='CONVERTED') autoConvert(newLead);
-    closeOv('ov-lead');renderAll();
-    toast('✅ Lead added');
   }
 }
 
