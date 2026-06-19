@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="WM CRM">
-<title>Wealth Matrix CRM v1.8</title>
+<title>Wealth Matrix CRM v2.2</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -292,7 +292,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div style="display:flex;align-items:center;gap:8px">
       <button onclick="toggleDark()" style="background:none;border:none;cursor:pointer;font-size:16px" id="dark-btn">🌙</button>
       <button onclick="manualSync()" style="background:none;border:none;cursor:pointer;font-size:16px">🔄</button>
-      <span style="font-size:9px;font-weight:700;color:var(--accent);background:var(--accent2);padding:2px 7px;border-radius:999px;border:1px solid var(--accent)">v1.8</span>
+      <span style="font-size:9px;font-weight:700;color:var(--accent);background:var(--accent2);padding:2px 7px;border-radius:999px;border:1px solid var(--accent)">v2.2</span>
     </div>
   </div>
   <div style="display:flex;gap:10px;padding:0 14px 12px">
@@ -1385,7 +1385,7 @@ function toggleSelect(mob){if(selectedLeads.has(mob))selectedLeads.delete(mob);e
 function clearBulk(){bulkMode=false;selectedLeads.clear();document.getElementById('bulk-toggle-btn').textContent='☑️';document.getElementById('bulk-bar').classList.remove('show');renderLeads();}
 function bulkChangeStatus(){if(selectedLeads.size===0){toast('Select leads first');return;}document.getElementById('ov-bulk').classList.add('open');}
 function applyBulkStatus(status){selectedLeads.forEach(function(mob){var l=leads.find(function(x){return x.mobile===mob;});if(l){var prev=l.status;l.status=status;l.modifiedDate=now();if(status==='CONVERTED'&&prev!=='CONVERTED')autoConvert(l);}});saveL();pushLeads();closeOv('ov-bulk');clearBulk();renderLeads();renderDash();}
-function bulkDelete(){if(selectedLeads.size===0)return;if(!confirm('Delete '+selectedLeads.size+' leads?'))return;leads=leads.filter(function(l){return !selectedLeads.has(l.mobile);});saveL();pushLeads();clearBulk();renderLeads();renderDash();}
+async function bulkDelete(){if(selectedLeads.size===0)return;if(!confirm('Delete '+selectedLeads.size+' leads?'))return;leads=leads.filter(function(l){return !selectedLeads.has(l.mobile);});saveL();clearBulk();renderLeads();renderDash();await pushLeads();}
 
 // ═══════════════════════════════════════════════
 // CALENDAR
@@ -1620,7 +1620,7 @@ function showAppsScriptCode(){
   var ov=document.createElement('div');
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:flex-end;justify-content:center;padding:10px';
   ov.innerHTML='<div style="background:var(--s1);border-radius:12px;width:100%;max-width:540px;max-height:90vh;overflow-y:auto;padding:16px">'
-    +'<div style="font-weight:800;font-size:14px;margin-bottom:6px;color:var(--accent)">Apps Script v1.8 — Copy & Deploy</div>'
+    +'<div style="font-weight:800;font-size:14px;margin-bottom:6px;color:var(--accent)">Apps Script v2.2 — Copy & Deploy</div>'
     +'<div style="font-size:11px;color:var(--t2);margin-bottom:8px;background:var(--s2);padding:8px;border-radius:6px">'
     +'1. script.google.com → Your project → Delete all → Paste → Save<br>'
     +'2. Deploy → Manage deployments → Edit → New version → Deploy<br>'
@@ -1808,18 +1808,19 @@ function askDropReason(mob,callback){
 }
 
 // ── OVERRIDE quickStatus to use drop reason + check for FU date conflicts ──
-function quickStatus(mob,status){
+async function quickStatus(mob,status){
   var l=leads.find(function(x){return x.mobile===mob;});if(!l)return;
   var prev=(l.status||'PROSPECT').toUpperCase();
   if(prev===status.toUpperCase()){closeOv('ov-detail');return;}
   if(status==='DROPPED'){
-    askDropReason(mob,function(reason){
+    askDropReason(mob,async function(reason){
       l.status='DROPPED';l.modifiedDate=now();
       l.remarks=migrateRemarks(l.remarks||'');
       l.remarks=appendRemark(l.remarks,'Status changed: '+prev+' → DROPPED. Reason: '+reason);
-      saveL();pushLeads();
+      saveL();
       closeOv('ov-detail');closeFuDetail();
       renderLeads();renderDash();renderFU();
+      await pushLeads(); // AWAIT — same as working follow-up date
       toast('Dropped: '+reason);
     });
     return;
@@ -1827,13 +1828,13 @@ function quickStatus(mob,status){
   l.status=status;l.modifiedDate=now();
   l.remarks=migrateRemarks(l.remarks||'');
   l.remarks=appendRemark(l.remarks,'Status changed: '+prev+' → '+status);
-  // Log status change to ANALYTICS sheet
   var _anaCol={'PROSPECT':3,'CONTACTED':4,'IN PROGRESS':5,'CONVERTED':6,'DROPPED':7};
   if(_anaCol[status]) logAnalytics(_anaCol[status], 1);
-  saveL();pushLeads();
-  if(status==='CONVERTED'&&prev!=='CONVERTED') autoConvert(l);
+  saveL();
   closeOv('ov-detail');closeFuDetail();
   renderLeads();renderDash();renderFU();
+  await pushLeads(); // AWAIT — guarantees write completes (same as follow-up date)
+  if(status==='CONVERTED'&&prev!=='CONVERTED') autoConvert(l);
   if(status!=='CONVERTED') toast('Status → '+status);
 }
 
@@ -2042,9 +2043,9 @@ function renderLeads(){
 
 
 
-// ── v1.8 CORE ──
+// ── v2.2 CORE ──
 // ═══════════════════════════════════════════════════
-// v1.8 CORE OVERRIDES
+// v2.2 CORE OVERRIDES
 // ═══════════════════════════════════════════════════
 
 // ── ACTIVITY LOG local cache ──
@@ -2130,7 +2131,7 @@ async function pullActivityLog(){
   } catch(e){ console.warn('pullActivityLog:', e.message); }
 }
 
-// ── NEW LEADS COLUMNS (v1.8): 13 columns ──
+// ── NEW LEADS COLUMNS (v2.2): 13 columns ──
 // Name(0) Mobile(1) Email(2) Age(3) Status(4) Source(5)
 // Referred By(6) AUM/SIP(7) Next Follow-up(8) Products(9) Remarks(10)
 // Modified Date(11) Created Date(12)
@@ -2154,7 +2155,7 @@ function leadsRows(){
   }));
 }
 
-// ── PULL FROM SHEET v1.8 (header-based, new columns) ──
+// ── PULL FROM SHEET v2.2 (header-based, new columns) ──
 async function pullFromSheet(manual){
   if(!hasScript()){if(manual)showSyncMsg('Add Apps Script URL first.',false);return;}
   if(syncInProgress)return;
@@ -2307,7 +2308,7 @@ function deleteActivityEntry(mob, ts){
   };
 }
 
-// ── NEW CHIPS (v1.8) ──
+// ── NEW CHIPS (v2.2) ──
 var V17_CHIPS = [
   ['📞','Called follow up'],
   ['🔄','Called-will call back'],
@@ -2329,6 +2330,32 @@ function chipHtml(mob){
 }
 
 // ── SAVE FOLLOW-UP DATE with activity log entry ──
+
+// Universal lead field updater — same reliable pattern as follow-up date
+async function updateLeadField(mob, field, value){
+  var l=leads.find(function(x){return x.mobile===mob;});
+  if(!l)return;
+  l[field]=value;
+  l.modifiedDate=now();
+  saveL();
+  await pushLeads(); // AWAIT — guarantees the column updates in sheet
+  toast('✅ Saved');
+}
+
+// ═══════════════════════════════════════════════════
+// UNIVERSAL FIELD SYNC — same proven path as follow-up date
+// Updates one field on a lead + immediately writes to sheet
+// ═══════════════════════════════════════════════════
+async function updateLeadField(mob, field, value, silent){
+  var l = leads.find(function(x){ return x.mobile===mob; });
+  if(!l) return;
+  l[field] = value;
+  l.modifiedDate = now();
+  saveL();                  // save local
+  await pushLeads();        // write whole LEADS sheet (proven path)
+  if(!silent) toast('✅ Saved: '+field);
+}
+
 async function saveFuDateV17(mob, newDate){
   if(!newDate||!/^\d{4}-\d{2}-\d{2}$/.test(newDate)) return;
   var sameDay=leads.filter(function(x){return x.nextFollowUp===newDate&&x.mobile!==mob;}).length;
@@ -2343,7 +2370,7 @@ async function saveFuDateV17(mob, newDate){
   setTimeout(function(){renderFU();renderLeads();},300);
 }
 
-// ── OVERRIDE renderFuDetailInner (v1.8 unified popup) ──
+// ── OVERRIDE renderFuDetailInner (v2.2 unified popup) ──
 function renderFuDetailInner(mob){
   var l=leads.find(function(x){return x.mobile===mob;});if(!l)return;
   var d=daysAgo(l.modifiedDate||l.createdDate);
@@ -2485,10 +2512,9 @@ function renderFuDetailInner(mob){
       setTimeout(function(){var el=document.getElementById('fu-hist-'+m);if(el){el.innerHTML=buildHistoryHtml(m,'lead');el.scrollTop=el.scrollHeight;}},350);
     }
     if(action==='fu-mode'){
-      var l2=leads.find(function(x){return x.mobile===m;});
-      if(!l2)return;
-      l2.contactMode=btn.dataset.mode;l2.modifiedDate=now();
-      saveL();pushLeads();renderFuDetailInner(m);
+      updateLeadField(m,'contactMode',btn.dataset.mode,true).then(function(){
+        renderFuDetailInner(m);toast('Mode: '+btn.dataset.mode);
+      });
     }
     if(action==='fu-status') quickStatus(m,btn.dataset.status);
     if(action==='del-log') deleteActivityEntry(btn.dataset.delmob||m, btn.dataset.delts||'');
@@ -2511,7 +2537,7 @@ function renderFuDetailInner(mob){
   };
 }
 
-// ── BOOTSEQUENCE v1.8 (load activity log on startup) ──
+// ── BOOTSEQUENCE v2.2 (load activity log on startup) ──
 
 
 // Version marker
@@ -2519,9 +2545,9 @@ var APP_VERSION='1.7';
 
 
 
-// ── v1.8 ADDONS ──
+// ── v2.2 ADDONS ──
 // ═══════════════════════════════════════════════════
-// v1.8 ADDONS — Loading screen, Country chart,
+// v2.2 ADDONS — Loading screen, Country chart,
 //               Reliable push, FU card date button
 // ═══════════════════════════════════════════════════
 
@@ -3360,15 +3386,37 @@ async function runFullSyncTest(){
 
   // ─────────── RAW CONNECTION TEST ───────────
   log('━━━ CONNECTION ━━━');
+  log('Testing READ...');
   try{
     var ping=await fetch(cfg_.scriptUrl+'?tab=LEADS&t='+Date.now());
+    log('  → HTTP status: '+ping.status+' '+(ping.ok?'OK':'FAIL'));
+    log('  → Response type: '+ping.type);
     var pingData=await ping.json();
-    check(pingData && pingData.rows!==undefined, 'Can read LEADS tab (fetch works)');
-    log('  → LEADS has '+(pingData.rows?pingData.rows.length-1:0)+' rows');
+    check(pingData && pingData.rows!==undefined, 'READ works (got JSON)');
+    log('  → LEADS rows in sheet: '+(pingData.rows?pingData.rows.length-1:0));
   }catch(e){
-    log('  ❌ fetch FAILED: '+e.message);
-    log('  ⚠️ This means the 302 redirect is being blocked.');
-    log('  → Writes use no-cors fallback (can\'t confirm success)');
+    log('  ❌ READ FAILED: '+e.message);
+  }
+  log('');
+  log('Testing WRITE (raw)...');
+  try{
+    var wtest=await fetch(cfg_.scriptUrl+'?payload='+encodeURIComponent(JSON.stringify({action:'appendLog',row:[fmtStamp(new Date()),'PINGTEST','0000000000','LEAD','ping','']}))+'&t='+Date.now());
+    log('  → WRITE HTTP status: '+wtest.status+' '+(wtest.ok?'OK':'FAIL'));
+    var wtxt=await wtest.text();
+    log('  → WRITE response: '+wtxt.substring(0,80));
+    check(wtxt.indexOf('success')>=0, 'WRITE returns success');
+    // cleanup
+    await sheetWrite({action:'deleteLog',mobile:'0000000000'});
+  }catch(e){
+    log('  ❌ WRITE (cors) failed: '+e.message);
+    log('  → Trying no-cors write...');
+    try{
+      await fetch(cfg_.scriptUrl+'?payload='+encodeURIComponent(JSON.stringify({action:'appendLog',row:[fmtStamp(new Date()),'PINGTEST2','0000000001','LEAD','ping2','']}))+'&t='+Date.now(),{mode:'no-cors'});
+      await sleep(1500);
+      var verify=await pullLogForMobile('0000000001');
+      check(verify.length>0, 'no-cors WRITE actually works (verified by read-back)');
+      await sheetWrite({action:'deleteLog',mobile:'0000000001'});
+    }catch(e2){ log('  ❌ no-cors also failed: '+e2.message); }
   }
   log('');
 
