@@ -1429,18 +1429,12 @@ function sheetPost(data, onDone){
   xhr.send();
 }
 async function scriptPost(action,rows){
-  // Apps Script only works via GET from browser (CORS restriction)
-  // Use no-cors GET - Apps Script executes it even though we can't read response
-  var body=JSON.stringify({action:action,rows:rows});
-  var payload=encodeURIComponent(body);
-  var url=cfg_.scriptUrl+'?payload='+payload+'&t='+Date.now();
-  // If payload too large (>7000 chars), split into chunks
+  // Unified through sheetWrite (fetch, follows redirect, reads response)
+  var payload=encodeURIComponent(JSON.stringify({action:action,rows:rows}));
   if(payload.length>7000){
-    return await scriptPostChunked(action,rows);
+    return await pushRowsChunked(action,rows);
   }
-  await fetch(url,{method:'GET',mode:'no-cors'});
-  // Can't read opaque response — assume success
-  return {success:true,written:rows.length-1};
+  return await sheetWrite({action:action,rows:rows});
 }
 
 async function scriptPostChunked(action,rows){
@@ -1554,11 +1548,28 @@ async function createAnalyticsSheet(){
 async function forcePushAll(){
   if(!hasScript()){toast('Add Apps Script URL first');return;}
   var prEl=document.getElementById('push-result');
-  if(prEl)prEl.textContent='Pushing…';
+  if(prEl)prEl.textContent='Pushing leads…';
   try{
-    var lr=await scriptPost('pushLeads',leadsRows());
-    var cr=await scriptPost('pushClients',clientsRows());
-    var msg='✅ Pushed '+leads.length+' leads, '+clients.length+' clients to sheet';
+    // Push leads via sheetWrite (with chunking)
+    var lrows=leadsRows();
+    var lres;
+    if(encodeURIComponent(JSON.stringify({action:'pushLeads',rows:lrows})).length>7000){
+      lres=await pushRowsChunked('pushLeads',lrows);
+    }else{
+      lres=await sheetWrite({action:'pushLeads',rows:lrows});
+    }
+    if(lres&&lres.error) throw new Error('Leads: '+lres.error);
+    if(prEl)prEl.textContent='Pushing clients…';
+    // Push clients
+    var crows=clientsRows();
+    var cres;
+    if(encodeURIComponent(JSON.stringify({action:'pushClients',rows:crows})).length>7000){
+      cres=await pushRowsChunked('pushClients',crows);
+    }else{
+      cres=await sheetWrite({action:'pushClients',rows:crows});
+    }
+    if(cres&&cres.error) throw new Error('Clients: '+cres.error);
+    var msg='✅ Pushed '+leads.length+' leads, '+clients.length+' clients';
     if(prEl)prEl.textContent=msg;
     toast(msg,4000);
     showSyncPush('ok');
@@ -2009,7 +2020,7 @@ function leadsRows(){
     // Keep only last 3 lines of remarks (manual notes, not full log history)
     var rem = (l.remarks||'').trim();
     var remLines = rem ? rem.split('\n').filter(function(x){return x.trim();}) : [];
-    var shortRem = remLines.slice(-3).join('\n'); // last 3 lines max
+    var shortRem = remLines.slice(-3).join(' | '); // last 3 notes, single line (no newlines that break cells)
     return [
       l.name||'', l.mobile||'', l.email||'', l.age||'', l.country||'',
       l.status||'', l.source||'', l.referral||'',
@@ -2239,6 +2250,21 @@ function renderFuDetailInner(mob){
       return '<button style="flex:0 0 calc(33% - 3px);border:1.5px solid '+(isCur?col:'var(--border)')+';border-radius:6px;padding:4px 4px;font-size:10px;font-weight:'+(isCur?'700':'500')+';cursor:pointer;background:'+(isCur?col+'18':'transparent')+';color:'+(isCur?col:'var(--t3)')+';text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" data-action="fu-mode" data-mob="'+mob+'" data-mode="'+m+'">'+(modeEmoji[m]||'')+' '+m+'</button>';
     }).join('')+'</div></div>';
 
+  // Quick info capsule — neat chips for fast understanding
+  var fuInfo=l.nextFollowUp&&/^\d{4}-\d{2}-\d{2}$/.test(l.nextFollowUp)?fmt(l.nextFollowUp):'Not set';
+  var infoChips=[];
+  if(l.age) infoChips.push(['🎂',l.age+' yrs']);
+  if(l.country) infoChips.push(['🌍',l.country]);
+  if(l.aum) infoChips.push(['💰',l.aum]);
+  infoChips.push(['📅',fuInfo]);
+  if(l.contactMode&&l.contactMode!=='Not contacted') infoChips.push(['📞',l.contactMode]);
+  var infoCapsule='<div style="padding:8px 12px;background:var(--bg);border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:5px">'
+    +infoChips.map(function(c){
+      return '<span style="font-size:10px;font-weight:600;color:var(--t2);background:var(--s2);border:1px solid var(--border);border-radius:999px;padding:3px 9px;white-space:nowrap">'+c[0]+' '+c[1]+'</span>';
+    }).join('')
+    +(l.remarks?'<div style="flex-basis:100%;font-size:10px;color:var(--t3);margin-top:3px;line-height:1.4">📝 '+l.remarks.split('\n').slice(-2).join(' · ')+'</div>':'')
+    +'</div>';
+
   // Activity history
   var histHtml=buildHistoryHtml(mob,'lead');
 
@@ -2283,6 +2309,8 @@ function renderFuDetailInner(mob){
     +'</div>'
     // Status tabs
     +statusHtml
+    // Quick info capsule — age, country, AUM, follow-up, mode, remarks
+    +infoCapsule
     // Mode of contact (compact wrap)
     +modeHtml
     // Follow-up date (tappable, auto-saves)
