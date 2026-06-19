@@ -1621,7 +1621,7 @@ function showAppsScriptCode(){
     +"function pullLog(mobile){var ss=SpreadsheetApp.openById(SHEET_ID);var sh=ss.getSheetByName(LOG_TAB);if(!sh||sh.getLastRow()<=1)return out({rows:[]});var lr=sh.getLastRow(),lc=sh.getLastColumn();var raw=sh.getRange(2,1,lr-1,lc).getValues();var filtered=raw.filter(function(r){return String(r[2]||'').trim()===String(mobile).trim();});return out({rows:filtered});}\n"
     +"function writeData(data){var ss=SpreadsheetApp.openById(SHEET_ID);\n"
     +"if(data.action==='appendLog'){var logSh=ss.getSheetByName(LOG_TAB)||ss.insertSheet(LOG_TAB);if(logSh.getLastRow()===0){var hdr=[['Timestamp','Name','Mobile','Type','Activity','Notes','Raw ID']];var hr=logSh.getRange(1,1,1,7);hr.setValues(hdr);hr.setFontWeight('bold').setBackground('#C0392B').setFontColor('#FFFFFF');logSh.setFrozenRows(1);}logSh.appendRow(data.row||[]);var lr3=logSh.getLastRow();logSh.getRange(lr3,1).setNumberFormat('@');logSh.getRange(lr3,7).setNumberFormat('@');return out({success:true});}\n"
-    +"if(data.action==='deleteLogById'){var lsh=ss.getSheetByName(LOG_TAB);if(lsh&&lsh.getLastRow()>1){var lrr=lsh.getLastRow();var rid=String(data.rowId||'').trim();for(var rj=lrr;rj>=2;rj--){if(String(lsh.getRange(rj,7).getValue()||'').trim()===rid){lsh.deleteRow(rj);break;}}}return out({success:true});}if(data.action==='deleteLog'||data.action==='deleteLogEntry'){var logSh2=ss.getSheetByName(LOG_TAB);if(logSh2&&logSh2.getLastRow()>1){var lr2=logSh2.getLastRow();var mob2=String(data.mobile||'').trim();var ts2=String(data.ts||'').trim();if(data.action==='deleteLogEntry'&&ts2){for(var ri=lr2;ri>=2;ri--){var rv=logSh2.getRange(ri,1,1,6).getValues()[0];if(String(rv[2]||'').trim()===mob2){var rt=String(rv[0]||'').trim().replace(/\//g,'-').substring(0,16);var ct=ts2.replace(/\//g,'-').substring(0,16);if(rt===ct){logSh2.deleteRow(ri);break;}}}}else{for(var ri2=lr2;ri2>=2;ri2--){if(String(logSh2.getRange(ri2,3).getValue()||'').trim()===mob2){logSh2.deleteRow(ri2);}}}}return out({success:true});}\n"
+    +"if(data.action==='deleteLogById'){var lsh=ss.getSheetByName(LOG_TAB);if(lsh&&lsh.getLastRow()>1){var rid=String(data.rowId||'').trim();var n=lsh.getLastRow();var ids=lsh.getRange(2,7,n-1,1).getValues();for(var rj=0;rj<ids.length;rj++){if(String(ids[rj][0]||'').trim()===rid){lsh.deleteRow(rj+2);break;}}}return out({success:true});}if(data.action==='deleteLog'){var lsh2=ss.getSheetByName(LOG_TAB);if(lsh2&&lsh2.getLastRow()>1){var mob3=String(data.mobile||'').trim();var n2=lsh2.getLastRow();for(var rk=n2;rk>=2;rk--){if(String(lsh2.getRange(rk,3).getValue()||'').trim()===mob3){lsh2.deleteRow(rk);}}}return out({success:true});}\n"
  +"if(data.action===\'updateAnalytics\'){var aS=ss.getSheetByName(\'ANALYTICS\')||ss.insertSheet(\'ANALYTICS\');if(aS.getLastRow()===0){aS.getRange(1,1,1,7).setValues([[\'Date\',\'Lead Entries\',\'Prospects\',\'Contacted\',\'In Progress\',\'Converted\',\'Dropped\']]).setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');aS.setFrozenRows(1);}var ad=data.date,ac=parseInt(data.col)||2,adel=parseInt(data.delta)||1,alr=aS.getLastRow(),af=false;if(alr>1){var adts=aS.getRange(2,1,alr-1,1).getValues();for(var i=0;i<adts.length;i++){if(String(adts[i][0]).trim()===ad){var acel=aS.getRange(i+2,ac);acel.setValue(Math.max(0,(parseInt(acel.getValue())||0)+adel));af=true;break;}}}if(!af&&adel>0){var anr=[ad,0,0,0,0,0,0];anr[ac-1]=adel;aS.appendRow(anr);}return out({success:true});}\n"
        +"if(data.action==='appendLeads'||data.action==='appendClients'){var atab=data.action==='appendLeads'?LEADS_TAB:CLIENTS_TAB;var ash=ss.getSheetByName(atab);if(ash&&data.rows&&data.rows.length){data.rows.forEach(function(rw){ash.appendRow(rw);});var alr=ash.getLastRow();ash.getRange(2,1,alr-1,data.rows[0].length).setNumberFormat('@');}return out({success:true});}var tab=data.action==='pushLeads'?LEADS_TAB:data.action==='pushClients'?CLIENTS_TAB:null;if(!tab)return out({error:'Bad action:'+data.action});var rows=data.rows;if(!rows||rows.length===0)return out({error:'No rows'});var sh=ss.getSheetByName(tab)||ss.insertSheet(tab);sh.clearContents();var r=sh.getRange(1,1,rows.length,rows[0].length);r.setNumberFormat('@');r.setValues(rows);var h=sh.getRange(1,1,1,rows[0].length);h.setFontWeight('bold').setBackground('#C0392B').setFontColor('#FFFFFF');sh.setFrozenRows(1);return out({success:true,written:rows.length-1});}\n"
     +"function out(o){return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);}\n"
@@ -1884,19 +1884,7 @@ function fillFormFromRecord(rec,type){
 
 
 // ── DELETE individual log entry ──
-function deleteLogEntry(mob,lineIndex){
-  var l=leads.find(function(x){return x.mobile===mob;});if(!l)return;
-  var lines=l.remarks.trim().split('\n').filter(function(x){return x.trim();});
-  if(lineIndex<0||lineIndex>=lines.length)return;
-  var entry=lines[lineIndex];
-  if(!confirm('Delete this entry?\n"'+entry.substring(0,80)+'"'))return;
-  lines.splice(lineIndex,1);
-  l.remarks=lines.join('\n');
-  l.modifiedDate=now();saveL();pushLeads();
-  refreshFuHist(mob);
-  var logEl=document.getElementById('comm-log-'+mob);if(logEl)logEl.innerHTML=renderCommLog(l.remarks);
-  toast('Entry deleted');
-}
+
 
 // ── OVERRIDE renderFuDetailInner for new features ──
 // (chips, date shortcuts, AUM display, Botim, selectable log)
@@ -2288,35 +2276,17 @@ function deleteActivityEntry(rowId, mob){
     +'</div></div>';
   document.body.appendChild(ov);
   document.getElementById('_dc').onclick=function(){ov.remove();};
-  document.getElementById('_dk').onclick=async function(){
+  document.getElementById('_dk').onclick=function(){
     ov.remove();
-    // Delete ONLY the entry with this exact rowId
-    activityLog=activityLog.filter(function(e){ return String(e.rowId||'')!==rowId; });
+    // Remove ONLY this entry locally (match exact rowId)
+    activityLog=activityLog.filter(function(e){return String(e.rowId||'')!==rowId;});
     saveActivityLog();
-    // Refresh panel
+    // Refresh the history panel
     var el=document.getElementById('fu-hist-'+mob)||document.getElementById('cl-hist-'+mob);
     if(el){el.innerHTML=buildHistoryHtml(mob,_detailOpenType||'lead');el.scrollTop=el.scrollHeight;}
-    // Delete from sheet by rowId, then VERIFY by re-reading
-    if(hasScript()){
-      toast('Deleting…');
-      await sheetWrite({action:'deleteLogById', rowId:rowId});
-      // Verify: re-pull this mobile's log and check the rowId is gone
-      await new Promise(function(r){setTimeout(r,1200);});
-      var verified=false;
-      try{
-        var vurl=cfg_.scriptUrl+'?action=pullLog&mobile='+encodeURIComponent(mob)+'&t='+Date.now();
-        var vresp=await fetch(vurl);
-        var vdata=await vresp.json();
-        var stillThere=(vdata.rows||[]).some(function(r){return String(r[6]||'').trim()===rowId;});
-        verified=!stillThere;
-      }catch(ve){ verified=true; /* can't verify (cors), assume ok */ }
-      if(verified){ toast('✅ Entry deleted'); }
-      else{
-        // Genuinely still in sheet — retry once
-        await sheetWrite({action:'deleteLogById', rowId:rowId});
-        toast('Entry deleted');
-      }
-    }else{ toast('Entry deleted (local)'); }
+    // Delete from sheet — same vanilla style as deleteLead: fire and forget
+    if(hasScript()) sheetWrite({action:'deleteLogById', rowId:rowId});
+    toast('Entry deleted');
   };
 }
 
@@ -3502,14 +3472,15 @@ async function runFullSyncTest(){
   // ─────────── ACTIVITY LOG TEST ───────────
   log('━━━ ACTIVITY LOG SHEET ━━━');
   var testTs=fmtStamp(new Date());
+  var testRid='TESTRID'+Date.now();
   log('1️⃣ Writing test log entry...');
-  await sheetWrite({action:'appendLog', row:[testTs,'ZZTEST',testMob,'LEAD','🧪 test activity','']});
+  await sheetWrite({action:'appendLog', row:[testTs,'ZZTEST',testMob,'LEAD','🧪 test activity','',testRid]});
   await sleep(2000);
   log('2️⃣ Reading log back...');
   var lb=await pullLogForMobile(testMob);
   check(lb.length>0, 'Test log entry found in sheet');
-  log('3️⃣ Deleting test log entry...');
-  await sheetWrite({action:'deleteLogEntry', mobile:testMob, ts:testTs});
+  log('3️⃣ Deleting test log entry by Raw ID...');
+  await sheetWrite({action:'deleteLogById', rowId:testRid});
   await sleep(2000);
   var lb2=await pullLogForMobile(testMob);
   check(lb2.length===0, 'Test log entry removed from sheet');
