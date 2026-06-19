@@ -901,8 +901,6 @@ function openFuDetail(mob){
 async function pullLeadActivity(mob){
   if(!hasScript()) return;
   mob = String(mob||'').trim();
-  var mobDigits = mob.replace(/\D/g,'');
-  var mobLast10 = mobDigits.slice(-10); // last 10 digits (ignore country code)
   try{
     var url = cfg_.scriptUrl + '?tab=ACTIVITY_LOG&t=' + Date.now();
     var resp = await fetch(url);
@@ -917,19 +915,9 @@ async function pullLeadActivity(mob){
           activity:String(r[4]||'').trim(), notes:String(r[5]||'').trim(),
           rowId:String(r[6]||'').trim()
         };
-      }).filter(function(e){
-        if(!e.activity) return false;
-        var eDigits = String(e.mobile||'').replace(/\D/g,'');
-        var eLast10 = eDigits.slice(-10);
-        // Match on full digits OR last-10-digits (tolerant of country code/formatting)
-        return eDigits===mobDigits || (eLast10 && eLast10===mobLast10);
-      });
-      // Replace this mobile's local entries with fresh sheet data
-      activityLog = activityLog.filter(function(e){
-        var eDigits = String(e.mobile||'').replace(/\D/g,'');
-        var eLast10 = eDigits.slice(-10);
-        return !(eDigits===mobDigits || (eLast10 && eLast10===mobLast10));
-      });
+      }).filter(function(e){ return e.activity && mobMatch(e.mobile, mob); });
+      // Replace this lead's local entries with fresh sheet data
+      activityLog = activityLog.filter(function(e){ return !mobMatch(e.mobile, mob); });
       fresh.forEach(function(f){ f.mobile = mob; }); // normalize for display
       activityLog = activityLog.concat(fresh);
       saveActivityLog();
@@ -2108,17 +2096,24 @@ async function logActivity(mob, type, activity, notes){
 }
 
 // Get activity history for a mobile number (local + optional sheet pull)
+function mobMatch(a, b){
+  // Tolerant phone match: strip non-digits and leading zeros, compare significant digits
+  var da = String(a||'').replace(/\D/g,'').replace(/^0+/,'');
+  var db = String(b||'').replace(/\D/g,'').replace(/^0+/,'');
+  if(!da || !db) return false;
+  if(da===db) return true;
+  // One ends with the other (handles country code prefixes like 971, 91)
+  var shorter = da.length<=db.length ? da : db;
+  var longer  = da.length<=db.length ? db : da;
+  if(longer.endsWith(shorter) && shorter.length>=8) return true;
+  // Last 9 digits match (very tolerant for the significant part of the number)
+  if(da.slice(-9)===db.slice(-9) && da.length>=9 && db.length>=9) return true;
+  return false;
+}
+
 function getActivity(mob){
-  var m = String(mob||'').trim();
-  var mDigits = m.replace(/\D/g,'');
-  var mLast10 = mDigits.slice(-10);
   return activityLog
-    .filter(function(e){
-      var eMob = String(e.mobile||'').trim();
-      var eDigits = eMob.replace(/\D/g,'');
-      var eLast10 = eDigits.slice(-10);
-      return eMob===m || eDigits===mDigits || (eLast10 && eLast10===mLast10);
-    })
+    .filter(function(e){ return mobMatch(e.mobile, mob); })
     .sort(function(a,b){ return (a.ts||'').localeCompare(b.ts||''); });
 }
 
