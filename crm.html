@@ -1499,26 +1499,30 @@ async function scriptGet(tab,retries){
 // ROBUST WRITE — uses same fetch pattern as scriptGet (follows 302 redirects, awaits response)
 async function sheetWrite(data){
   if(!hasScript()) return {error:'no script url'};
-  var url = cfg_.scriptUrl + '?payload=' + encodeURIComponent(JSON.stringify(data)) + '&t=' + Date.now();
-  // Primary attempt: standard fetch (follows 302, can read JSON response).
-  // Apps Script web apps allow CORS for GET, so this usually works.
+  var url = cfg_.scriptUrl;
+  // PROVEN METHOD: POST with text/plain content-type avoids CORS preflight.
+  // This is the method that works reliably in the older version.
   try{
-    var resp = await fetch(url, {method:'GET', redirect:'follow'});
-    if(resp.ok){
-      var txt = await resp.text();
-      try{ return JSON.parse(txt); }
-      catch(pe){ return {success:true, raw:txt.substring(0,100)}; }
-    }
-    // Non-OK response — fall through to no-cors
-    throw new Error('HTTP '+resp.status);
-  }catch(err){
-    // Fallback: no-cors GET. Apps Script STILL executes the write,
-    // we just can't read the response (opaque). The data IS written.
+    var resp = await fetch(url, {
+      method: 'POST',
+      headers: {'Content-Type': 'text/plain'},
+      body: JSON.stringify(data)
+    });
+    var text = await resp.text();
+    return JSON.parse(text);
+  }catch(e){
+    // Fallback: GET with payload in URL
     try{
-      await fetch(url, {method:'GET', mode:'no-cors'});
-      return {success:true, noResponse:true};
+      var encoded = encodeURIComponent(JSON.stringify(data));
+      var resp2 = await fetch(url + '?payload=' + encoded + '&t=' + Date.now());
+      var text2 = await resp2.text();
+      return JSON.parse(text2);
     }catch(e2){
-      return {error: e2.message};
+      // Last resort: no-cors (write happens, can't read response)
+      try{
+        await fetch(url + '?payload=' + encodeURIComponent(JSON.stringify(data)) + '&t=' + Date.now(), {mode:'no-cors'});
+        return {success:true, noResponse:true};
+      }catch(e3){ return {error: e3.message}; }
     }
   }
 }
@@ -2210,13 +2214,13 @@ async function pullFromSheet(manual){
       var cci=function(keys){for(var ki=0;ki<keys.length;ki++)for(var hi=0;hi<chdr.length;hi++)if(chdr[hi].includes(keys[ki]))return hi;return -1;};
       var CC={name:cci(['name']),mob:cci(['mobile']),email:cci(['email']),country:cci(['country']),age:cci(['age']),gender:cci(['gender']),pan:cci(['pan']),prod:cci(['product']),rem:cci(['remark']),conv:cci(['converted'])};
       function gc(r,k,fb){var i=CC[k]>=0?CC[k]:fb;return i>=0&&i<r.length?String(r[i]||''):'';}
+      var freshClients=[];
       cd.rows.slice(1).forEach(function(r){
         var mob=gc(r,'mob',1).trim();if(!mob)return;
         var obj={name:caps(gc(r,'name',0)),mobile:mob,email:gc(r,'email',2),country:caps(gc(r,'country',3)),age:gc(r,'age',4),gender:caps(gc(r,'gender',5)),pan:caps(gc(r,'pan',6)),products:caps(gc(r,'prod',7)),remarks:gc(r,'rem',8),convertedDate:gc(r,'conv',9)};
-        var idx2=clients.findIndex(function(c){return c.mobile===mob;});
-        if(idx2>=0) clients[idx2]=Object.assign({},clients[idx2],obj);
-        else clients.push(obj);
+        freshClients.push(obj);
       });
+      clients=freshClients; // replace (handles deletions from sheet)
       saveC();
     }
     // Pull Activity Log
