@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="WM CRM">
-<title>Wealth Matrix CRM v2.2</title>
+<title>Wealth Matrix CRM v2.3</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -292,7 +292,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div style="display:flex;align-items:center;gap:8px">
       <button onclick="toggleDark()" style="background:none;border:none;cursor:pointer;font-size:16px" id="dark-btn">🌙</button>
       <button onclick="manualSync()" style="background:none;border:none;cursor:pointer;font-size:16px">🔄</button>
-      <span style="font-size:9px;font-weight:700;color:var(--accent);background:var(--accent2);padding:2px 7px;border-radius:999px;border:1px solid var(--accent)">v2.2</span>
+      <span style="font-size:9px;font-weight:700;color:var(--accent);background:var(--accent2);padding:2px 7px;border-radius:999px;border:1px solid var(--accent)">v2.3</span>
     </div>
   </div>
   <div style="display:flex;gap:10px;padding:0 14px 12px">
@@ -514,7 +514,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     </div>
     <div class="fg"><label class="fl">Next follow-up date</label><input class="fi" id="lf-followup" type="date"></div>
     <div class="fg"><label class="fl">Interested products</label>
-      <div class="ptoggle-grid">
+      <div class="ptoggle-grid" id="lf-products-grid">
         <div class="pt" data-p="INVESTMENT" onclick="tp(this)">📈 Investment</div>
         <div class="pt" data-p="LIFE INSURANCE" onclick="tp(this)">🛡️ Life Ins.</div>
         <div class="pt" data-p="HEALTH INSURANCE" onclick="tp(this)">🏥 Health Ins.</div>
@@ -899,23 +899,21 @@ async function pullLeadActivity(mob){
   if(!hasScript()) return;
   mob = String(mob||'').trim();
   try{
-    // Use dedicated pullLog endpoint — server-side filter, only returns this lead's rows
     var url = cfg_.scriptUrl + '?action=pullLog&mobile=' + encodeURIComponent(mob) + '&t=' + Date.now();
     var resp = await fetch(url);
     if(!resp.ok) throw new Error('HTTP '+resp.status);
     var d = await resp.json();
     if(d && d.rows){
       var fresh = d.rows.map(function(r){
-        return {
-          ts:       String(r[0]||'').trim(),
-          name:     String(r[1]||'').trim(),
-          mobile:   mob,
-          type:     String(r[3]||'LEAD').trim(),
-          activity: String(r[4]||'').trim(),
-          notes:    String(r[5]||'').trim()
-        };
+        // pullLog returns full rows; detect rowId presence by length
+        if(r.length>=7){
+          return {rowId:String(r[0]||'').trim(), ts:String(r[1]||'').trim(), name:String(r[2]||'').trim(),
+            mobile:mob, type:String(r[4]||'LEAD').trim(), activity:String(r[5]||'').trim(), notes:String(r[6]||'').trim()};
+        }else{
+          return {rowId:'', ts:String(r[0]||'').trim(), name:String(r[1]||'').trim(),
+            mobile:mob, type:String(r[3]||'LEAD').trim(), activity:String(r[4]||'').trim(), notes:String(r[5]||'').trim()};
+        }
       }).filter(function(e){ return e.activity; });
-      // Replace local entries for this mobile
       activityLog = activityLog.filter(function(e){ return String(e.mobile||'').trim() !== mob; });
       activityLog = activityLog.concat(fresh);
       saveActivityLog();
@@ -1277,29 +1275,32 @@ function saveClient(){
 // ═══════════════════════════════════════════════
 // AUTO-CONVERT
 // ═══════════════════════════════════════════════
-function autoConvert(l){
+async function autoConvert(l){
   if(clients.find(function(c){return c.mobile===l.mobile;})){
     toast('✅ '+toTitle(l.name)+' is already in Clients');return;
   }
   var onboard=today();
   var fa=new Date(onboard);fa.setFullYear(fa.getFullYear()+1);
   var firstAnn=fa.toISOString().split('T')[0];
-  var c={name:l.name,mobile:l.mobile,email:l.email||'',country:l.country||'',
-    age:l.age||'',gender:l.gender||'',products:l.products||'',remarks:l.remarks||'',
-    pan:'',convertedDate:onboard,createdDate:today(),dob:'',spouseDob:'',anniversary:'',
-    reviewDate:firstAnn,firstAnniversary:firstAnn,appInstalled:false,broadcastAdded:false};
+  // Copy ALL relevant fields from lead to client
+  var c={
+    name:l.name||'', mobile:l.mobile||'', email:l.email||'', country:l.country||'',
+    age:l.age||'', gender:l.gender||'', pan:'', products:l.products||'',
+    remarks:l.remarks||'', convertedDate:onboard, createdDate:l.createdDate||today(),
+    dob:'', spouseDob:'', anniversary:'', reviewDate:firstAnn, firstAnniversary:firstAnn,
+    appInstalled:false, broadcastAdded:false
+  };
   clients.push(c);saveC();
-  // Remove the converted lead from leads array (moves out of LEADS into CLIENTS)
+  // Remove the lead from LEADS (converted leads live only in CLIENTS)
   leads=leads.filter(function(x){return x.mobile!==l.mobile;});
   saveL();
   renderAll();
   showConvertedBanner(toTitle(l.name));
   logAnalytics(6, 1);
-  // Push both sheets: CLIENTS gets new client, LEADS loses the converted row
+  // Push BOTH sheets: CLIENTS gains the row, LEADS loses it
   if(hasScript()){
-    sheetWrite({action:'pushClients',rows:clientsRows()});
-    sheetWrite({action:'pushLeads',rows:leadsRows()});
-    // Also remove this mobile's activity log from sheet (optional - keep history)
+    await sheetWrite({action:'pushClients', rows:clientsRows()});
+    await sheetWrite({action:'pushLeads', rows:leadsRows()});
   }
 }
 
@@ -1615,8 +1616,8 @@ function showAppsScriptCode(){
     +"function readTab(t){var ss=SpreadsheetApp.openById(SHEET_ID);var sh=ss.getSheetByName(t);if(!sh)return out({rows:[],error:'Tab not found:'+t});var lr=sh.getLastRow(),lc=sh.getLastColumn();if(lr===0||lc===0)return out({rows:[]});var raw=sh.getRange(1,1,lr,lc).getValues();var cleaned=raw.map(function(row){return row.map(function(c){if(c===null||c===undefined||c==='')return'';if(c instanceof Date){var y=c.getFullYear();var m=String(c.getMonth()+1).padStart(2,'0');var d=String(c.getDate()).padStart(2,'0');return y+'-'+m+'-'+d;}if(typeof c==='number')return String(c);return String(c).trim();});});return out({rows:cleaned});}\n"
     +"function pullLog(mobile){var ss=SpreadsheetApp.openById(SHEET_ID);var sh=ss.getSheetByName(LOG_TAB);if(!sh||sh.getLastRow()<=1)return out({rows:[]});var lr=sh.getLastRow(),lc=sh.getLastColumn();var raw=sh.getRange(2,1,lr-1,lc).getValues();var filtered=raw.filter(function(r){return String(r[2]||'').trim()===String(mobile).trim();});return out({rows:filtered});}\n"
     +"function writeData(data){var ss=SpreadsheetApp.openById(SHEET_ID);\n"
-    +"if(data.action==='appendLog'){var logSh=ss.getSheetByName(LOG_TAB)||ss.insertSheet(LOG_TAB);if(logSh.getLastRow()===0){var hdr=[['Timestamp','Name','Mobile','Type','Activity','Notes']];var hr=logSh.getRange(1,1,1,6);hr.setValues(hdr);hr.setFontWeight('bold').setBackground('#C0392B').setFontColor('#FFFFFF');logSh.setFrozenRows(1);}logSh.appendRow(data.row||[]);var lr3=logSh.getLastRow();logSh.getRange(lr3,1).setNumberFormat('@');return out({success:true});}\n"
-    +"if(data.action==='deleteLog'||data.action==='deleteLogEntry'){var logSh2=ss.getSheetByName(LOG_TAB);if(logSh2&&logSh2.getLastRow()>1){var lr2=logSh2.getLastRow();var mob2=String(data.mobile||'').trim();var ts2=String(data.ts||'').trim();if(data.action==='deleteLogEntry'&&ts2){for(var ri=lr2;ri>=2;ri--){var rv=logSh2.getRange(ri,1,1,6).getValues()[0];if(String(rv[2]||'').trim()===mob2){var rt=String(rv[0]||'').trim().replace(/\//g,'-').substring(0,16);var ct=ts2.replace(/\//g,'-').substring(0,16);if(rt===ct){logSh2.deleteRow(ri);break;}}}}else{for(var ri2=lr2;ri2>=2;ri2--){if(String(logSh2.getRange(ri2,3).getValue()||'').trim()===mob2){logSh2.deleteRow(ri2);}}}}return out({success:true});}\n"
+    +"if(data.action==='appendLog'){var logSh=ss.getSheetByName(LOG_TAB)||ss.insertSheet(LOG_TAB);if(logSh.getLastRow()===0){var hdr=[['RowId','Timestamp','Name','Mobile','Type','Activity','Notes']];var hr=logSh.getRange(1,1,1,7);hr.setValues(hdr);hr.setFontWeight('bold').setBackground('#C0392B').setFontColor('#FFFFFF');logSh.setFrozenRows(1);}logSh.appendRow(data.row||[]);var lr3=logSh.getLastRow();logSh.getRange(lr3,1,1,2).setNumberFormat('@');return out({success:true});}\n"
+    +"if(data.action==='deleteLogById'){var lsh=ss.getSheetByName(LOG_TAB);if(lsh&&lsh.getLastRow()>1){var lrr=lsh.getLastRow();var rid=String(data.rowId||'').trim();for(var rj=lrr;rj>=2;rj--){if(String(lsh.getRange(rj,1).getValue()||'').trim()===rid){lsh.deleteRow(rj);break;}}}return out({success:true});}if(data.action==='deleteLog'||data.action==='deleteLogEntry'){var logSh2=ss.getSheetByName(LOG_TAB);if(logSh2&&logSh2.getLastRow()>1){var lr2=logSh2.getLastRow();var mob2=String(data.mobile||'').trim();var ts2=String(data.ts||'').trim();if(data.action==='deleteLogEntry'&&ts2){for(var ri=lr2;ri>=2;ri--){var rv=logSh2.getRange(ri,1,1,6).getValues()[0];if(String(rv[2]||'').trim()===mob2){var rt=String(rv[0]||'').trim().replace(/\//g,'-').substring(0,16);var ct=ts2.replace(/\//g,'-').substring(0,16);if(rt===ct){logSh2.deleteRow(ri);break;}}}}else{for(var ri2=lr2;ri2>=2;ri2--){if(String(logSh2.getRange(ri2,3).getValue()||'').trim()===mob2){logSh2.deleteRow(ri2);}}}}return out({success:true});}\n"
  +"if(data.action===\'updateAnalytics\'){var aS=ss.getSheetByName(\'ANALYTICS\')||ss.insertSheet(\'ANALYTICS\');if(aS.getLastRow()===0){aS.getRange(1,1,1,7).setValues([[\'Date\',\'Lead Entries\',\'Prospects\',\'Contacted\',\'In Progress\',\'Converted\',\'Dropped\']]).setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');aS.setFrozenRows(1);}var ad=data.date,ac=parseInt(data.col)||2,adel=parseInt(data.delta)||1,alr=aS.getLastRow(),af=false;if(alr>1){var adts=aS.getRange(2,1,alr-1,1).getValues();for(var i=0;i<adts.length;i++){if(String(adts[i][0]).trim()===ad){var acel=aS.getRange(i+2,ac);acel.setValue(Math.max(0,(parseInt(acel.getValue())||0)+adel));af=true;break;}}}if(!af&&adel>0){var anr=[ad,0,0,0,0,0,0];anr[ac-1]=adel;aS.appendRow(anr);}return out({success:true});}\n"
        +"if(data.action==='appendLeads'||data.action==='appendClients'){var atab=data.action==='appendLeads'?LEADS_TAB:CLIENTS_TAB;var ash=ss.getSheetByName(atab);if(ash&&data.rows&&data.rows.length){data.rows.forEach(function(rw){ash.appendRow(rw);});var alr=ash.getLastRow();ash.getRange(2,1,alr-1,data.rows[0].length).setNumberFormat('@');}return out({success:true});}var tab=data.action==='pushLeads'?LEADS_TAB:data.action==='pushClients'?CLIENTS_TAB:null;if(!tab)return out({error:'Bad action:'+data.action});var rows=data.rows;if(!rows||rows.length===0)return out({error:'No rows'});var sh=ss.getSheetByName(tab)||ss.insertSheet(tab);sh.clearContents();var r=sh.getRange(1,1,rows.length,rows[0].length);r.setNumberFormat('@');r.setValues(rows);var h=sh.getRange(1,1,1,rows[0].length);h.setFontWeight('bold').setBackground('#C0392B').setFontColor('#FFFFFF');sh.setFrozenRows(1);return out({success:true,written:rows.length-1});}\n"
     +"function out(o){return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);}\n"
@@ -1624,7 +1625,7 @@ function showAppsScriptCode(){
   var ov=document.createElement('div');
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:flex-end;justify-content:center;padding:10px';
   ov.innerHTML='<div style="background:var(--s1);border-radius:12px;width:100%;max-width:540px;max-height:90vh;overflow-y:auto;padding:16px">'
-    +'<div style="font-weight:800;font-size:14px;margin-bottom:6px;color:var(--accent)">Apps Script v2.2 — Copy & Deploy</div>'
+    +'<div style="font-weight:800;font-size:14px;margin-bottom:6px;color:var(--accent)">Apps Script v2.3 — Copy & Deploy</div>'
     +'<div style="font-size:11px;color:var(--t2);margin-bottom:8px;background:var(--s2);padding:8px;border-radius:6px">'
     +'1. script.google.com → Your project → Delete all → Paste → Save<br>'
     +'2. Deploy → Manage deployments → Edit → New version → Deploy<br>'
@@ -1764,6 +1765,10 @@ async function bootSequence(){
     var ld=await scriptGet('LEADS');
     if(ld&&ld.rows&&ld.rows.length>1){ld.rows.slice(1).forEach(function(r){var mob=String(r[1]||'').trim();if(!mob)return;var obj={name:caps(r[0]),mobile:mob,email:caps(r[2]),country:caps(r[3]),status:caps(r[4])||'PROSPECT',source:caps(r[5]),referral:caps(r[6]),products:caps(r[7]),age:String(r[8]||''),gender:caps(r[9]),nextFollowUp:String(r[10]||''),remarks:migrateRemarks(String(r[11]||'')),modifiedDate:String(r[12]||today()),createdDate:String(r[13]||today())};var idx=leads.findIndex(function(l){return l.mobile===mob;});if(idx>=0)leads[idx]=Object.assign({},leads[idx],obj,{notes:leads[idx].notes||[]});else leads.push(Object.assign({},obj,{notes:[]}));});saveL();}
     var cd=await scriptGet('CLIENTS');
+    if(cd&&cd.rows&&cd.rows.length<=1&&!cd.error){
+      // CLIENTS sheet is empty (only header or nothing) — clear local clients
+      clients=[];saveC();
+    }
     if(cd&&cd.rows&&cd.rows.length>1){cd.rows.slice(1).forEach(function(r){var mob=String(r[1]||'').trim();if(!mob)return;var obj={name:caps(r[0]),mobile:mob,email:caps(r[2]),country:caps(r[3]),age:String(r[4]||''),gender:caps(r[5]),pan:caps(r[6]),products:caps(r[7]),remarks:caps(r[8]),convertedDate:String(r[9]||'')};var idx=clients.findIndex(function(c){return c.mobile===mob;});if(idx>=0)clients[idx]=Object.assign({},clients[idx],obj);else clients.push(obj);});saveC();}
     cfg_.lastPull=now();saveCfg();
     var ts=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
@@ -2047,9 +2052,9 @@ function renderLeads(){
 
 
 
-// ── v2.2 CORE ──
+// ── v2.3 CORE ──
 // ═══════════════════════════════════════════════════
-// v2.2 CORE OVERRIDES
+// v2.3 CORE OVERRIDES
 // ═══════════════════════════════════════════════════
 
 // ── ACTIVITY LOG local cache ──
@@ -2065,6 +2070,10 @@ function saveActivityLog(){
 }
 
 // ── Log an activity (local + push to sheet) ──
+function genRowId(){
+  return 'L'+Date.now().toString(36)+Math.random().toString(36).substr(2,6);
+}
+
 async function logActivity(mob, type, activity, notes){
   mob = String(mob||'').trim();
   if(!mob || !activity) return;
@@ -2073,29 +2082,29 @@ async function logActivity(mob, type, activity, notes){
     : clients.find(function(x){ return x.mobile===mob; });
   var name = rec ? (rec.name||mob) : mob;
   var ts = fmtStamp(new Date());
-  var entry = { ts:ts, name:name, mobile:mob, type:type.toUpperCase(), activity:activity, notes:notes||'' };
+  var rowId = genRowId(); // unique ID for this log entry
+  var entry = { rowId:rowId, ts:ts, name:name, mobile:mob, type:type.toUpperCase(), activity:activity, notes:notes||'' };
 
-  // Save to activity log locally
+  // Save locally first
   activityLog.push(entry);
   saveActivityLog();
 
-  // ALSO update the lead's remarks field (latest 3 activities, single line)
+  // Update lead remarks (last 3 activities)
   if(rec && type==='lead'){
     var noteText = activity + (notes ? ' - '+notes : '');
     var existingRem = (rec.remarks||'').trim();
     var remParts = existingRem ? existingRem.split(' | ').filter(function(x){return x.trim();}) : [];
     remParts.push(noteText);
-    rec.remarks = remParts.slice(-3).join(' | '); // keep last 3
+    rec.remarks = remParts.slice(-3).join(' | ');
     rec.modifiedDate = now();
     saveL();
   }
 
-  // Append to ACTIVITY_LOG sheet
+  // Append to ACTIVITY_LOG sheet — row includes rowId as column 1
   if(hasScript()){
-    var row = [ts, name, mob, type.toUpperCase(), activity, notes||''];
+    var row = [rowId, ts, name, mob, type.toUpperCase(), activity, notes||''];
     var res = await sheetWrite({action:'appendLog', row:row});
     if(res && res.error){ console.warn('appendLog failed:', res.error); }
-    // Also push updated leads (so remarks column M updates)
     if(rec && type==='lead'){
       await sheetWrite({action:'pushLeads', rows:leadsRows()});
     }
@@ -2118,24 +2127,26 @@ async function pullActivityLog(){
     if(!resp.ok) throw new Error('HTTP '+resp.status);
     var d = await resp.json();
     if(d && d.rows && d.rows.length > 1){
-      var fresh = d.rows.slice(1).map(function(r){
-        return {
-          ts:       String(r[0]||'').trim(),
-          name:     String(r[1]||'').trim(),
-          mobile:   String(r[2]||'').trim(),
-          type:     String(r[3]||'LEAD').trim(),
-          activity: String(r[4]||'').trim(),
-          notes:    String(r[5]||'').trim()
-        };
+      // Detect if sheet has rowId column (7 cols) or old format (6 cols)
+      var hdr = d.rows[0].map(function(h){return String(h||'').toLowerCase();});
+      var hasRowId = hdr[0].includes('id') || hdr[0].includes('rowid');
+      activityLog = d.rows.slice(1).map(function(r){
+        if(hasRowId){
+          return {rowId:String(r[0]||'').trim(), ts:String(r[1]||'').trim(), name:String(r[2]||'').trim(),
+            mobile:String(r[3]||'').trim(), type:String(r[4]||'LEAD').trim(),
+            activity:String(r[5]||'').trim(), notes:String(r[6]||'').trim()};
+        }else{
+          return {rowId:'', ts:String(r[0]||'').trim(), name:String(r[1]||'').trim(),
+            mobile:String(r[2]||'').trim(), type:String(r[3]||'LEAD').trim(),
+            activity:String(r[4]||'').trim(), notes:String(r[5]||'').trim()};
+        }
       }).filter(function(e){ return e.mobile && e.activity; });
-      activityLog = fresh;
       saveActivityLog();
-      console.log('Activity log pulled:', fresh.length, 'entries');
     }
   } catch(e){ console.warn('pullActivityLog:', e.message); }
 }
 
-// ── NEW LEADS COLUMNS (v2.2): 13 columns ──
+// ── NEW LEADS COLUMNS (v2.3): 13 columns ──
 // Name(0) Mobile(1) Email(2) Age(3) Status(4) Source(5)
 // Referred By(6) AUM/SIP(7) Next Follow-up(8) Products(9) Remarks(10)
 // Modified Date(11) Created Date(12)
@@ -2159,7 +2170,7 @@ function leadsRows(){
   }));
 }
 
-// ── PULL FROM SHEET v2.2 (header-based, new columns) ──
+// ── PULL FROM SHEET v2.3 (header-based, new columns) ──
 async function pullFromSheet(manual){
   if(!hasScript()){if(manual)showSyncMsg('Add Apps Script URL first.',false);return;}
   if(syncInProgress)return;
@@ -2209,6 +2220,10 @@ async function pullFromSheet(manual){
     }
     // Pull CLIENTS
     var cd=await scriptGet('CLIENTS');
+    if(cd&&cd.rows&&cd.rows.length<=1&&!cd.error){
+      // CLIENTS sheet is empty (only header or nothing) — clear local clients
+      clients=[];saveC();
+    }
     if(cd&&cd.rows&&cd.rows.length>1){
       var chdr=cd.rows[0].map(function(h){return (h||'').toLowerCase().trim();});
       var cci=function(keys){for(var ki=0;ki<keys.length;ki++)for(var hi=0;hi<chdr.length;hi++)if(chdr[hi].includes(keys[ki]))return hi;return -1;};
@@ -2241,48 +2256,33 @@ async function pullFromSheet(manual){
 function buildHistoryHtml(mob, type){
   var entries = getActivity(mob);
   if(!entries.length){
-    return '<div style="color:var(--t3);font-size:12px;padding:14px 0;text-align:center">'
-      + 'No activity logged yet.<br>'
-      + '<span style="font-size:10px">Use the chips below to log your first interaction.</span>'
-      + '</div>';
+    return '<div style="color:var(--t3);font-size:12px;padding:14px 0;text-align:center">No activity logged yet.<br><span style="font-size:10px">Use the chips below to log your first interaction.</span></div>';
   }
   return entries.map(function(e){
-    var txt = (e.activity||'') + (e.notes ? ' — ' + e.notes : '');
-    var lo  = txt.toLowerCase();
-    var ico = lo.includes('whatsapp') ? '💬'
-            : lo.includes('meet')     ? '📅'
-            : lo.includes('call')     ? '📞'
-            : lo.includes('visit')    ? '🏢'
-            : lo.includes('proposal') ? '📄'
-            : lo.includes('brochure') ? '📋'
-            : lo.includes('follow')   ? '🗓️'
-            : lo.includes('status')   ? '🔄'
-            : lo.includes('created')  ? '⭐'
-            : '📝';
-    var safeMob = String(e.mobile||'').replace(/'/g,"\\'");
-    var safeTs  = String(e.ts||'').replace(/'/g,"\\'");
+    var txt = (e.activity||'') + (e.notes ? ' — '+e.notes : '');
+    var lo = txt.toLowerCase();
+    var ico = lo.includes('whatsapp')?'💬':lo.includes('meet')?'📅':lo.includes('call')?'📞':lo.includes('visit')?'🏢':lo.includes('proposal')?'📄':lo.includes('brochure')?'📋':lo.includes('follow')?'🗓️':lo.includes('status')?'🔄':lo.includes('created')?'⭐':'📝';
+    var rid = String(e.rowId||'').replace(/'/g,"");
     return '<div style="padding:7px 0;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:8px">'
-      + '<div style="flex:1">'
-      + '<div style="font-size:10px;font-weight:700;color:var(--accent)">' + ico + ' ' + (e.ts||'') + '</div>'
-      + '<div style="font-size:12px;color:var(--text);margin-top:2px">' + txt + '</div>'
-      + '</div>'
-      + '<button data-delmob="' + safeMob + '" data-delts="' + safeTs + '" data-action="del-log" '
-      + 'style="background:none;border:1px solid var(--border);border-radius:4px;cursor:pointer;'
-      + 'color:var(--t3);font-size:12px;padding:1px 6px;flex-shrink:0">×</button>'
-      + '</div>';
+      +'<div style="flex:1">'
+      +'<div style="font-size:10px;font-weight:700;color:var(--accent)">'+ico+' '+(e.ts||'')+'</div>'
+      +'<div style="font-size:12px;color:var(--text);margin-top:2px">'+txt+'</div>'
+      +'</div>'
+      +'<button data-action="del-log" data-rowid="'+rid+'" data-delmob="'+e.mobile+'" data-delts="'+(e.ts||'')+'" '
+      +'style="background:none;border:1px solid var(--border);border-radius:4px;cursor:pointer;color:var(--t3);font-size:12px;padding:1px 6px;flex-shrink:0">×</button>'
+      +'</div>';
   }).join('');
 }
 
-function deleteActivityEntry(mob, ts){
+function deleteActivityEntry(rowId, mob){
+  rowId = String(rowId||'').trim();
   mob = String(mob||'').trim();
-  ts  = String(ts||'').trim();
-  if(!mob||!ts){toast('Invalid entry');return;}
-
+  if(!rowId){toast('Cannot delete: missing ID');return;}
   var ov=document.createElement('div');
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
   ov.innerHTML='<div style="background:var(--s1);border-radius:12px;width:100%;max-width:320px;overflow:hidden">'
-    +'<div style="padding:16px;font-size:14px;font-weight:800;border-bottom:1px solid var(--border)">Delete log entry?</div>'
-    +'<div style="padding:10px 16px;font-size:11px;color:var(--t2)">Removes from app and sheet permanently.</div>'
+    +'<div style="padding:16px;font-size:14px;font-weight:800;border-bottom:1px solid var(--border)">Delete this log entry?</div>'
+    +'<div style="padding:10px 16px;font-size:11px;color:var(--t2)">Removes only this entry from app and sheet.</div>'
     +'<div style="display:flex;border-top:1px solid var(--border)">'
     +'<button id="_dc" style="flex:1;padding:12px;border:none;background:none;color:var(--t2);cursor:pointer;border-right:1px solid var(--border)">Cancel</button>'
     +'<button id="_dk" style="flex:1;padding:12px;border:none;background:none;color:var(--accent);font-weight:700;cursor:pointer">Delete</button>'
@@ -2291,28 +2291,22 @@ function deleteActivityEntry(mob, ts){
   document.getElementById('_dc').onclick=function(){ov.remove();};
   document.getElementById('_dk').onclick=async function(){
     ov.remove();
-    // Normalize timestamps for local removal
-    var normTgt=ts.replace(/\//g,'-').substring(0,16);
-    activityLog=activityLog.filter(function(e){
-      var ets=String(e.ts||'').trim().replace(/\//g,'-').substring(0,16);
-      return !(String(e.mobile||'').trim()===mob && ets===normTgt);
-    });
+    // Delete ONLY the entry with this exact rowId
+    activityLog=activityLog.filter(function(e){ return String(e.rowId||'')!==rowId; });
     saveActivityLog();
-    // Refresh panel immediately
+    // Refresh panel
     var el=document.getElementById('fu-hist-'+mob)||document.getElementById('cl-hist-'+mob);
     if(el){el.innerHTML=buildHistoryHtml(mob,_detailOpenType||'lead');el.scrollTop=el.scrollHeight;}
-    // Delete from sheet — AWAIT to confirm
+    // Delete from sheet by rowId
     if(hasScript()){
-      var res=await sheetWrite({action:'deleteLogEntry',mobile:mob,ts:ts});
-      if(res&&res.error){ toast('⚠️ Deleted locally, sheet sync failed'); }
+      var res=await sheetWrite({action:'deleteLogById', rowId:rowId});
+      if(res&&res.error){ toast('⚠️ Deleted locally, sheet failed'); }
       else{ toast('Entry deleted'); }
-    }else{
-      toast('Entry deleted (local)');
-    }
+    }else{ toast('Entry deleted (local)'); }
   };
 }
 
-// ── NEW CHIPS (v2.2) ──
+// ── NEW CHIPS (v2.3) ──
 var V17_CHIPS = [
   ['📞','Called follow up'],
   ['🔄','Called-will call back'],
@@ -2374,7 +2368,7 @@ async function saveFuDateV17(mob, newDate){
   setTimeout(function(){renderFU();renderLeads();},300);
 }
 
-// ── OVERRIDE renderFuDetailInner (v2.2 unified popup) ──
+// ── OVERRIDE renderFuDetailInner (v2.3 unified popup) ──
 function renderFuDetailInner(mob){
   var l=leads.find(function(x){return x.mobile===mob;});if(!l)return;
   var d=daysAgo(l.modifiedDate||l.createdDate);
@@ -2521,7 +2515,7 @@ function renderFuDetailInner(mob){
       });
     }
     if(action==='fu-status') quickStatus(m,btn.dataset.status);
-    if(action==='del-log') deleteActivityEntry(btn.dataset.delmob||m, btn.dataset.delts||'');
+    if(action==='del-log') deleteActivityEntry(btn.dataset.rowid||'', btn.dataset.delmob||m);
     if(action==='fu-edit'){
       // Close popup, open edit lead form pre-filled
       closeFuDetail();
@@ -2541,7 +2535,7 @@ function renderFuDetailInner(mob){
   };
 }
 
-// ── BOOTSEQUENCE v2.2 (load activity log on startup) ──
+// ── BOOTSEQUENCE v2.3 (load activity log on startup) ──
 
 
 // Version marker
@@ -2549,9 +2543,9 @@ var APP_VERSION='1.7';
 
 
 
-// ── v2.2 ADDONS ──
+// ── v2.3 ADDONS ──
 // ═══════════════════════════════════════════════════
-// v2.2 ADDONS — Loading screen, Country chart,
+// v2.3 ADDONS — Loading screen, Country chart,
 //               Reliable push, FU card date button
 // ═══════════════════════════════════════════════════
 
@@ -2694,9 +2688,11 @@ function renderDash(){
   var nsEl=document.getElementById('ns-table');if(nsEl)nsEl.innerHTML=nt+'</tbody>';
 
   // Update prominent totals
-  // Total leads = all rows in LEADS sheet (= leads.length)
-  var totalLeads=leads.length;
-  var totalClients=clients.length;
+  // Total leads = active leads (Prospect + Contacted + In Progress)
+  var totalLeads=leads.filter(function(l){
+    return ['PROSPECT','CONTACTED','IN PROGRESS'].includes((l.status||'').toUpperCase());
+  }).length;
+  var totalClients=clients.length; // total rows in CLIENTS sheet
   var tlEl=document.getElementById('dash-total-leads');if(tlEl)tlEl.textContent=totalLeads;
   var tcEl=document.getElementById('dash-total-clients');if(tcEl)tcEl.textContent=totalClients;
   updateFUBadge();
@@ -2972,7 +2968,12 @@ async function saveLead(){
   var status=document.getElementById('lf-status')?document.getElementById('lf-status').value:'PROSPECT';
   var source=document.getElementById('lf-source')?caps(document.getElementById('lf-source').value):'';
   var referral=document.getElementById('lf-referral')?document.getElementById('lf-referral').value.trim():'';
-  var prods=document.getElementById('lf-products')?caps(document.getElementById('lf-products').value):'';
+  var prodGrid=document.getElementById('lf-products-grid');
+  var prods='';
+  if(prodGrid){
+    var sel=[];prodGrid.querySelectorAll('.pt.on').forEach(function(p){sel.push(p.dataset.p);});
+    prods=sel.join(', ');
+  }
   var aumEl=document.getElementById('lf-aum');var aum=aumEl?aumEl.value:'';
   var email=document.getElementById('lf-email')?caps(document.getElementById('lf-email').value):'';
   var age=document.getElementById('lf-age')?document.getElementById('lf-age').value:'';
@@ -3073,6 +3074,10 @@ async function bootSequenceV17(){
       leads=sheetLeads;saveL();
     }
     var cd=await scriptGet('CLIENTS');
+    if(cd&&cd.rows&&cd.rows.length<=1&&!cd.error){
+      // CLIENTS sheet is empty (only header or nothing) — clear local clients
+      clients=[];saveC();
+    }
     if(cd&&cd.rows&&cd.rows.length>1){
       var chdr=cd.rows[0].map(function(h){return (h||'').toLowerCase().trim();});
       var cci=function(keys){for(var ki=0;ki<keys.length;ki++)for(var hi=0;hi<chdr.length;hi++)if(chdr[hi].includes(keys[ki]))return hi;return -1;};
