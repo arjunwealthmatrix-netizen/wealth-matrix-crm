@@ -423,6 +423,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div class="sy-t" style="color:var(--accent)">🧪 Full Sync Test (Leads · Clients · Logs)</div>
     <div class="sy-d">Tests write, read-back, modify, and delete for all 3 sheets. Tells you exactly what works and what fails. Test data is auto-cleaned.</div>
     <button class="btn btn-full" style="background:var(--accent);color:#fff;border:none;font-size:13px;font-weight:700;padding:11px;border-radius:var(--r2)" onclick="runFullSyncTest()">🧪 Run Full Test</button>
+    <div id="diag-del-result" style="font-size:10px;margin-top:8px;color:var(--text);white-space:pre-wrap;font-family:monospace;line-height:1.4;background:var(--bg);border-radius:6px;padding:8px;max-height:300px;overflow-y:auto"></div>
+    <button class="btn btn-ghost btn-full" style="margin-top:8px" onclick="diagActivityDelete()">🔍 Show all log Raw IDs (sheet vs app)</button>
+    <button class="btn btn-ghost btn-full" style="margin-top:6px" onclick="testDeleteFirstLog()">🧪 Test delete first log entry</button>
     <div id="full-test-result" style="font-size:11px;margin-top:10px;color:var(--text);white-space:pre-wrap;font-family:monospace;line-height:1.5;background:var(--bg);border-radius:6px;padding:8px;max-height:400px;overflow-y:auto"></div>
   </div>
   <div class="syc"><div class="sy-t">📥 Import MASTER LIST</div>
@@ -3534,6 +3537,68 @@ async function pullLogForMobile(mob){
     var d=await resp.json();
     return d.rows||[];
   }catch(e){ return []; }
+}
+
+
+
+async function diagActivityDelete(){
+  var el=document.getElementById('diag-del-result');
+  function log(m){ if(el) el.textContent+=m+'\n'; }
+  if(el) el.textContent='';
+  if(!hasScript()){ log('No script URL'); return; }
+  log('Reading ACTIVITY_LOG from sheet...');
+  try{
+    var resp=await fetch(cfg_.scriptUrl+'?tab=ACTIVITY_LOG&t='+Date.now());
+    var d=await resp.json();
+    if(!d.rows||d.rows.length<2){ log('Sheet has NO log rows.'); return; }
+    log('Header: '+JSON.stringify(d.rows[0]));
+    log('Total rows: '+(d.rows.length-1));
+    log('');
+    log('--- Rows in sheet (Timestamp | Mobile | Raw ID) ---');
+    for(var i=1;i<d.rows.length;i++){
+      var r=d.rows[i];
+      log((i)+'. ts="'+(r[0]||'')+'" mob="'+(r[2]||'')+'" rawid="'+(r[6]||'')+'"');
+    }
+    log('');
+    log('--- Local app entries ---');
+    activityLog.forEach(function(e,i){
+      log((i+1)+'. ts="'+(e.ts||'')+'" mob="'+(e.mobile||'')+'" rawid="'+(e.rowId||'')+'"');
+    });
+    log('');
+    log('Compare: does each local rawid match a sheet rawid in column G?');
+    activityLog.forEach(function(e){
+      var found=false;
+      for(var i=1;i<d.rows.length;i++){
+        if(String(d.rows[i][6]||'').trim()===String(e.rowId||'').trim() && e.rowId){ found=true; break; }
+      }
+      log('  local "'+(e.rowId||'(empty)')+'" → '+(found?'FOUND in sheet col G':'NOT in sheet'));
+    });
+  }catch(err){ log('ERROR: '+err.message); }
+}
+
+async function testDeleteFirstLog(){
+  var el=document.getElementById('diag-del-result');
+  function log(m){ if(el) el.textContent+=m+'\n'; }
+  if(el) el.textContent='';
+  if(activityLog.length===0){ log('No local activity to test with.'); return; }
+  var e=activityLog[0];
+  log('Attempting to delete FIRST log entry:');
+  log('  ts="'+e.ts+'" mob="'+e.mobile+'" rawid="'+(e.rowId||'(empty)')+'"');
+  log('');
+  log('Sending deleteLogById...');
+  var res=await sheetWrite({action:'deleteLogById', rowId:e.rowId||'', mobile:e.mobile, ts:e.ts, activity:e.activity});
+  log('Response: '+JSON.stringify(res));
+  log('');
+  log('Waiting 2s then re-reading sheet...');
+  await new Promise(function(r){setTimeout(r,2000);});
+  try{
+    var resp=await fetch(cfg_.scriptUrl+'?action=pullLog&mobile='+encodeURIComponent(e.mobile)+'&t='+Date.now());
+    var d=await resp.json();
+    var stillThere=(d.rows||[]).some(function(r){
+      return String(r[0]||'').trim()===String(e.ts).trim() && String(r[4]||'').trim()===String(e.activity).trim();
+    });
+    log(stillThere?'❌ STILL in sheet — delete did NOT work':'✅ GONE from sheet — delete worked!');
+  }catch(er){ log('Verify error: '+er.message); }
 }
 
 
