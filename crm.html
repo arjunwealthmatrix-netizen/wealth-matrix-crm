@@ -1621,7 +1621,7 @@ function showAppsScriptCode(){
     +"function pullLog(mobile){var ss=SpreadsheetApp.openById(SHEET_ID);var sh=ss.getSheetByName(LOG_TAB);if(!sh||sh.getLastRow()<=1)return out({rows:[]});var lr=sh.getLastRow(),lc=sh.getLastColumn();var raw=sh.getRange(2,1,lr-1,lc).getValues();var filtered=raw.filter(function(r){return String(r[2]||'').trim()===String(mobile).trim();});return out({rows:filtered});}\n"
     +"function writeData(data){var ss=SpreadsheetApp.openById(SHEET_ID);\n"
     +"if(data.action==='appendLog'){var logSh=ss.getSheetByName(LOG_TAB)||ss.insertSheet(LOG_TAB);if(logSh.getLastRow()===0){var hdr=[['Timestamp','Name','Mobile','Type','Activity','Notes','Raw ID']];var hr=logSh.getRange(1,1,1,7);hr.setValues(hdr);hr.setFontWeight('bold').setBackground('#C0392B').setFontColor('#FFFFFF');logSh.setFrozenRows(1);}logSh.appendRow(data.row||[]);var lr3=logSh.getLastRow();logSh.getRange(lr3,1).setNumberFormat('@');logSh.getRange(lr3,7).setNumberFormat('@');return out({success:true});}\n"
-    +"if(data.action==='deleteLogById'){var lsh=ss.getSheetByName(LOG_TAB);if(lsh&&lsh.getLastRow()>1){var rid=String(data.rowId||'').trim();var n=lsh.getLastRow();var ids=lsh.getRange(2,7,n-1,1).getValues();for(var rj=0;rj<ids.length;rj++){if(String(ids[rj][0]||'').trim()===rid){lsh.deleteRow(rj+2);break;}}}return out({success:true});}if(data.action==='deleteLog'){var lsh2=ss.getSheetByName(LOG_TAB);if(lsh2&&lsh2.getLastRow()>1){var mob3=String(data.mobile||'').trim();var n2=lsh2.getLastRow();for(var rk=n2;rk>=2;rk--){if(String(lsh2.getRange(rk,3).getValue()||'').trim()===mob3){lsh2.deleteRow(rk);}}}return out({success:true});}\n"
+    +"if(data.action==='deleteLogById'){var lsh=ss.getSheetByName(LOG_TAB);if(lsh&&lsh.getLastRow()>1){var rid=String(data.rowId||'').trim();var dmob=String(data.mobile||'').trim();var dts=String(data.ts||'').trim();var dact=String(data.activity||'').trim();var n=lsh.getLastRow();var rng=lsh.getRange(2,1,n-1,7).getValues();for(var rj=0;rj<rng.length;rj++){var row=rng[rj];var gId=String(row[6]||'').trim();var rTs=String(row[0]||'').trim();var rMob=String(row[2]||'').trim();var rAct=String(row[4]||'').trim();var matchById=(rid!==''&&gId===rid);var matchByTs=(rid===''||gId==='')&&dts!==''&&rMob===dmob&&rTs===dts&&rAct===dact;if(matchById||matchByTs){lsh.deleteRow(rj+2);break;}}}return out({success:true,deleted:true});}if(data.action==='deleteLog'){var lsh2=ss.getSheetByName(LOG_TAB);if(lsh2&&lsh2.getLastRow()>1){var mob3=String(data.mobile||'').trim();var n2=lsh2.getLastRow();for(var rk=n2;rk>=2;rk--){if(String(lsh2.getRange(rk,3).getValue()||'').trim()===mob3){lsh2.deleteRow(rk);}}}return out({success:true});}\n"
  +"if(data.action===\'updateAnalytics\'){var aS=ss.getSheetByName(\'ANALYTICS\')||ss.insertSheet(\'ANALYTICS\');if(aS.getLastRow()===0){aS.getRange(1,1,1,7).setValues([[\'Date\',\'Lead Entries\',\'Prospects\',\'Contacted\',\'In Progress\',\'Converted\',\'Dropped\']]).setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');aS.setFrozenRows(1);}var ad=data.date,ac=parseInt(data.col)||2,adel=parseInt(data.delta)||1,alr=aS.getLastRow(),af=false;if(alr>1){var adts=aS.getRange(2,1,alr-1,1).getValues();for(var i=0;i<adts.length;i++){if(String(adts[i][0]).trim()===ad){var acel=aS.getRange(i+2,ac);acel.setValue(Math.max(0,(parseInt(acel.getValue())||0)+adel));af=true;break;}}}if(!af&&adel>0){var anr=[ad,0,0,0,0,0,0];anr[ac-1]=adel;aS.appendRow(anr);}return out({success:true});}\n"
        +"if(data.action==='appendLeads'||data.action==='appendClients'){var atab=data.action==='appendLeads'?LEADS_TAB:CLIENTS_TAB;var ash=ss.getSheetByName(atab);if(ash&&data.rows&&data.rows.length){data.rows.forEach(function(rw){ash.appendRow(rw);});var alr=ash.getLastRow();ash.getRange(2,1,alr-1,data.rows[0].length).setNumberFormat('@');}return out({success:true});}var tab=data.action==='pushLeads'?LEADS_TAB:data.action==='pushClients'?CLIENTS_TAB:null;if(!tab)return out({error:'Bad action:'+data.action});var rows=data.rows;if(!rows||rows.length===0)return out({error:'No rows'});var sh=ss.getSheetByName(tab)||ss.insertSheet(tab);sh.clearContents();var r=sh.getRange(1,1,rows.length,rows[0].length);r.setNumberFormat('@');r.setValues(rows);var h=sh.getRange(1,1,1,rows[0].length);h.setFontWeight('bold').setBackground('#C0392B').setFontColor('#FFFFFF');sh.setFrozenRows(1);return out({success:true,written:rows.length-1});}\n"
     +"function out(o){return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);}\n"
@@ -2261,10 +2261,21 @@ function buildHistoryHtml(mob, type){
   }).join('');
 }
 
-function deleteActivityEntry(rowId, mob){
+function deleteActivityEntry(rowId, mob, clickTs){
   rowId = String(rowId||'').trim();
   mob = String(mob||'').trim();
-  if(!rowId){toast('Cannot delete: missing ID');return;}
+  clickTs = String(clickTs||'').trim();
+  // Find the exact local entry to get its timestamp + activity for fallback matching
+  var target = activityLog.find(function(e){
+    if(rowId && String(e.rowId||'')===rowId) return true;
+    return false;
+  });
+  // Fallback: find by mobile + clicked timestamp
+  if(!target && clickTs){
+    target = activityLog.find(function(e){
+      return String(e.mobile||'')===mob && String(e.ts||'')===clickTs;
+    });
+  }
   var ov=document.createElement('div');
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
   ov.innerHTML='<div style="background:var(--s1);border-radius:12px;width:100%;max-width:320px;overflow:hidden">'
@@ -2278,14 +2289,22 @@ function deleteActivityEntry(rowId, mob){
   document.getElementById('_dc').onclick=function(){ov.remove();};
   document.getElementById('_dk').onclick=function(){
     ov.remove();
-    // Remove ONLY this entry locally (match exact rowId)
-    activityLog=activityLog.filter(function(e){return String(e.rowId||'')!==rowId;});
+    // Capture identifiers BEFORE removing locally
+    var delTs = target ? target.ts : '';
+    var delAct = target ? target.activity : '';
+    // Remove locally (by rowId if present, else by ts+mobile+activity)
+    activityLog=activityLog.filter(function(e){
+      if(rowId && String(e.rowId||'')===rowId) return false;
+      if(!rowId && String(e.mobile||'')===mob && String(e.ts||'')===delTs && String(e.activity||'')===delAct) return false;
+      return true;
+    });
     saveActivityLog();
-    // Refresh the history panel
     var el=document.getElementById('fu-hist-'+mob)||document.getElementById('cl-hist-'+mob);
     if(el){el.innerHTML=buildHistoryHtml(mob,_detailOpenType||'lead');el.scrollTop=el.scrollHeight;}
-    // Delete from sheet — same vanilla style as deleteLead: fire and forget
-    if(hasScript()) sheetWrite({action:'deleteLogById', rowId:rowId});
+    // Delete from sheet — send rowId AND fallback identifiers
+    if(hasScript()){
+      sheetWrite({action:'deleteLogById', rowId:rowId, mobile:mob, ts:delTs, activity:delAct});
+    }
     toast('Entry deleted');
   };
 }
@@ -2499,7 +2518,7 @@ function renderFuDetailInner(mob){
       });
     }
     if(action==='fu-status') quickStatus(m,btn.dataset.status);
-    if(action==='del-log') deleteActivityEntry(btn.dataset.rowid||'', btn.dataset.delmob||m);
+    if(action==='del-log') deleteActivityEntry(btn.dataset.rowid||'', btn.dataset.delmob||m, btn.dataset.delts||'');
     if(action==='fu-edit'){
       // Close popup, open edit lead form pre-filled
       closeFuDetail();
