@@ -425,7 +425,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <button class="btn btn-full" style="background:var(--accent);color:#fff;border:none;font-size:13px;font-weight:700;padding:11px;border-radius:var(--r2)" onclick="runFullSyncTest()">🧪 Run Full Test</button>
     <div id="diag-del-result" style="font-size:10px;margin-top:8px;color:var(--text);white-space:pre-wrap;font-family:monospace;line-height:1.4;background:var(--bg);border-radius:6px;padding:8px;max-height:300px;overflow-y:auto"></div>
     <button class="btn btn-ghost btn-full" style="margin-top:8px" onclick="diagActivityDelete()">🔍 Show all log Raw IDs (sheet vs app)</button>
-    <button class="btn btn-ghost btn-full" style="margin-top:6px" onclick="testDeleteFirstLog()">🧪 Test delete first log entry</button><button class="btn btn-ghost btn-full" style="margin-top:6px;background:var(--accent);color:#fff;border:none" onclick="testLeadPush()">🧪 Test Lead Write to Sheet</button><button class="btn btn-ghost btn-full" style="margin-top:6px" onclick="diagLeadActivity()">🔬 Diagnose lead activity pull</button>
+    <button class="btn btn-ghost btn-full" style="margin-top:6px" onclick="testDeleteFirstLog()">🧪 Test delete first log entry</button><button class="btn btn-ghost btn-full" style="margin-top:6px;background:var(--accent);color:#fff;border:none" onclick="testLeadPush()">🧪 Test Lead Write to Sheet</button><button class="btn btn-ghost btn-full" style="margin-top:6px;border:2px solid var(--accent)" onclick="testFieldUpdate()">🔬 Test Field Update (updateLead)</button><button class="btn btn-ghost btn-full" style="margin-top:6px" onclick="diagLeadActivity()">🔬 Diagnose lead activity pull</button>
     <div id="full-test-result" style="font-size:11px;margin-top:10px;color:var(--text);white-space:pre-wrap;font-family:monospace;line-height:1.5;background:var(--bg);border-radius:6px;padding:8px;max-height:400px;overflow-y:auto"></div>
   </div>
   <div class="syc"><div class="sy-t">📥 Import MASTER LIST</div>
@@ -3057,10 +3057,10 @@ async function syncLead(lead, action){
   if(!payload) return;
   var ok = await _doWrite(payload);
   if(!ok){
-    // Queue for retry
     _wq.push({payload:payload, ts:Date.now(), attempts:0});
     _saveQ();
     _setSyncDot('pending');
+    console.warn('syncLead queued (write failed):', action, lead.mobile||'');
   } else {
     _setSyncDot('ok');
   }
@@ -3085,44 +3085,35 @@ async function flushWriteQueue(){
 
 // ── The actual HTTP write — POST text/plain with GET fallback ──
 async function _doWrite(data){
-  if(!hasScript()) return false;
-  var url = cfg_.scriptUrl;
+  if(!hasScript()){ console.warn('No script URL'); return false; }
   var body = JSON.stringify(data);
-  var enc = encodeURIComponent(body);
+  var enc  = encodeURIComponent(body);
+  var base = cfg_.scriptUrl;
 
-  // Method 1: GET with payload in URL — proven reliable for Apps Script
-  // Apps Script processes GET requests without redirect issues
-  if(enc.length < 7500){
-    try{
-      var r = await fetch(url+'?payload='+enc+'&t='+Date.now());
-      var t = await r.text();
+  // Primary: GET with payload in URL (Apps Script handles GET natively, no redirect issues)
+  return new Promise(function(resolve){
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', base + '?payload=' + enc + '&t=' + Date.now(), true);
+    xhr.timeout = 15000;
+    xhr.onload = function(){
       try{
-        var j = JSON.parse(t);
-        if(j && j.success) return true;
-        if(j && j.error){ console.warn('Sheet error:', j.error); return false; }
-        return r.ok;
-      }catch(pe){ return r.ok; }
-    }catch(e){ console.warn('GET write failed:', e.message); }
-  }
-
-  // Method 2: POST text/plain — for large payloads (pushLeads full rewrite)
-  try{
-    var r2 = await fetch(url, {method:'POST', headers:{'Content-Type':'text/plain'}, body:body});
-    var t2 = await r2.text();
-    try{
-      var j2 = JSON.parse(t2);
-      if(j2 && j2.success) return true;
-      if(j2 && j2.error){ console.warn('POST error:', j2.error); return false; }
-      return r2.ok;
-    }catch(pe2){ return r2.ok; }
-  }catch(e2){ console.warn('POST write failed:', e2.message); }
-
-  // Method 3: no-cors GET (last resort — fire and forget)
-  try{
-    await fetch(url+'?payload='+enc+'&t='+Date.now(), {mode:'no-cors'});
-    return true; // assume ok
-  }catch(e3){}
-  return false;
+        var j = JSON.parse(xhr.responseText);
+        if(j && j.success){ resolve(true); return; }
+        if(j && j.error){ console.warn('Sheet error:', j.error, data.action); resolve(false); return; }
+        // Unexpected response - log it
+        console.warn('Sheet unexpected response:', xhr.responseText.substring(0,100), data.action);
+        resolve(false);
+      }catch(e){ resolve(xhr.status===200); }
+    };
+    xhr.onerror = function(){
+      // Fallback: no-cors (fire and forget - write goes through but can't read response)
+      fetch(base + '?payload=' + enc + '&t=' + Date.now(), {mode:'no-cors'})
+        .then(function(){ resolve(true); })
+        .catch(function(){ resolve(false); });
+    };
+    xhr.ontimeout = function(){ resolve(false); };
+    xhr.send();
+  });
 }
 
 // ── Sync status dot in top bar ──
@@ -3835,6 +3826,66 @@ async function testLeadPush(){
 
 
 _loadQ();
+async function testFieldUpdate(){
+  var el=document.getElementById('diag-del-result');
+  function log(m){ if(el) el.textContent+=m+'\n'; }
+  if(el) el.textContent='';
+  if(!hasScript()){ log('ERROR: No Apps Script URL set in Settings'); return; }
+  if(!leads.length){ log('ERROR: No leads in app'); return; }
+
+  var lead = leads[0];
+  log('Testing field update for lead: '+lead.name+' ('+lead.mobile+')');
+  log('Current status in app: '+lead.status);
+  log('');
+  log('1. Building row...');
+  var row = leadRow(lead);
+  log('   Row[0] Name: '+row[0]);
+  log('   Row[1] Mobile: '+row[1]);
+  log('   Row[5] Status: '+row[5]);
+  log('   Row[9] Next FU: '+row[9]);
+  log('   Row[11] Mode: '+row[11]);
+  log('');
+  log('2. Sending updateLead to sheet...');
+  var enc = encodeURIComponent(JSON.stringify({action:'updateLead', mobile:lead.mobile, row:row}));
+  var url = cfg_.scriptUrl + '?payload=' + enc + '&t=' + Date.now();
+  log('   URL length: '+url.length+' chars');
+  log('   Payload: '+JSON.stringify({action:'updateLead',mobile:lead.mobile}).substring(0,60)+'...');
+  log('');
+  try{
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+    await new Promise(function(res){
+      xhr.onload=function(){
+        log('   HTTP status: '+xhr.status);
+        log('   Response: '+xhr.responseText.substring(0,100));
+        res();
+      };
+      xhr.onerror=function(){ log('   XHR ERROR - network issue'); res(); };
+      xhr.send();
+    });
+    log('');
+    // Read back to verify
+    log('3. Reading LEADS sheet to verify...');
+    await new Promise(function(r){setTimeout(r,1500);});
+    var r2 = await fetch(cfg_.scriptUrl+'?tab=LEADS&t='+Date.now());
+    var d2 = await r2.json();
+    var found = (d2.rows||[]).find(function(r){ return String(r[1]||'').trim()===String(lead.mobile||'').trim(); });
+    if(found){
+      log('   Found in sheet: YES');
+      log('   Sheet status:   "'+found[5]+'" (app: "'+lead.status+'")');
+      log('   Sheet next FU:  "'+found[9]+'" (app: "'+(lead.nextFollowUp||'')+'")');
+      log('   Sheet mode:     "'+found[11]+'" (app: "'+(lead.contactMode||'')+'")');
+      var match = String(found[5]).toUpperCase()===String(lead.status||'').toUpperCase();
+      log('');
+      log(match ? '✅ SHEET MATCHES APP — sync is WORKING' : '❌ SHEET DOES NOT MATCH APP — updateLead failed');
+    } else {
+      log('   Lead NOT found in sheet by mobile "'+lead.mobile+'"');
+      log('   (Lead may not exist in sheet yet — try Force Push All first)');
+    }
+  }catch(err){ log('ERROR: '+err.message); }
+}
+
+
 load();applyDarkMode();loadActivityLog();bootSequenceV17();
 setTimeout(flushWriteQueue, 3000); // flush any pending writes from previous session
 
