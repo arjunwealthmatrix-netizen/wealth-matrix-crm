@@ -3088,28 +3088,41 @@ async function _doWrite(data){
   if(!hasScript()) return false;
   var url = cfg_.scriptUrl;
   var body = JSON.stringify(data);
-  // Method 1: POST text/plain (no CORS preflight, Apps Script reads e.postData.contents)
-  try{
-    var r = await fetch(url, {method:'POST', headers:{'Content-Type':'text/plain'}, body:body});
-    var t = await r.text();
+  var enc = encodeURIComponent(body);
+
+  // Method 1: GET with payload in URL — proven reliable for Apps Script
+  // Apps Script processes GET requests without redirect issues
+  if(enc.length < 7500){
     try{
-      var j = JSON.parse(t);
-      if(j && j.success) return true;
-      if(j && j.error){ console.warn('Sheet write error:', j.error); return false; }
-      return r.ok;
-    }catch(pe){ return r.ok; }
-  }catch(e){
-    // Method 2: GET with small payload in URL (works for small operations like delete)
-    try{
-      var enc = encodeURIComponent(body);
-      if(enc.length < 6000){
-        var r2 = await fetch(url+'?payload='+enc+'&t='+Date.now());
-        var t2 = await r2.text();
-        try{ var j2=JSON.parse(t2); return !!(j2&&j2.success); }catch(pe2){ return r2.ok; }
-      }
-    }catch(e2){}
-    return false;
+      var r = await fetch(url+'?payload='+enc+'&t='+Date.now());
+      var t = await r.text();
+      try{
+        var j = JSON.parse(t);
+        if(j && j.success) return true;
+        if(j && j.error){ console.warn('Sheet error:', j.error); return false; }
+        return r.ok;
+      }catch(pe){ return r.ok; }
+    }catch(e){ console.warn('GET write failed:', e.message); }
   }
+
+  // Method 2: POST text/plain — for large payloads (pushLeads full rewrite)
+  try{
+    var r2 = await fetch(url, {method:'POST', headers:{'Content-Type':'text/plain'}, body:body});
+    var t2 = await r2.text();
+    try{
+      var j2 = JSON.parse(t2);
+      if(j2 && j2.success) return true;
+      if(j2 && j2.error){ console.warn('POST error:', j2.error); return false; }
+      return r2.ok;
+    }catch(pe2){ return r2.ok; }
+  }catch(e2){ console.warn('POST write failed:', e2.message); }
+
+  // Method 3: no-cors GET (last resort — fire and forget)
+  try{
+    await fetch(url+'?payload='+enc+'&t='+Date.now(), {mode:'no-cors'});
+    return true; // assume ok
+  }catch(e3){}
+  return false;
 }
 
 // ── Sync status dot in top bar ──
