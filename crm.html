@@ -425,7 +425,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <button class="btn btn-full" style="background:var(--accent);color:#fff;border:none;font-size:13px;font-weight:700;padding:11px;border-radius:var(--r2)" onclick="runFullSyncTest()">🧪 Run Full Test</button>
     <div id="diag-del-result" style="font-size:10px;margin-top:8px;color:var(--text);white-space:pre-wrap;font-family:monospace;line-height:1.4;background:var(--bg);border-radius:6px;padding:8px;max-height:300px;overflow-y:auto"></div>
     <button class="btn btn-ghost btn-full" style="margin-top:8px" onclick="diagActivityDelete()">🔍 Show all log Raw IDs (sheet vs app)</button>
-    <button class="btn btn-ghost btn-full" style="margin-top:6px" onclick="testDeleteFirstLog()">🧪 Test delete first log entry</button><button class="btn btn-ghost btn-full" style="margin-top:6px;background:var(--accent);color:#fff;border:none" onclick="testLeadPush()">🧪 Test Lead Write to Sheet</button><button class="btn btn-ghost btn-full" style="margin-top:6px;border:2px solid var(--accent)" onclick="testFieldUpdate()">🔬 Test Field Update (updateLead)</button><button class="btn btn-ghost btn-full" style="margin-top:6px" onclick="diagLeadActivity()">🔬 Diagnose lead activity pull</button>
+    <button class="btn btn-ghost btn-full" style="margin-top:6px" onclick="testDeleteFirstLog()">🧪 Test delete first log entry</button><button class="btn btn-ghost btn-full" style="margin-top:6px;background:var(--accent);color:#fff;border:none" onclick="testLeadPush()">🧪 Test Lead Write to Sheet</button><button class="btn btn-ghost btn-full" style="margin-top:6px" onclick="diagLeadActivity()">🔬 Diagnose lead activity pull</button>
     <div id="full-test-result" style="font-size:11px;margin-top:10px;color:var(--text);white-space:pre-wrap;font-family:monospace;line-height:1.5;background:var(--bg);border-radius:6px;padding:8px;max-height:400px;overflow-y:auto"></div>
   </div>
   <div class="syc"><div class="sy-t">📥 Import MASTER LIST</div>
@@ -3024,146 +3024,56 @@ async function saveLead(){
 }
 
 
-// ═══════════════════════════════════════════════════════════════
-// ROBUST SYNC ARCHITECTURE
-// One row per operation. Scales to 10,000 leads.
-// Every write is small, fast, confirmed with retry queue.
-// ═══════════════════════════════════════════════════════════════
-
-// ── Write queue (survives page reload) ──
-var _wq = [];
-function _loadQ(){ try{ _wq=JSON.parse(localStorage.getItem('wm_wq')||'[]'); }catch(e){ _wq=[]; } }
-function _saveQ(){ try{ localStorage.setItem('wm_wq', JSON.stringify(_wq)); }catch(e){} }
-
-// ── Single row (15 cols) from a lead object ──
-function leadRow(l){
-  return [
-    l.name||'', l.mobile||'', l.email||'', l.age||'', l.country||'',
-    l.status||'', l.source||'', l.referral||'', l.aum||'',
-    l.nextFollowUp||'', l.products||'', l.contactMode||'',
-    l.remarks||'',
-    l.modifiedDate?String(l.modifiedDate).split('T')[0]:'',
-    l.createdDate?String(l.createdDate).split('T')[0]:''
-  ];
-}
-
-// ── Core targeted write: ONE action for ONE lead ──
-async function syncLead(lead, action){
-  if(!hasScript()) return;
-  var payload;
-  if(action==='add')    payload = {action:'appendLead',  row:leadRow(lead)};
-  if(action==='update') payload = {action:'updateLead',  mobile:lead.mobile, row:leadRow(lead)};
-  if(action==='delete') payload = {action:'deleteLead',  mobile:lead.mobile};
-  if(!payload) return;
-  var ok = await _doWrite(payload);
-  if(!ok){
-    _wq.push({payload:payload, ts:Date.now(), attempts:0});
-    _saveQ();
-    _setSyncDot('pending');
-    console.warn('syncLead queued (write failed):', action, lead.mobile||'');
-  } else {
-    _setSyncDot('ok');
-  }
-}
-
-// ── Flush pending queue (called on boot and after successful writes) ──
-async function flushWriteQueue(){
-  if(_wq.length===0) return;
-  _loadQ();
-  var remaining=[];
-  for(var i=0;i<_wq.length;i++){
-    var item=_wq[i];
-    if(item.attempts>=5){ continue; } // drop after 5 fails
-    var ok=await _doWrite(item.payload);
-    if(!ok){ item.attempts++; remaining.push(item); }
-  }
-  _wq=remaining;
-  _saveQ();
-  if(_wq.length>0) _setSyncDot('pending');
-  else _setSyncDot('ok');
-}
-
-// ── The actual HTTP write — POST text/plain with GET fallback ──
-async function _doWrite(data){
-  if(!hasScript()){ console.warn('No script URL'); return false; }
+// ── Simple proven write — POST text/plain (same as working v18) ──
+async function apiFetch(data){
+  if(!hasScript()) return null;
+  var url = cfg_.scriptUrl;
   var body = JSON.stringify(data);
-  var enc  = encodeURIComponent(body);
-  var base = cfg_.scriptUrl;
-
-  // Primary: GET with payload in URL (Apps Script handles GET natively, no redirect issues)
-  return new Promise(function(resolve){
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', base + '?payload=' + enc + '&t=' + Date.now(), true);
-    xhr.timeout = 15000;
-    xhr.onload = function(){
-      try{
-        var j = JSON.parse(xhr.responseText);
-        if(j && j.success){ resolve(true); return; }
-        if(j && j.error){ console.warn('Sheet error:', j.error, data.action); resolve(false); return; }
-        // Unexpected response - log it
-        console.warn('Sheet unexpected response:', xhr.responseText.substring(0,100), data.action);
-        resolve(false);
-      }catch(e){ resolve(xhr.status===200); }
-    };
-    xhr.onerror = function(){
-      // Fallback: no-cors (fire and forget - write goes through but can't read response)
-      fetch(base + '?payload=' + enc + '&t=' + Date.now(), {mode:'no-cors'})
-        .then(function(){ resolve(true); })
-        .catch(function(){ resolve(false); });
-    };
-    xhr.ontimeout = function(){ resolve(false); };
-    xhr.send();
-  });
+  // POST text/plain: avoids CORS preflight, Apps Script reads e.postData.contents
+  try{
+    var resp = await fetch(url, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain'},
+      body: body
+    });
+    var text = await resp.text();
+    return JSON.parse(text);
+  }catch(e){
+    // Fallback: GET with payload in URL
+    try{
+      var enc = encodeURIComponent(body);
+      var resp2 = await fetch(url + '?payload=' + enc + '&t=' + Date.now());
+      var text2 = await resp2.text();
+      return JSON.parse(text2);
+    }catch(e2){
+      console.warn('apiFetch failed:', e2.message);
+      return null;
+    }
+  }
 }
 
-// ── Sync status dot in top bar ──
-function _setSyncDot(state){
-  var el = document.getElementById('sync-dot');
-  if(!el) return;
-  if(state==='ok')      { el.style.background='#4CAF50'; el.title='All synced'; }
-  if(state==='pending') { el.style.background='#FF9800'; el.title='Pending writes (will retry)'; }
-  if(state==='syncing') { el.style.background='#2196F3'; el.title='Syncing…'; }
-  if(state==='err')     { el.style.background='#F44336'; el.title='Sync error'; }
-}
-
-// ── pushLeads: only used for Force Push All (full rewrite) ──
+// ── Push ALL leads to sheet (rewrite) ──
 async function pushLeads(){
   if(!hasScript()) return;
   showSyncPush('leads');
-  _setSyncDot('syncing');
-  // Chunk into 50-row batches to handle large lists
-  var rows = leadsRows();
-  var hdr = rows[0];
-  var data = rows.slice(1);
-  var BATCH = 50;
-  // First batch: full clear+rewrite with header + first 50
-  var first = [hdr].concat(data.slice(0,BATCH));
-  var ok = await _doWrite({action:'pushLeads', rows:first});
-  if(!ok){ showSyncPush('err'); _setSyncDot('err'); return; }
-  // Remaining batches: append
-  for(var i=BATCH; i<data.length; i+=BATCH){
-    var chunk = data.slice(i, i+BATCH);
-    ok = await _doWrite({action:'appendLeads', rows:chunk});
-    if(!ok){ showSyncPush('err'); _setSyncDot('err'); return; }
-  }
-  showSyncPush('ok');
-  _setSyncDot('ok');
+  try{
+    var res = await apiFetch({action:'pushLeads', rows:leadsRows()});
+    if(res && res.success){ showSyncPush('ok'); }
+    else { showSyncPush('err'); console.warn('pushLeads failed:', res); }
+  }catch(e){ showSyncPush('err'); }
 }
 
-// ── pushClients: chunked for scale ──
+// ── Push ALL clients to sheet ──
 async function pushClients(){
   if(!hasScript()) return;
-  var rows = clientsRows();
-  var hdr = rows[0];
-  var data = rows.slice(1);
-  var BATCH = 50;
-  var first = [hdr].concat(data.slice(0,BATCH));
-  var ok = await _doWrite({action:'pushClients', rows:first});
-  if(!ok) return;
-  for(var i=BATCH; i<data.length; i+=BATCH){
-    await _doWrite({action:'appendClients', rows:data.slice(i, i+BATCH)});
-  }
+  try{
+    await apiFetch({action:'pushClients', rows:clientsRows()});
+  }catch(e){}
 }
+
+// ── Compatibility alias ──
+async function _doWrite(data){ return await apiFetch(data); }
+async function syncLead(lead, action){ await pushLeads(); }
 
 
 
@@ -3826,66 +3736,6 @@ async function testLeadPush(){
 
 
 _loadQ();
-async function testFieldUpdate(){
-  var el=document.getElementById('diag-del-result');
-  function log(m){ if(el) el.textContent+=m+'\n'; }
-  if(el) el.textContent='';
-  if(!hasScript()){ log('ERROR: No Apps Script URL set in Settings'); return; }
-  if(!leads.length){ log('ERROR: No leads in app'); return; }
-
-  var lead = leads[0];
-  log('Testing field update for lead: '+lead.name+' ('+lead.mobile+')');
-  log('Current status in app: '+lead.status);
-  log('');
-  log('1. Building row...');
-  var row = leadRow(lead);
-  log('   Row[0] Name: '+row[0]);
-  log('   Row[1] Mobile: '+row[1]);
-  log('   Row[5] Status: '+row[5]);
-  log('   Row[9] Next FU: '+row[9]);
-  log('   Row[11] Mode: '+row[11]);
-  log('');
-  log('2. Sending updateLead to sheet...');
-  var enc = encodeURIComponent(JSON.stringify({action:'updateLead', mobile:lead.mobile, row:row}));
-  var url = cfg_.scriptUrl + '?payload=' + enc + '&t=' + Date.now();
-  log('   URL length: '+url.length+' chars');
-  log('   Payload: '+JSON.stringify({action:'updateLead',mobile:lead.mobile}).substring(0,60)+'...');
-  log('');
-  try{
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', url, true);
-    await new Promise(function(res){
-      xhr.onload=function(){
-        log('   HTTP status: '+xhr.status);
-        log('   Response: '+xhr.responseText.substring(0,100));
-        res();
-      };
-      xhr.onerror=function(){ log('   XHR ERROR - network issue'); res(); };
-      xhr.send();
-    });
-    log('');
-    // Read back to verify
-    log('3. Reading LEADS sheet to verify...');
-    await new Promise(function(r){setTimeout(r,1500);});
-    var r2 = await fetch(cfg_.scriptUrl+'?tab=LEADS&t='+Date.now());
-    var d2 = await r2.json();
-    var found = (d2.rows||[]).find(function(r){ return String(r[1]||'').trim()===String(lead.mobile||'').trim(); });
-    if(found){
-      log('   Found in sheet: YES');
-      log('   Sheet status:   "'+found[5]+'" (app: "'+lead.status+'")');
-      log('   Sheet next FU:  "'+found[9]+'" (app: "'+(lead.nextFollowUp||'')+'")');
-      log('   Sheet mode:     "'+found[11]+'" (app: "'+(lead.contactMode||'')+'")');
-      var match = String(found[5]).toUpperCase()===String(lead.status||'').toUpperCase();
-      log('');
-      log(match ? '✅ SHEET MATCHES APP — sync is WORKING' : '❌ SHEET DOES NOT MATCH APP — updateLead failed');
-    } else {
-      log('   Lead NOT found in sheet by mobile "'+lead.mobile+'"');
-      log('   (Lead may not exist in sheet yet — try Force Push All first)');
-    }
-  }catch(err){ log('ERROR: '+err.message); }
-}
-
-
 load();applyDarkMode();loadActivityLog();bootSequenceV17();
 setTimeout(flushWriteQueue, 3000); // flush any pending writes from previous session
 
