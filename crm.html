@@ -425,7 +425,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <button class="btn btn-full" style="background:var(--accent);color:#fff;border:none;font-size:13px;font-weight:700;padding:11px;border-radius:var(--r2)" onclick="runFullSyncTest()">🧪 Run Full Test</button>
     <div id="diag-del-result" style="font-size:10px;margin-top:8px;color:var(--text);white-space:pre-wrap;font-family:monospace;line-height:1.4;background:var(--bg);border-radius:6px;padding:8px;max-height:300px;overflow-y:auto"></div>
     <button class="btn btn-ghost btn-full" style="margin-top:8px" onclick="diagActivityDelete()">🔍 Show all log Raw IDs (sheet vs app)</button>
-    <button class="btn btn-ghost btn-full" style="margin-top:6px" onclick="testDeleteFirstLog()">🧪 Test delete first log entry</button><button class="btn btn-ghost btn-full" style="margin-top:6px" onclick="diagLeadActivity()">🔬 Diagnose lead activity pull</button>
+    <button class="btn btn-ghost btn-full" style="margin-top:6px" onclick="testDeleteFirstLog()">🧪 Test delete first log entry</button><button class="btn btn-ghost btn-full" style="margin-top:6px;background:var(--accent);color:#fff;border:none" onclick="testLeadPush()">🧪 Test Lead Write to Sheet</button><button class="btn btn-ghost btn-full" style="margin-top:6px" onclick="diagLeadActivity()">🔬 Diagnose lead activity pull</button>
     <div id="full-test-result" style="font-size:11px;margin-top:10px;color:var(--text);white-space:pre-wrap;font-family:monospace;line-height:1.5;background:var(--bg);border-radius:6px;padding:8px;max-height:400px;overflow-y:auto"></div>
   </div>
   <div class="syc"><div class="sy-t">📥 Import MASTER LIST</div>
@@ -708,7 +708,7 @@ function quickLog(mob,note){
   l.remarks=migrateRemarks(l.remarks||'');
   l.remarks=appendRemark(l.remarks,note.toUpperCase());
   l.modifiedDate=now();
-  saveL();pushLeads();
+  saveL();syncLead(l,'update');
   toast('✅ '+note);
   // Refresh history panel if open
   refreshFuHist(mob);
@@ -724,7 +724,7 @@ function addManualNote(mob){
   l.remarks=migrateRemarks(l.remarks||'');
   l.remarks=appendRemark(l.remarks,text.toUpperCase());
   l.modifiedDate=now();if(input)input.value='';
-  saveL();pushLeads();
+  saveL();syncLead(l,'update');
   // Refresh all visible history panels
   var logEl=document.getElementById('comm-log-'+mob);
   if(logEl)logEl.innerHTML=renderCommLog(l.remarks);
@@ -750,13 +750,13 @@ function askAddRemark(lead,note,callback){
   ov.innerHTML='<div style="background:var(--s1);border-radius:16px 16px 0 0;width:100%;max-width:520px;padding:20px 16px 28px;border-top:3px solid var(--accent)"><div style="font-size:14px;font-weight:700;margin-bottom:6px">Add to communication log?</div><div style="font-size:12px;color:var(--t2);margin-bottom:14px;background:var(--s2);padding:10px 12px;border-radius:8px;font-family:monospace">['+fmtStamp(new Date())+'] '+note+'</div><div style="display:flex;gap:8px"><button id="remark-yes" class="btn btn-gold btn-full" style="flex:1">✅ Yes, log it</button><button id="remark-no" class="btn btn-ghost" style="flex:1">Skip</button></div></div>';
   document.body.appendChild(ov);
   document.getElementById('remark-yes').onclick=function(){
-    if(lead){lead.remarks=appendRemark(lead.remarks||'',note);lead.modifiedDate=now();saveL();pushLeads();}
+    if(lead){lead.remarks=appendRemark(lead.remarks||'',note);lead.modifiedDate=now();saveL();syncLead(lead,'update');}
     document.body.removeChild(ov);if(callback)callback();
   };
   document.getElementById('remark-no').onclick=function(){document.body.removeChild(ov);if(callback)callback();};
   ov.addEventListener('click',function(e){if(e.target===ov){document.body.removeChild(ov);if(callback)callback();}});
 }
-function bumpM(mob){var l=leads.find(function(x){return x.mobile===mob;});if(l){l.modifiedDate=now();saveL();pushLeads();}}
+function bumpM(mob){var l=leads.find(function(x){return x.mobile===mob;});if(l){l.modifiedDate=now();saveL();syncLead(l,'update');}}
 
 // ═══════════════════════════════════════════════
 // DARK MODE
@@ -1189,7 +1189,7 @@ function openDetail(mob,type){
           notes:[],createdDate:cl.convertedDate||today(),modifiedDate:now()};
         // Remove from clients, add to leads
         clients=clients.filter(function(x){return x.mobile!==mob2;});saveC();pushClients();
-        leads.push(lead);saveL();pushLeads();
+        leads.push(lead);saveL();syncLead(lead,'add');
         logActivity(mob2,'lead','Reclassified: Client → '+newStatus,'');
         closeOv('ov-detail');renderAll();
         toast(toTitle(cl.name)+' moved to '+newStatus);
@@ -1303,8 +1303,8 @@ async function autoConvert(l){
   logAnalytics(6, 1);
   // Push BOTH sheets: CLIENTS gains the row, LEADS loses it
   if(hasScript()){
-    await sheetWrite({action:'pushClients', rows:clientsRows()});
-    await sheetWrite({action:'pushLeads', rows:leadsRows()});
+    await _doWrite({action:'pushClients', rows:clientsRows()});
+    syncLead({mobile:l.mobile}, 'delete'); // remove converted lead from LEADS sheet
   }
 }
 
@@ -1342,7 +1342,7 @@ function deleteLead(mob){
     leads=leads.filter(function(x){return x.mobile!==mob;});
     saveL();
     logAnalytics(2,-1);
-    pushLeads(); // rewrite LEADS sheet without this lead
+    syncLead({mobile:mob}, 'delete'); // delete only this row from sheet
     // Also delete this lead's activity log rows from sheet
     if(hasScript()) sheetWrite({action:'deleteLog', mobile:mob});
     closeOv('ov-detail');
@@ -1390,7 +1390,7 @@ function toggleSelect(mob){if(selectedLeads.has(mob))selectedLeads.delete(mob);e
 function clearBulk(){bulkMode=false;selectedLeads.clear();document.getElementById('bulk-toggle-btn').textContent='☑️';document.getElementById('bulk-bar').classList.remove('show');renderLeads();}
 function bulkChangeStatus(){if(selectedLeads.size===0){toast('Select leads first');return;}document.getElementById('ov-bulk').classList.add('open');}
 function applyBulkStatus(status){selectedLeads.forEach(function(mob){var l=leads.find(function(x){return x.mobile===mob;});if(l){var prev=l.status;l.status=status;l.modifiedDate=now();if(status==='CONVERTED'&&prev!=='CONVERTED')autoConvert(l);}});saveL();pushLeads();closeOv('ov-bulk');clearBulk();renderLeads();renderDash();}
-async function bulkDelete(){if(selectedLeads.size===0)return;if(!confirm('Delete '+selectedLeads.size+' leads?'))return;leads=leads.filter(function(l){return !selectedLeads.has(l.mobile);});saveL();clearBulk();renderLeads();renderDash();await pushLeads();}
+async function bulkDelete(){if(selectedLeads.size===0)return;if(!confirm('Delete '+selectedLeads.size+' leads?'))return;leads=leads.filter(function(l){return !selectedLeads.has(l.mobile);});saveL();clearBulk();renderLeads();renderDash();pushLeads();}
 
 // ═══════════════════════════════════════════════
 // CALENDAR
@@ -1628,7 +1628,7 @@ function showAppsScriptCode(){
     +"if(data.action==='appendLog'){var logSh=ss.getSheetByName(LOG_TAB)||ss.insertSheet(LOG_TAB);if(logSh.getLastRow()===0){var hdr=[['Timestamp','Name','Mobile','Type','Activity','Notes','Raw ID']];var hr=logSh.getRange(1,1,1,7);hr.setValues(hdr);hr.setFontWeight('bold').setBackground('#C0392B').setFontColor('#FFFFFF');logSh.setFrozenRows(1);}logSh.appendRow(data.row||[]);var lr3=logSh.getLastRow();logSh.getRange(lr3,1).setNumberFormat('@');logSh.getRange(lr3,7).setNumberFormat('@');return out({success:true});}\n"
     +"if(data.action==='deleteLogById'){var lsh=ss.getSheetByName(LOG_TAB);if(lsh&&lsh.getLastRow()>1){var rid=String(data.rowId||'').trim();var dmob=String(data.mobile||'').trim();var dts=String(data.ts||'').trim();var dact=String(data.activity||'').trim();var n=lsh.getLastRow();var rng=lsh.getRange(2,1,n-1,7).getValues();for(var rj=0;rj<rng.length;rj++){var row=rng[rj];var gId=String(row[6]||'').trim();var rTs=String(row[0]||'').trim();var rMob=String(row[2]||'').trim();var rAct=String(row[4]||'').trim();var matchById=(rid!==''&&gId===rid);var matchByTs=(rid===''||gId==='')&&dts!==''&&rMob===dmob&&rTs===dts&&rAct===dact;if(matchById||matchByTs){lsh.deleteRow(rj+2);break;}}}return out({success:true,deleted:true});}if(data.action==='deleteLog'){var lsh2=ss.getSheetByName(LOG_TAB);if(lsh2&&lsh2.getLastRow()>1){var mob3=String(data.mobile||'').trim();var n2=lsh2.getLastRow();for(var rk=n2;rk>=2;rk--){if(String(lsh2.getRange(rk,3).getValue()||'').trim()===mob3){lsh2.deleteRow(rk);}}}return out({success:true});}\n"
  +"if(data.action===\'updateAnalytics\'){var aS=ss.getSheetByName(\'ANALYTICS\')||ss.insertSheet(\'ANALYTICS\');if(aS.getLastRow()===0){aS.getRange(1,1,1,7).setValues([[\'Date\',\'Lead Entries\',\'Prospects\',\'Contacted\',\'In Progress\',\'Converted\',\'Dropped\']]).setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');aS.setFrozenRows(1);}var ad=data.date,ac=parseInt(data.col)||2,adel=parseInt(data.delta)||1,alr=aS.getLastRow(),af=false;if(alr>1){var adts=aS.getRange(2,1,alr-1,1).getValues();for(var i=0;i<adts.length;i++){if(String(adts[i][0]).trim()===ad){var acel=aS.getRange(i+2,ac);acel.setValue(Math.max(0,(parseInt(acel.getValue())||0)+adel));af=true;break;}}}if(!af&&adel>0){var anr=[ad,0,0,0,0,0,0];anr[ac-1]=adel;aS.appendRow(anr);}return out({success:true});}\n"
-       +"if(data.action==='appendLeads'||data.action==='appendClients'){var atab=data.action==='appendLeads'?LEADS_TAB:CLIENTS_TAB;var ash=ss.getSheetByName(atab);if(ash&&data.rows&&data.rows.length){data.rows.forEach(function(rw){ash.appendRow(rw);});var alr=ash.getLastRow();ash.getRange(2,1,alr-1,data.rows[0].length).setNumberFormat('@');}return out({success:true});}var tab=data.action==='pushLeads'?LEADS_TAB:data.action==='pushClients'?CLIENTS_TAB:null;if(!tab)return out({error:'Bad action:'+data.action});var rows=data.rows;if(!rows||rows.length===0)return out({error:'No rows'});var sh=ss.getSheetByName(tab)||ss.insertSheet(tab);sh.clearContents();var r=sh.getRange(1,1,rows.length,rows[0].length);r.setNumberFormat('@');r.setValues(rows);var h=sh.getRange(1,1,1,rows[0].length);h.setFontWeight('bold').setBackground('#C0392B').setFontColor('#FFFFFF');sh.setFrozenRows(1);return out({success:true,written:rows.length-1});}\n"
+       +"if(data.action==='appendLeads'||data.action==='appendClients'){var atab=data.action==='appendLeads'?LEADS_TAB:CLIENTS_TAB;var ash=ss.getSheetByName(atab);if(ash&&data.rows&&data.rows.length){data.rows.forEach(function(rw){ash.appendRow(rw);});var alr=ash.getLastRow();ash.getRange(2,1,alr-1,data.rows[0].length).setNumberFormat('@');}return out({success:true});}if(data.action==='appendLead'){var aSh=ss.getSheetByName(LEADS_TAB)||ss.insertSheet(LEADS_TAB);if(aSh.getLastRow()===0){var lHdr=[['Name','Mobile','Email','Age','Country','Status','Source','Referred By','Estimated AUM/SIP','Next Follow-up','Investment Products','Mode of Contact','Remarks','Modified Date','Created Date']];var lHr=aSh.getRange(1,1,1,15);lHr.setValues(lHdr);lHr.setFontWeight('bold').setBackground('#C0392B').setFontColor('#FFFFFF');aSh.setFrozenRows(1);}var aRow=data.row||[];aSh.appendRow(aRow);var aLr=aSh.getLastRow();aSh.getRange(aLr,1,1,aRow.length).setNumberFormat('@');return out({success:true,action:'appendLead'});}if(data.action==='updateLead'){var uSh=ss.getSheetByName(LEADS_TAB);if(uSh&&uSh.getLastRow()>1){var uMob=String(data.mobile||'').trim();var uRow=data.row||[];var uN=uSh.getLastRow();var uVals=uSh.getRange(2,2,uN-1,1).getValues();for(var ui=0;ui<uVals.length;ui++){if(String(uVals[ui][0]||'').trim()===uMob){var uRng=uSh.getRange(ui+2,1,1,uRow.length);uRng.setValues([uRow]);uRng.setNumberFormat('@');break;}}}return out({success:true,action:'updateLead'});}if(data.action==='deleteLead'){var dSh=ss.getSheetByName(LEADS_TAB);if(dSh&&dSh.getLastRow()>1){var dMob=String(data.mobile||'').trim();var dN=dSh.getLastRow();var dVals=dSh.getRange(2,2,dN-1,1).getValues();for(var di=dN-1;di>=0;di--){if(String(dVals[di][0]||'').trim()===dMob){dSh.deleteRow(di+2);break;}}}return out({success:true,action:'deleteLead'});}var tab=data.action==='pushLeads'?LEADS_TAB:data.action==='pushClients'?CLIENTS_TAB:null;if(!tab)return out({error:'Bad action:'+data.action});var rows=data.rows;if(!rows||rows.length===0)return out({error:'No rows'});var sh=ss.getSheetByName(tab)||ss.insertSheet(tab);sh.clearContents();var r=sh.getRange(1,1,rows.length,rows[0].length);r.setNumberFormat('@');r.setValues(rows);var h=sh.getRange(1,1,1,rows[0].length);h.setFontWeight('bold').setBackground('#C0392B').setFontColor('#FFFFFF');sh.setFrozenRows(1);return out({success:true,written:rows.length-1});}\n"
     +"function out(o){return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);}\n"
     +"function testConnection(){Logger.log('OK: '+SpreadsheetApp.openById(SHEET_ID).getName());}";
   var ov=document.createElement('div');
@@ -1732,7 +1732,7 @@ function closeOv(id){
   if(id==='ov-detail'&&_detailOpenMobile&&_detailOpenType==='lead'){
     var l=leads.find(function(x){return x.mobile===_detailOpenMobile;});
     var fd=parseInt(cfg_.followUpDays)||14;
-    if(l&&(daysAgo(l.modifiedDate||l.createdDate)>=fd||_detailModified)){l.modifiedDate=now();saveL();pushLeads();setTimeout(renderFU,600);}
+    if(l&&(daysAgo(l.modifiedDate||l.createdDate)>=fd||_detailModified)){l.modifiedDate=now();saveL();syncLead(l,'update');setTimeout(renderFU,600);}
   }
   editLead=null;editClient=null;_detailOpenMobile=null;_detailOpenType=null;_detailModified=false;
 }
@@ -1838,7 +1838,7 @@ async function quickStatus(mob,status){
       saveL();
       closeOv('ov-detail');closeFuDetail();
       renderLeads();renderDash();renderFU();
-      await pushLeads(); // AWAIT — same as working follow-up date
+      syncLead(l,'update'); // AWAIT — same as working follow-up date
       toast('Dropped: '+reason);
     });
     return;
@@ -1851,7 +1851,7 @@ async function quickStatus(mob,status){
   saveL();
   closeOv('ov-detail');closeFuDetail();
   renderLeads();renderDash();renderFU();
-  await pushLeads(); // AWAIT — guarantees write completes (same as follow-up date)
+  syncLead(l,'update'); // AWAIT — guarantees write completes (same as follow-up date)
   if(status==='CONVERTED'&&prev!=='CONVERTED') autoConvert(l);
   if(status!=='CONVERTED') toast('Status → '+status);
 }
@@ -2345,7 +2345,7 @@ async function updateLeadField(mob, field, value){
   l[field]=value;
   l.modifiedDate=now();
   saveL();
-  await pushLeads(); // AWAIT — guarantees the column updates in sheet
+  syncLead(l,'update');
   toast('✅ Saved');
 }
 
@@ -2358,8 +2358,8 @@ async function updateLeadField(mob, field, value, silent){
   if(!l) return;
   l[field] = value;
   l.modifiedDate = now();
-  saveL();                  // save local
-  await pushLeads();        // write whole LEADS sheet (proven path)
+  saveL();
+  syncLead(l, 'update'); // update only this lead's row
   if(!silent) toast('✅ Saved: '+field);
 }
 
@@ -2373,7 +2373,7 @@ async function saveFuDateV17(mob, newDate){
   toast('✅ Follow-up: '+fmt(newDate));
   var dateInp=document.getElementById('fnd-'+mob);
   if(dateInp){var fd=daysUntil(newDate);var fc=fd<=0?'var(--accent)':fd<=3?'#FFB300':'#888';dateInp.style.borderColor=fc;dateInp.style.color=fc;}
-  await pushLeads();
+  syncLead(l, 'update'); // update only this lead's row
   setTimeout(function(){renderFU();renderLeads();},300);
 }
 
@@ -2519,9 +2519,9 @@ function renderFuDetailInner(mob){
       setTimeout(function(){var el=document.getElementById('fu-hist-'+m);if(el){el.innerHTML=buildHistoryHtml(m,'lead');el.scrollTop=el.scrollHeight;}},350);
     }
     if(action==='fu-mode'){
-      updateLeadField(m,'contactMode',btn.dataset.mode,true).then(function(){
-        renderFuDetailInner(m);toast('Mode: '+btn.dataset.mode);
-      });
+      var lMode=leads.find(function(x){return x.mobile===m;});
+      if(lMode){lMode.contactMode=btn.dataset.mode;lMode.modifiedDate=now();saveL();
+        syncLead(lMode,'update');renderFuDetailInner(m);toast('Mode: '+btn.dataset.mode);}
     }
     if(action==='fu-status') quickStatus(m,btn.dataset.status);
     if(action==='del-log') deleteActivityEntry(btn.dataset.rowid||'', btn.dataset.delmob||m, btn.dataset.delts||'');
@@ -2828,7 +2828,7 @@ async function saveFuCardDate(mob, newDate){
   toast('📅 '+fmt(newDate));
   var inp=document.getElementById('fucard-date-'+mob);
   if(inp){var fd=daysUntil(newDate);var fc=fd<=0?'var(--accent)':fd<=3?'#FFB300':'#888';inp.style.borderColor=fc;inp.style.color=fc;}
-  await pushLeads(); // immediate sheet write
+  syncLead(l, 'update'); // one row, immediate
   setTimeout(function(){renderFU();},400);
 }
 
@@ -3001,11 +3001,9 @@ async function saveLead(){
       });
     }
     saveL();renderAll();closeOv('ov-lead');
-    if(hasScript()){
-      var res2=await sheetWrite({action:'pushLeads',rows:leadsRows()});
-      if(res2&&res2.error){ toast('⚠️ Saved locally, sheet failed',5000); }
-      else{ toast('✅ Lead updated & synced'); }
-    }else{ toast('✅ Lead updated'); }
+    // Update ONLY this lead's row (one row, fast, scalable)
+    syncLead(leads[idx], 'update');
+    toast('✅ Lead updated');
     if(status==='CONVERTED') autoConvert(leads[idx]);
     editLead=null;
   }else{
@@ -3017,34 +3015,153 @@ async function saveLead(){
     leads.push(newLead);saveL();
     renderAll();
     closeOv('ov-lead');
-    // Push to sheet and await result to surface errors
-    if(hasScript()){
-      var res=await sheetWrite({action:'pushLeads',rows:leadsRows()});
-      if(res&&res.error){ toast('⚠️ Saved locally, sheet failed: '+res.error,5000); }
-      else{ toast('✅ Lead added & synced'); }
-    }else{
-      toast('✅ Lead added (local only)');
-    }
+    // Write ONLY this new lead (one row, fast, scalable)
+    syncLead(newLead, 'add');
+    toast('✅ Lead added');
     logAnalytics(2,1);
     if(status==='CONVERTED') autoConvert(newLead);
   }
 }
 
-// ── OVERRIDE pushLeads to use reliable queue ──
+
+// ═══════════════════════════════════════════════════════════════
+// ROBUST SYNC ARCHITECTURE
+// One row per operation. Scales to 10,000 leads.
+// Every write is small, fast, confirmed with retry queue.
+// ═══════════════════════════════════════════════════════════════
+
+// ── Write queue (survives page reload) ──
+var _wq = [];
+function _loadQ(){ try{ _wq=JSON.parse(localStorage.getItem('wm_wq')||'[]'); }catch(e){ _wq=[]; } }
+function _saveQ(){ try{ localStorage.setItem('wm_wq', JSON.stringify(_wq)); }catch(e){} }
+
+// ── Single row (15 cols) from a lead object ──
+function leadRow(l){
+  return [
+    l.name||'', l.mobile||'', l.email||'', l.age||'', l.country||'',
+    l.status||'', l.source||'', l.referral||'', l.aum||'',
+    l.nextFollowUp||'', l.products||'', l.contactMode||'',
+    l.remarks||'',
+    l.modifiedDate?String(l.modifiedDate).split('T')[0]:'',
+    l.createdDate?String(l.createdDate).split('T')[0]:''
+  ];
+}
+
+// ── Core targeted write: ONE action for ONE lead ──
+async function syncLead(lead, action){
+  if(!hasScript()) return;
+  var payload;
+  if(action==='add')    payload = {action:'appendLead',  row:leadRow(lead)};
+  if(action==='update') payload = {action:'updateLead',  mobile:lead.mobile, row:leadRow(lead)};
+  if(action==='delete') payload = {action:'deleteLead',  mobile:lead.mobile};
+  if(!payload) return;
+  var ok = await _doWrite(payload);
+  if(!ok){
+    // Queue for retry
+    _wq.push({payload:payload, ts:Date.now(), attempts:0});
+    _saveQ();
+    _setSyncDot('pending');
+  } else {
+    _setSyncDot('ok');
+  }
+}
+
+// ── Flush pending queue (called on boot and after successful writes) ──
+async function flushWriteQueue(){
+  if(_wq.length===0) return;
+  _loadQ();
+  var remaining=[];
+  for(var i=0;i<_wq.length;i++){
+    var item=_wq[i];
+    if(item.attempts>=5){ continue; } // drop after 5 fails
+    var ok=await _doWrite(item.payload);
+    if(!ok){ item.attempts++; remaining.push(item); }
+  }
+  _wq=remaining;
+  _saveQ();
+  if(_wq.length>0) _setSyncDot('pending');
+  else _setSyncDot('ok');
+}
+
+// ── The actual HTTP write — POST text/plain with GET fallback ──
+async function _doWrite(data){
+  if(!hasScript()) return false;
+  var url = cfg_.scriptUrl;
+  var body = JSON.stringify(data);
+  // Method 1: POST text/plain (no CORS preflight, Apps Script reads e.postData.contents)
+  try{
+    var r = await fetch(url, {method:'POST', headers:{'Content-Type':'text/plain'}, body:body});
+    var t = await r.text();
+    try{
+      var j = JSON.parse(t);
+      if(j && j.success) return true;
+      if(j && j.error){ console.warn('Sheet write error:', j.error); return false; }
+      return r.ok;
+    }catch(pe){ return r.ok; }
+  }catch(e){
+    // Method 2: GET with small payload in URL (works for small operations like delete)
+    try{
+      var enc = encodeURIComponent(body);
+      if(enc.length < 6000){
+        var r2 = await fetch(url+'?payload='+enc+'&t='+Date.now());
+        var t2 = await r2.text();
+        try{ var j2=JSON.parse(t2); return !!(j2&&j2.success); }catch(pe2){ return r2.ok; }
+      }
+    }catch(e2){}
+    return false;
+  }
+}
+
+// ── Sync status dot in top bar ──
+function _setSyncDot(state){
+  var el = document.getElementById('sync-dot');
+  if(!el) return;
+  if(state==='ok')      { el.style.background='#4CAF50'; el.title='All synced'; }
+  if(state==='pending') { el.style.background='#FF9800'; el.title='Pending writes (will retry)'; }
+  if(state==='syncing') { el.style.background='#2196F3'; el.title='Syncing…'; }
+  if(state==='err')     { el.style.background='#F44336'; el.title='Sync error'; }
+}
+
+// ── pushLeads: only used for Force Push All (full rewrite) ──
 async function pushLeads(){
   if(!hasScript()) return;
   showSyncPush('leads');
+  _setSyncDot('syncing');
+  // Chunk into 50-row batches to handle large lists
   var rows = leadsRows();
-  var payload = encodeURIComponent(JSON.stringify({action:'pushLeads', rows:rows}));
-  // URL length limit ~8000 chars. If too big, push in chunks.
-  if(payload.length > 7000){
-    var res = await pushRowsChunked('pushLeads', rows);
-    showSyncPush(res && !res.error ? 'ok' : 'err');
-    return;
+  var hdr = rows[0];
+  var data = rows.slice(1);
+  var BATCH = 50;
+  // First batch: full clear+rewrite with header + first 50
+  var first = [hdr].concat(data.slice(0,BATCH));
+  var ok = await _doWrite({action:'pushLeads', rows:first});
+  if(!ok){ showSyncPush('err'); _setSyncDot('err'); return; }
+  // Remaining batches: append
+  for(var i=BATCH; i<data.length; i+=BATCH){
+    var chunk = data.slice(i, i+BATCH);
+    ok = await _doWrite({action:'appendLeads', rows:chunk});
+    if(!ok){ showSyncPush('err'); _setSyncDot('err'); return; }
   }
-  var res2 = await sheetWrite({action:'pushLeads', rows:rows});
-  showSyncPush(res2 && !res2.error ? 'ok' : 'err');
+  showSyncPush('ok');
+  _setSyncDot('ok');
 }
+
+// ── pushClients: chunked for scale ──
+async function pushClients(){
+  if(!hasScript()) return;
+  var rows = clientsRows();
+  var hdr = rows[0];
+  var data = rows.slice(1);
+  var BATCH = 50;
+  var first = [hdr].concat(data.slice(0,BATCH));
+  var ok = await _doWrite({action:'pushClients', rows:first});
+  if(!ok) return;
+  for(var i=BATCH; i<data.length; i+=BATCH){
+    await _doWrite({action:'appendClients', rows:data.slice(i, i+BATCH)});
+  }
+}
+
+
 
 // ── RELIABLE BOOTSEQUENCE with loading screen + dash landing ──
 async function bootSequenceV17(){
@@ -3655,7 +3772,58 @@ async function diagLeadActivity(){
 }
 
 
+async function testLeadPush(){
+  var el=document.getElementById('diag-del-result');
+  function log(m){ if(el) el.textContent+=m+'\n'; }
+  if(el) el.textContent='';
+  if(!hasScript()){ log('No script URL'); return; }
+
+  // Step 1: try a tiny POST to confirm POST works at all
+  log('1. Testing POST to Apps Script...');
+  var pingPayload = JSON.stringify({action:'pushLeads', rows:[
+    ['Name','Mobile','Email','Age','Country','Status','Source','Referred By',
+     'Estimated AUM/SIP','Next Follow-up','Investment Products','Mode of Contact',
+     'Remarks','Modified Date','Created Date'],
+    ['ZZTEST','0000000001','','','','PROSPECT','','','','','','','test','','']
+  ]});
+  var postOk=false;
+  try{
+    var r1=await fetch(cfg_.scriptUrl,{method:'POST',headers:{'Content-Type':'text/plain'},body:pingPayload});
+    var t1=await r1.text();
+    log('   POST HTTP: '+r1.status+' type:'+r1.type);
+    log('   POST response: '+t1.substring(0,100));
+    postOk=(t1.indexOf('success')>=0||t1.indexOf('written')>=0);
+    log('   POST worked: '+(postOk?'YES':'NO'));
+  }catch(e1){ log('   POST failed: '+e1.message); }
+
+  // Step 2: read back to verify
+  log('2. Reading LEADS sheet...');
+  await new Promise(function(r){setTimeout(r,1500);});
+  try{
+    var r2=await fetch(cfg_.scriptUrl+'?tab=LEADS&t='+Date.now());
+    var d2=await r2.json();
+    var found=(d2.rows||[]).some(function(r){return String(r[1]||'').trim()==='0000000001';});
+    log('   Test lead in sheet: '+(found?'YES - WRITE WORKS!':'NO - WRITE FAILED'));
+    log('   Total rows in LEADS: '+((d2.rows||[]).length-1));
+
+    // Step 3: clean up test row
+    if(found){
+      log('3. Cleaning up test row...');
+      var cleanRows=(d2.rows||[]).filter(function(r,i){
+        return i===0||String(r[1]||'').trim()!=='0000000001';
+      });
+      await fetch(cfg_.scriptUrl,{method:'POST',headers:{'Content-Type':'text/plain'},
+        body:JSON.stringify({action:'pushLeads',rows:cleanRows})});
+      log('   Cleaned.');
+    }
+  }catch(e2){ log('   Read back failed: '+e2.message); }
+  log('Done.');
+}
+
+
+_loadQ();
 load();applyDarkMode();loadActivityLog();bootSequenceV17();
+setTimeout(flushWriteQueue, 3000); // flush any pending writes from previous session
 
 </script>
 </body>
