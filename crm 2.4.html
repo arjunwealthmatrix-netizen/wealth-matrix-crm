@@ -275,6 +275,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div style="display:flex;gap:7px;align-items:center">
       <button class="mic" id="mic-btn" onclick="voiceAdd()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
       <button class="btn btn-ghost" style="padding:7px 10px;font-size:11px" onclick="toggleBulk()" id="bulk-toggle-btn">☑️</button>
+      <button class="btn btn-ghost" style="padding:7px 8px;font-size:12px" onclick="quickAddFromContacts()" title="Add from contacts">📇</button>
+      <button class="btn btn-gold" style="padding:7px 12px;font-size:12px" onclick="openAddLead()">+ Add</button>
     </div>
   </div>
   <div style="padding:0 12px 9px"><input class="sbox" id="lead-search" placeholder="Search leads…" oninput="onLeadSearch()"></div>
@@ -374,84 +376,69 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 <!-- SETTINGS -->
 <div class="page" id="pg-settings">
   <div class="ph"><h1>Settings</h1></div>
-  <div style="padding:0 12px;margin-bottom:7px" class="lbl">Follow-up rules</div>
+
+  <!-- Connection -->
+  <div style="padding:0 12px;margin-bottom:7px" class="lbl">🔗 Connection</div>
   <div class="sg">
-    <div class="si"><span>Follow up after</span>
-      <select class="fi fi-sel" style="width:100px;padding:5px 24px 5px 8px" id="s-fdays" onchange="cfg('followUpDays',this.value);updateFUBadge()">
-        <option value="7">7 days</option><option value="10">10 days</option><option value="14" selected>14 days</option><option value="21">21 days</option><option value="30">30 days</option>
-      </select>
-    </div>
-    <div class="si"><span>Stale lead after</span>
-      <select class="fi fi-sel" style="width:100px;padding:5px 24px 5px 8px" id="s-stale" onchange="cfg('staleDays',this.value)">
-        <option value="21">21 days</option><option value="30" selected>30 days</option><option value="45">45 days</option><option value="60">60 days</option>
-      </select>
-    </div>
-    <div class="si"><span>Browser notifications</span><label class="toggle"><input type="checkbox" id="notif-toggle" onchange="toggleNotifications(this.checked)"><span class="toggle-slider"></span></label></div>
+    <div class="si"><span>Apps Script URL</span></div>
+    <div style="padding:0 12px 8px"><input class="fi" id="s-script-url" placeholder="Paste your /exec URL" style="font-size:11px" oninput="cfg('scriptUrl',this.value)"></div>
+    <div class="si" style="font-size:10px;color:var(--t3)"><span id="sync-status-text">Not synced</span></div>
   </div>
-  <div style="padding:0 12px;margin:14px 0 7px" class="lbl">🎯 Monthly goals</div>
+
+  <!-- Sync -->
+  <div style="padding:0 12px;margin-bottom:7px;margin-top:14px" class="lbl">☁️ Sync</div>
   <div class="sg">
-    <div class="si"><span>Conversions target</span><input type="number" class="fi" id="g-conv" placeholder="5" min="1" style="width:70px;padding:5px 8px;text-align:center" oninput="cfg('goalConversions',this.value)"></div>
-    <div class="si"><span>Contacted target</span><input type="number" class="fi" id="g-cont" placeholder="20" min="1" style="width:70px;padding:5px 8px;text-align:center" oninput="cfg('goalContacted',this.value)"></div>
+    <div class="syc"><button class="btn btn-ghost btn-full" onclick="pullFromSheet()">⬇️ Pull from Sheet</button></div>
+    <div class="syc"><button class="btn btn-ghost btn-full" onclick="forcePushAll()">⬆️ Push All to Sheet</button>
+      <div id="push-result" style="font-size:10px;color:var(--t3);margin-top:5px"></div>
+    </div>
+    <div class="si"><span>🔔 Browser Notifications</span>
+      <label style="position:relative;display:inline-block;width:44px;height:24px">
+        <input type="checkbox" id="s-notif-toggle" onchange="toggleNotifications(this.checked)" style="opacity:0;width:0;height:0">
+        <span style="position:absolute;inset:0;background:var(--border);border-radius:12px;cursor:pointer;transition:.3s"></span>
+        <span id="notif-slider" style="position:absolute;left:2px;top:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:.3s"></span>
+      </label>
+    </div>
+    <div class="si" style="font-size:10px;color:var(--t3)"><span>Auto-sync runs every 5 minutes. Daily summary at 9 AM.</span></div>
   </div>
-  <div style="padding:0 12px;margin:14px 0 7px" class="lbl">WhatsApp templates</div>
-  <div id="tmpl-section"></div>
 
-  <div style="padding:0 12px;margin:14px 0 7px" class="lbl">☁️ Sheet Sync</div>
-  <div class="sync-banner" id="sync-banner" style="margin:0 12px 8px;border-radius:var(--r2)">
-    <div class="sync-dot idle" id="sync-dot"></div>
-    <div id="sync-banner-text" style="font-size:12px;color:var(--t2)">Not configured.</div>
+  <!-- Monthly Goals -->
+  <div style="padding:0 12px;margin-bottom:7px;margin-top:14px" class="lbl">🎯 Monthly Goals</div>
+  <div class="sg">
+    <div class="si"><span>Target leads/month</span><input class="fi" id="s-goal-leads" type="number" style="width:70px;text-align:center" value="30" onchange="cfg('goalLeads',this.value)"></div>
+    <div class="si"><span>Target conversions/month</span><input class="fi" id="s-goal-conv" type="number" style="width:70px;text-align:center" value="5" onchange="cfg('goalConv',this.value)"></div>
   </div>
-  <div class="syc" style="border:1px solid rgba(192,57,43,.4);background:rgba(192,57,43,.05)">
-    <div class="sy-t" style="color:var(--accent)">⚠️ Redeploy Apps Script for Analytics tracking</div>
-    <div class="sy-d">Copy new code → paste in script.google.com → Deploy new version → update URL below → tap Create Analytics Tab</div>
-  </div>
-  <div class="syc"><div class="sy-t">🔗 Apps Script URL</div>
-    <div class="fg"><input class="fi" id="s-url" placeholder="https://script.google.com/macros/s/…/exec" oninput="cfg('scriptUrl',this.value);updateSyncBanner()"></div>
-  </div>
-  <div class="syc"><div class="sy-t">⬇️ Pull from Sheet</div>
-    <button class="btn btn-ghost btn-full" style="border-color:var(--blue);color:var(--blue)" onclick="pullFromSheet(true)">Pull from Google Sheet</button>
-    <div style="font-size:10px;color:var(--t3);margin-top:6px" id="pull-meta"></div>
-  </div>
-  <div class="syc"><div class="sy-t" style="color:var(--accent)">⬆️ Force Push All</div>
-    <button class="btn btn-full" style="background:var(--accent);color:#fff;border:none;font-size:13px;font-weight:700;padding:11px;border-radius:var(--r2)" onclick="forcePushAll()">⬆️ Push All to Sheet Now</button>
-    <div id="push-result" style="font-size:11px;margin-top:7px;color:var(--t3)"></div>
-  </div>
-  <div class="syc"><div class="sy-t">📊 Create ANALYTICS Tab</div>
-    <div class="sy-d">Creates the ANALYTICS tab in your sheet for daily activity tracking. Run once after redeploying Apps Script.</div>
-    <button class="btn btn-ghost btn-full" onclick="createAnalyticsSheet()">📊 Create ANALYTICS Tab in Sheet</button>
-  </div>
-  <div class="syc" style="border:2px solid var(--accent)">
-    <div class="sy-t" style="color:var(--accent)">🧪 Full Sync Test (Leads · Clients · Logs)</div>
-    <div class="sy-d">Tests write, read-back, modify, and delete for all 3 sheets. Tells you exactly what works and what fails. Test data is auto-cleaned.</div>
-    <button class="btn btn-full" style="background:var(--accent);color:#fff;border:none;font-size:13px;font-weight:700;padding:11px;border-radius:var(--r2)" onclick="runFullSyncTest()">🧪 Run Full Test</button>
-    <div id="diag-del-result" style="font-size:10px;margin-top:8px;color:var(--text);white-space:pre-wrap;font-family:monospace;line-height:1.4;background:var(--bg);border-radius:6px;padding:8px;max-height:300px;overflow-y:auto"></div>
-    <button class="btn btn-ghost btn-full" style="margin-top:8px" onclick="diagActivityDelete()">🔍 Show all log Raw IDs (sheet vs app)</button>
-    <button class="btn btn-ghost btn-full" style="margin-top:6px" onclick="testDeleteFirstLog()">🧪 Test delete first log entry</button><button class="btn btn-ghost btn-full" style="margin-top:6px;background:var(--accent);color:#fff;border:none" onclick="testLeadPush()">🧪 Test Lead Write to Sheet</button><button class="btn btn-ghost btn-full" style="margin-top:6px" onclick="diagLeadActivity()">🔬 Diagnose lead activity pull</button>
-    <div id="full-test-result" style="font-size:11px;margin-top:10px;color:var(--text);white-space:pre-wrap;font-family:monospace;line-height:1.5;background:var(--bg);border-radius:6px;padding:8px;max-height:400px;overflow-y:auto"></div>
-  </div>
-  <div class="syc"><div class="sy-t">📥 Import MASTER LIST</div>
-    <div class="fg"><label class="fl">Tab name</label><input class="fi" id="s-import-tab" value="MASTER LIST"></div>
-    <button class="btn btn-green btn-full" onclick="importFromSheet()">Import leads</button>
-  </div>
-  <div class="syc"><div class="sy-t">📤 Export backup</div>
-    <button class="btn btn-ghost btn-full" onclick="exportData()">Export JSON</button>
-  </div>
-  <div class="syc"><div class="sy-t">📋 Apps Script Code</div>
-    <button class="btn btn-ghost btn-full" onclick="showAppsScriptCode()">View / Copy Code</button>
-  </div>
-</div><!-- /content -->
 
-<!-- FLOATING ADD BUTTON -->
-<button class="fab" id="fab-add" onclick="fabAdd()">+</button>
-
-<!-- BULK BAR -->
-<div id="bulk-bar">
-  <span id="bulk-count">0 selected</span>
-  <div style="display:flex;gap:8px">
-    <button class="btn" style="background:rgba(255,255,255,.2);color:#fff;padding:6px 12px;font-size:12px" onclick="bulkChangeStatus()">Change status</button>
-    <button class="btn" style="background:var(--rdim);color:var(--red);padding:6px 12px;font-size:12px" onclick="bulkDelete()">Delete</button>
-    <button class="btn" style="background:rgba(255,255,255,.1);color:#fff;padding:6px 12px;font-size:12px" onclick="clearBulk()">✕</button>
+  <!-- Backup & Import -->
+  <div style="padding:0 12px;margin-bottom:7px;margin-top:14px" class="lbl">💾 Backup & Import</div>
+  <div class="sg">
+    <div class="syc"><button class="btn btn-ghost btn-full" onclick="exportData()">📥 Export JSON Backup</button></div>
+    <div class="syc"><button class="btn btn-ghost btn-full" onclick="exportCSV()">📥 Export CSV (Excel)</button></div>
+    <div class="syc">
+      <div class="sy-d" style="font-size:10px;margin-bottom:6px">Import tab name from sheet:</div>
+      <div style="padding:0 0 6px"><input class="fi" id="s-import-tab" value="MASTER LIST"></div>
+      <button class="btn btn-green btn-full" onclick="importFromSheet()">📤 Import from MASTER LIST</button>
+    </div>
   </div>
+
+  <!-- Apps Script Code -->
+  <div style="padding:0 12px;margin-bottom:7px;margin-top:14px" class="lbl">⚙️ Apps Script</div>
+  <div class="sg">
+    <div class="syc"><button class="btn btn-ghost btn-full" onclick="showAppsScriptCode()">📋 View / Copy Code</button></div>
+  </div>
+
+  <!-- Diagnostics (collapsible) -->
+  <div style="padding:0 12px;margin-bottom:7px;margin-top:14px" class="lbl">🔬 Diagnostics</div>
+  <div class="sg">
+    <div id="diag-del-result" style="font-size:10px;color:var(--text);white-space:pre-wrap;font-family:monospace;line-height:1.4;background:var(--bg);border-radius:6px;padding:8px;max-height:250px;overflow-y:auto;margin-bottom:6px"></div>
+    <div class="syc"><button class="btn btn-ghost btn-full" style="font-size:10px" onclick="diagActivityDelete()">🔍 Show log Raw IDs</button></div>
+    <div class="syc"><button class="btn btn-ghost btn-full" style="font-size:10px" onclick="diagLeadActivity()">🔬 Diagnose lead activity</button></div>
+    <div class="syc"><button class="btn btn-ghost btn-full" style="font-size:10px" onclick="testLeadPush()">🧪 Test lead write</button></div>
+  </div>
+
+  <div style="text-align:center;padding:20px 0 40px;font-size:10px;color:var(--t3)">Wealth Matrix CRM v2.4</div>
+</div>
+  
 </div>
 
 <nav id="nav">
@@ -1794,8 +1781,9 @@ function nav(name,btn){
   // Render on page switch
   if(name==='analytics') renderAnalytics();
   if(name==='clients'){ renderClients(); setTimeout(addSearchClose,100); }
+  if(name==='settings') loadSettings();
   if(name==='dash'){renderDash();setTimeout(addSearchClose,100);}
-  if(name==='leads') setTimeout(addSearchClose,100);
+  if(name==='leads'){ setTimeout(addSearchClose,100); initLeadSwipe(); }
   if(name==='clients') setTimeout(addSearchClose,100);
 }
 
@@ -3398,6 +3386,9 @@ function renderFuInElement(container, subEl){
   };
 }
 
+// Init swipe on lead list
+function initLeadSwipe(){setTimeout(initSwipe,200);}
+
 function addSearchClose(){
   ['lead-search','client-search'].forEach(function(id){
     var inp=document.getElementById(id);
@@ -3857,9 +3848,241 @@ async function testLeadPush(){
 
 
 _loadQ();
+// ── Quick-add lead from phone contacts ──
+// Uses Contact Picker API (Chrome Android). Falls back to manual entry.
+async function quickAddFromContacts(){
+  if(!('contacts' in navigator && 'ContactsManager' in window)){
+    toast('Contact picker not supported on this browser. Use Add Lead instead.');
+    openAddLead();
+    return;
+  }
+  try{
+    var contacts = await navigator.contacts.select(['name','tel'], {multiple:false});
+    if(!contacts||!contacts.length) return;
+    var c = contacts[0];
+    var name = (c.name&&c.name[0]) || '';
+    var phone = (c.tel&&c.tel[0]) || '';
+    phone = phone.replace(/[\s\-\(\)]/g,''); // strip formatting
+    if(!phone){ toast('No phone number found'); return; }
+    // Check duplicate
+    if(leads.find(function(l){return l.mobile===phone;})){
+      toast('Lead with this number already exists');
+      return;
+    }
+    // Open add lead form pre-filled
+    openAddLead({name:name, mob:phone});
+    toast('Contact loaded — review and save');
+  }catch(e){
+    if(e.name!=='AbortError') toast('Could not access contacts');
+  }
+}
+
+
+// ── Daily summary notification at 9 AM ──
+function scheduleDailySummary(){
+  if(!('Notification' in window)) return;
+  if(Notification.permission==='default') Notification.requestPermission();
+  // Check every minute if it's 9:00 AM
+  setInterval(function(){
+    var now=new Date();
+    if(now.getHours()===9 && now.getMinutes()===0){
+      var shown=localStorage.getItem('wm_daily_'+today());
+      if(shown) return; // already shown today
+      localStorage.setItem('wm_daily_'+today(),'1');
+      // Count follow-ups
+      var due=0, overdue=0;
+      var todayStr=today();
+      leads.forEach(function(l){
+        if(!l.nextFollowUp) return;
+        var d=daysUntil(l.nextFollowUp);
+        if(d===0) due++;
+        if(d<0) overdue++;
+      });
+      var activeLeads=leads.filter(function(l){
+        return ['PROSPECT','CONTACTED','IN PROGRESS'].includes((l.status||'').toUpperCase());
+      }).length;
+      var body='📋 '+activeLeads+' active leads';
+      if(due) body+=' · '+due+' follow-ups today';
+      if(overdue) body+=' · '+overdue+' overdue';
+      if(Notification.permission==='granted'){
+        new Notification('Wealth Matrix — Good Morning!', {body:body, icon:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="80" font-size="80">💼</text></svg>'});
+      }
+    }
+  }, 60000); // check every minute
+}
+
+
+// ── Swipe actions on lead cards ──
+// Right swipe → quick log activity | Left swipe → cycle status
+var _swipeStartX=0, _swipeStartY=0, _swipeMob='', _swiping=false;
+
+function initSwipe(){
+  var list=document.getElementById('lead-list');
+  if(!list) return;
+  list.addEventListener('touchstart', function(e){
+    var card=e.target.closest('.li');
+    if(!card||bulkMode) return;
+    _swipeStartX=e.touches[0].clientX;
+    _swipeStartY=e.touches[0].clientY;
+    _swipeMob=card.querySelector('[data-mob]')?(card.querySelector('[data-mob]').dataset.mob||''):'';
+    // Get mobile from onclick
+    var onclick=card.getAttribute('onclick')||'';
+    var m=onclick.match(/openDetail\('([^']+)'/);
+    if(m) _swipeMob=m[1];
+    _swiping=true;
+    card.style.transition='transform 0.1s';
+  }, {passive:true});
+
+  list.addEventListener('touchmove', function(e){
+    if(!_swiping) return;
+    var dx=e.touches[0].clientX-_swipeStartX;
+    var dy=e.touches[0].clientY-_swipeStartY;
+    if(Math.abs(dy)>Math.abs(dx)){_swiping=false;return;} // vertical scroll
+    var card=e.target.closest('.li');
+    if(card && Math.abs(dx)>20) card.style.transform='translateX('+Math.min(60,Math.max(-60,dx))+'px)';
+  }, {passive:true});
+
+  list.addEventListener('touchend', function(e){
+    if(!_swiping){_swiping=false;return;}
+    _swiping=false;
+    var card=e.target.closest('.li');
+    if(card) {card.style.transform='';card.style.transition='';}
+    var dx=e.changedTouches[0].clientX-_swipeStartX;
+    if(!_swipeMob||Math.abs(dx)<50) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if(dx>50){
+      // RIGHT SWIPE → Quick log "Followed up"
+      var l=leads.find(function(x){return x.mobile===_swipeMob;});
+      if(l){
+        logActivity(_swipeMob,'lead','📞 Called follow up','');
+        toast('📞 Logged for '+toTitle(l.name));
+        setTimeout(renderLeads,300);
+      }
+    } else if(dx<-50){
+      // LEFT SWIPE → Cycle status
+      var l2=leads.find(function(x){return x.mobile===_swipeMob;});
+      if(l2){
+        var cycle=['PROSPECT','CONTACTED','IN PROGRESS'];
+        var cur=(l2.status||'').toUpperCase();
+        var ci=cycle.indexOf(cur);
+        var next=cycle[(ci+1)%cycle.length];
+        l2.status=next;l2.modifiedDate=now();saveL();
+        syncLead(l2,'update');
+        toast(toTitle(l2.name)+' → '+next);
+        setTimeout(renderLeads,300);
+      }
+    }
+    _swipeMob='';
+  });
+}
+
+
+
+// ── Bulk WhatsApp broadcast ──
+// Opens WhatsApp for each selected lead one at a time
+function bulkWhatsApp(){
+  if(selectedLeads.size===0){toast('Select leads first');return;}
+  var msg=prompt('Enter broadcast message (sent to all selected):','Hi');
+  if(!msg) return;
+  var mobiles=[];
+  leads.forEach(function(l){
+    if(selectedLeads.has(l.mobile)){
+      var digits=(l.mobile||'').replace(/\D/g,'');
+      var waNum=digits.length===10?'91'+digits:digits;
+      mobiles.push({name:l.name, num:waNum});
+    }
+  });
+  if(!mobiles.length){toast('No valid numbers');return;}
+  // Show confirmation
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.innerHTML='<div style="background:var(--s1);border-radius:12px;width:100%;max-width:340px;overflow:hidden">'
+    +'<div style="padding:16px;font-size:14px;font-weight:800;border-bottom:1px solid var(--border)">Send WhatsApp to '+mobiles.length+' leads?</div>'
+    +'<div style="padding:10px 16px;font-size:11px;color:var(--t2);max-height:200px;overflow-y:auto">'+mobiles.map(function(m){return toTitle(m.name);}).join('<br>')+'</div>'
+    +'<div style="padding:8px 16px;font-size:10px;color:var(--t3)">Message: "'+msg.substring(0,50)+(msg.length>50?'…':'')+'"</div>'
+    +'<div style="display:flex;border-top:1px solid var(--border)">'
+    +'<button id="_wbn" style="flex:1;padding:12px;border:none;background:none;color:var(--t2);cursor:pointer;border-right:1px solid var(--border)">Cancel</button>'
+    +'<button id="_wby" style="flex:1;padding:12px;border:none;background:none;color:var(--green);font-weight:700;cursor:pointer">Send All</button>'
+    +'</div></div>';
+  document.body.appendChild(ov);
+  document.getElementById('_wbn').onclick=function(){ov.remove();};
+  document.getElementById('_wby').onclick=function(){
+    ov.remove();
+    var encoded=encodeURIComponent(msg);
+    var idx=0;
+    toast('Opening WhatsApp for '+mobiles.length+' leads…');
+    function sendNext(){
+      if(idx>=mobiles.length){toast('✅ All done!');return;}
+      var m=mobiles[idx]; idx++;
+      window.open('https://wa.me/'+m.num+'?text='+encoded,'_blank');
+      // Wait 2s between each to avoid overwhelming
+      setTimeout(sendNext, 2000);
+    }
+    sendNext();
+  };
+}
+
+
+// ── Export leads as CSV ──
+function exportCSV(){
+  var rows = leadsRows();
+  var csv = rows.map(function(r){
+    return r.map(function(c){ return '"'+(c||'').replace(/"/g,'""')+'"'; }).join(',');
+  }).join('\n');
+  var blob = new Blob([csv], {type:'text/csv'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'leads_'+today()+'.csv';
+  a.click();
+  toast('CSV downloaded');
+}
+
+
+// ── Load settings into UI ──
+function loadSettings(){
+  var urlEl=document.getElementById('s-script-url');
+  if(urlEl) urlEl.value=cfg_.scriptUrl||'';
+  var glEl=document.getElementById('s-goal-leads');
+  if(glEl) glEl.value=cfg_.goalLeads||'30';
+  var gcEl=document.getElementById('s-goal-conv');
+  if(gcEl) gcEl.value=cfg_.goalConv||'5';
+  var ntEl=document.getElementById('s-notif-toggle');
+  if(ntEl){ ntEl.checked=(cfg_.notifications==='on'); var sl=document.getElementById('notif-slider'); if(sl)sl.style.left=ntEl.checked?'22px':'2px'; }
+}
+
 // Load offline queue and flush any writes that failed last session
 _loadQ();
 load();applyDarkMode();loadActivityLog();bootSequenceV17();
+scheduleDailySummary();
+initLeadSwipe();
+
+// ── Auto-sync: pull from sheet every 5 minutes silently ──
+setInterval(async function(){
+  if(!hasScript()||syncInProgress) return;
+  try{
+    syncInProgress=true;
+    var ld=await scriptGet('LEADS');
+    if(ld&&ld.rows&&ld.rows.length>1){
+      var chdr=ld.rows[0].map(function(h){return (h||'').toLowerCase().trim();});
+      var ci=function(keys){for(var ki=0;ki<keys.length;ki++)for(var hi=0;hi<chdr.length;hi++)if(chdr[hi].includes(keys[ki]))return hi;return -1;};
+      var C={name:ci(['name']),mob:ci(['mobile']),email:ci(['email']),age:ci(['age']),country:ci(['country']),contactMode:ci(['mode','contact']),status:ci(['status']),source:ci(['source']),ref:ci(['referred','referral']),aum:ci(['aum','sip','estimated']),fu:ci(['follow']),prod:ci(['product','investment']),rem:ci(['remark']),mod:ci(['modified']),created:ci(['created'])};
+      function g(r,k,fb){var i=C[k]>=0?C[k]:fb;return i>=0&&i<r.length?String(r[i]||''):'';};
+      var sheetLeads=[];
+      ld.rows.slice(1).forEach(function(r){
+        var mob=g(r,'mob',1).trim();if(!mob)return;
+        var fu=g(r,'fu',9);if(fu&&!/^\d{4}-\d{2}-\d{2}$/.test(fu))fu='';
+        var cm=C.contactMode>=0?String(r[C.contactMode]||'').trim():'';
+        sheetLeads.push({name:caps(g(r,'name',0)),mobile:mob,email:g(r,'email',2),age:g(r,'age',3),country:caps(g(r,'country',4)),contactMode:cm,status:caps(g(r,'status',5))||'PROSPECT',source:caps(g(r,'source',6)),referral:g(r,'ref',7),aum:g(r,'aum',8),nextFollowUp:fu,products:caps(g(r,'prod',10)),remarks:g(r,'rem',11),modifiedDate:g(r,'mod',12)||today(),createdDate:g(r,'created',13)||today(),notes:[]});
+      });
+      leads=sheetLeads;saveL();
+    }
+    syncInProgress=false;
+    renderAll();
+    var ts=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+    setTopSync('ok','Auto-synced '+ts);
+  }catch(e){syncInProgress=false;}
+}, 300000); // 5 minutes
 setTimeout(flushWriteQueue, 4000); // retry pending writes after 4s
 setTimeout(flushWriteQueue, 3000); // flush any pending writes from previous session
 
