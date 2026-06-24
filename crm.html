@@ -242,6 +242,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .toggle-slider:before{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}
 .toggle input:checked+.toggle-slider{background:var(--accent)}
 .toggle input:checked+.toggle-slider:before{transform:translateX(20px)}
+
+/* FAB fixed buttons — only visible when inside active page */
+.page:not(.active){overflow:hidden}
 </style>
 <style>
 /* ── AUTOCOMPLETE ── */
@@ -271,6 +274,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 <div id="app">
 <div id="content">
 
+<!-- SHARED SEARCH BAR — active on Leads and Clients pages -->
+<div id="shared-search-bar" style="display:none;padding:6px 12px 4px;background:var(--bg);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50">
+  <input class="sbox" id="shared-search" placeholder="Search…" oninput="onSharedSearch()" style="width:100%">
+</div>
+
 <!-- LEADS -->
 <div class="page" id="pg-leads">
   <div class="ph">
@@ -278,14 +286,18 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div style="display:flex;gap:7px;align-items:center">
       <button class="mic" id="mic-btn" onclick="voiceAdd()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
       <button class="btn btn-ghost" style="padding:7px 10px;font-size:11px" onclick="toggleBulk()" id="bulk-toggle-btn">☑️</button>
-      <button class="btn btn-ghost" style="padding:7px 8px;font-size:12px" onclick="quickAddFromContacts()" title="Add from contacts">📇</button>
-      <button class="btn btn-gold" style="padding:7px 12px;font-size:12px" onclick="openAddLead()">+ Add</button>
+      
+      
     </div>
   </div>
-  <div style="padding:0 12px 9px"><input class="sbox" id="lead-search" placeholder="Search leads…" oninput="onLeadSearch()"></div>
+
   <div class="chips" id="status-chips"></div>
   <div id="product-chips" style="display:flex;gap:6px;padding:4px 12px 8px;overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch"></div>
   <div id="lead-list"></div>
+  <!-- FAB: Add Lead -->
+  <button onclick="openAddLead()" style="position:fixed;bottom:80px;right:18px;width:54px;height:54px;border-radius:50%;background:#C0392B;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:200;box-shadow:0 4px 16px rgba(192,57,43,0.45)" aria-label="Add lead">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+  </button>
 </div>
 
 <!-- DASHBOARD -->
@@ -331,7 +343,33 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 
 <div class="card" style="padding:12px" id="country-chart"></div></div>
 
+  
+
+<!-- CLIENTS -->
+<div class="page" id="pg-clients">
+<div class="page" id="pg-clients">
+  <div class="ph" style="padding-bottom:8px">
+    <div><h1>Clients</h1><div class="sub" id="clients-sub"></div></div>
+    <button class="btn btn-ghost" style="padding:6px 10px;font-size:11px" onclick="toggleClientBulk()" id="client-select-btn">☑️</button>
   </div>
+  <!-- Bulk action bar -->
+  <div id="client-bulk-bar" style="display:none;padding:8px 12px;background:rgba(192,57,43,.08);border-bottom:1px solid var(--border);justify-content:space-between;align-items:center">
+    <span id="client-sel-count" style="font-size:12px;font-weight:700;color:var(--accent)">0 selected</span>
+    <div style="display:flex;gap:6px">
+      <button class="btn btn-ghost" style="padding:5px 10px;font-size:11px" onclick="clientSelectAll()">All</button>
+      <button style="padding:5px 12px;font-size:11px;background:#25D366;color:#fff;border:none;border-radius:6px;cursor:pointer" onclick="bulkClientWhatsApp()">💬 WA</button>
+      <button class="btn btn-red" style="padding:5px 10px;font-size:11px" onclick="deleteSelectedClients()">🗑 Delete</button>
+    </div>
+  </div>
+
+  <!-- Client list -->
+  <div id="client-list" style="padding:4px 12px 100px"></div>
+  <!-- FAB: Add Client -->
+  <button onclick="openAddClient()" style="position:fixed;bottom:80px;right:18px;width:54px;height:54px;border-radius:50%;background:#C0392B;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:200;box-shadow:0 4px 16px rgba(192,57,43,0.45)" aria-label="Add client">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+  </button>
+</div>
+</div>
 
 <!-- FOLLOW-UPS -->
 <div class="page" id="pg-fu">
@@ -353,16 +391,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   <div class="sec"><div class="lbl">Drop reasons</div><div class="card" style="padding:12px" id="ana-drop"></div></div>
 </div>
 
-<!-- CLIENTS -->
-<div class="page" id="pg-clients">
-  <div class="ph">
-    <div><h1>Clients</h1><div class="sub" id="clients-sub"></div></div>
-    <div style="display:flex;gap:7px;align-items:center">
-      <button class="btn btn-ghost" style="padding:7px 10px;font-size:11px" onclick="toggleClientBulk()" id="client-select-btn">☑️</button>
-      <button class="btn btn-gold" style="padding:7px 12px;font-size:12px" onclick="openAddClient()">+ Add</button>
-    </div>
-  </div>
-  <div style="padding:0 12px 9px"><input class="sbox" id="client-search" placeholder="Search clients…" oninput="onClientSearch()"></div>
+  
   <div id="client-bulk-bar" style="display:none;padding:8px 12px;background:rgba(192,57,43,.08);border-bottom:1px solid var(--border);justify-content:space-between">
     <span id="client-sel-count" style="font-size:12px;font-weight:700;color:var(--accent)">0 selected</span>
     <div style="display:flex;gap:6px">
@@ -473,8 +502,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     </div>
     <div class="frow">
       <div class="fg"><label class="fl">Age</label><input class="fi" id="lf-age" type="number" placeholder="35"></div>
-      <div class="fg"><label class="fl">Gender</label><select class="fi fi-sel" id="lf-gender"><option value="">Select</option><option>MALE</option><option>FEMALE</option></select></div>
-    </div>
+      
     <div class="frow">
       <div class="fg"><label class="fl">Status</label><select class="fi fi-sel" id="lf-status"><option>PROSPECT</option><option>CONTACTED</option><option>IN PROGRESS</option><option>CONVERTED</option><option>DROPPED</option></select></div>
       <div class="fg"><label class="fl">Source</label><select class="fi fi-sel" id="lf-source" onchange="const rfw=document.getElementById('referral-field-wrap');if(rfw)rfw.style.display=(this.value==='REFERRAL'||this.value==='FRIENDS')?'block':'none'"><option value="">Select</option><option>REFERRAL</option><option>FRIENDS</option><option>SOCIAL MEDIA</option><option>WALK-IN</option><option>SEMINAR</option><option>SIB</option><option>COLD CALL</option><option>WEBSITE</option><option>OTHER</option></select></div>
@@ -629,8 +657,17 @@ function debounce(key, fn, delay){
   clearTimeout(_searchTimers[key]);
   _searchTimers[key] = setTimeout(fn, delay||200);
 }
+// ── Unified search handler — works for both Leads and Clients ──
 function onLeadSearch(){   debounce('lead',   renderLeads,   200); }
 function onClientSearch(){ debounce('client', renderClients, 200); }
+function onSharedSearch(){
+  // Route to the correct renderer based on active page
+  if(document.getElementById('pg-leads').classList.contains('active')){
+    debounce('lead', renderLeads, 200);
+  } else if(document.getElementById('pg-clients').classList.contains('active')){
+    debounce('client', renderClients, 200);
+  }
+}
 
 // ── LEAD_COLS: single source of truth for column order ──
 // Change column order here and it updates everywhere automatically
@@ -1049,7 +1086,7 @@ function toggleClientSelect(mob){
 }
 
 function clientSelectAll(){
-  var q=(document.getElementById('client-search')?document.getElementById('client-search').value||'':'').toLowerCase();
+  var q=(document.getElementById('shared-search')?document.getElementById('shared-search').value||'':'').toLowerCase();
   var arr=clients.filter(function(c){return !q||c.name.toLowerCase().includes(q)||(c.mobile||'').includes(q);});
   if(selectedClients.size===arr.length){ selectedClients.clear(); }
   else { arr.forEach(function(c){selectedClients.add(c.mobile);}); }
@@ -1089,28 +1126,62 @@ async function deleteSelectedClients(){
 }
 
 function renderClients(){
-  var q=(document.getElementById('client-search')?document.getElementById('client-search').value||'':'').toLowerCase();
-  var arr=clients.filter(function(c){return !q||c.name.toLowerCase().includes(q)||(c.mobile||'').includes(q);});
-  var sub=document.getElementById('clients-sub');if(sub)sub.textContent=arr.length+' clients';
+  var q=(document.getElementById('shared-search')?document.getElementById('shared-search').value||'':'').toLowerCase();
+  // Sort newest first (most recently converted at top)
+  var arr=clients.filter(function(c){
+    return !q||(c.name||'').toLowerCase().includes(q)||(c.mobile||'').includes(q)||(c.products||'').toLowerCase().includes(q);
+  }).sort(function(a,b){
+    var da=a.convertedDate||a.createdDate||'';
+    var db=b.convertedDate||b.createdDate||'';
+    return db.localeCompare(da); // newest first
+  });
+
+  var sub=document.getElementById('clients-sub');
+  if(sub) sub.textContent=arr.length+' client'+(arr.length===1?'':'s');
+
   var cl=document.getElementById('client-list');
-  if(!cl)return;
+  if(!cl) return;
+
   if(!arr.length){
-    cl.innerHTML='<div class="empty"><div class="empty-ico">👥</div><div class="empty-t">No clients yet</div><div class="empty-s">Convert a lead to create your first client.</div></div>';
+    cl.innerHTML='<div class="empty"><div class="empty-ico">👥</div><div class="empty-t">No clients yet</div><div class="empty-s">Convert a lead to Converted status to add your first client.</div></div>';
     return;
   }
-  cl.innerHTML=arr.map(function(c){
+
+  // Avatar accent colours — cycles through 5
+  var avatarColors=[
+    {bg:'rgba(192,57,43,.12)', border:'#C0392B', text:'#C0392B'},
+    {bg:'rgba(46,204,113,.1)',  border:'#2ecc71', text:'#2ecc71'},
+    {bg:'rgba(52,152,219,.1)',  border:'#3498db', text:'#3498db'},
+    {bg:'rgba(231,76,60,.1)',   border:'#e74c3c', text:'#e74c3c'},
+    {bg:'rgba(243,156,18,.1)',  border:'#f39c12', text:'#f39c12'}
+  ];
+
+  // Alternating card backgrounds
+  var cardBg=['#111111','#0d0d0d'];
+
+  cl.innerHTML=arr.map(function(c,i){
+    var ac=avatarColors[i%avatarColors.length];
+    var bg=cardBg[i%2];
+    var borderColor=i%2===0?'#1e1e1e':'#181818';
     var sel=selectedClients.has(c.mobile);
-    var clickAction=clientBulkMode?'toggleClientSelect(\''+c.mobile+'\')':'openDetail(\''+c.mobile+'\',\'client\')';
-    return '<div class="li'+(sel?' selected':'')+'" onclick="'+clickAction+'">'
-      +(clientBulkMode?'<div style="width:20px;height:20px;border-radius:50%;border:2px solid var(--accent);background:'+(sel?'var(--accent)':'transparent')+';display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:8px;margin-right:8px">'+(sel?'<svg width="10" height="10" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>':'')+'</div>':'')
-      +'<div class="av" style="background:rgba(192,57,43,.1);color:var(--accent)">'+ini(c.name)+'</div>'
-      +'<div class="li-info">'
-      +'<div class="li-name">'+toTitle(c.name)+'<span style="font-size:9px;color:var(--green);font-weight:700;margin-left:6px">✅ CLIENT</span></div>'
-      +'<div class="li-meta">'+(c.mobile||'')+(c.age?' · 🎂'+c.age:'')+(c.country?' · '+c.country:'')+'</div>'
-      +(c.products?'<div class="li-prod">'+c.products+'</div>':'')
-      +(c.convertedDate?'<div style="font-size:10px;color:var(--t3);margin-top:1px">Client since '+fmt(c.convertedDate)+'</div>':'')
+    var clickFn=clientBulkMode?'toggleClientSelect(\''+c.mobile+'\')':'openDetail(\''+c.mobile+'\',\'client\')';
+    var initials=ini(c.name);
+    var sinceDate=c.convertedDate?fmt(c.convertedDate):'';
+    var prods=(c.products||'').trim();
+
+    return '<div onclick="'+clickFn+'" style="background:'+bg+';border:1px solid '+borderColor+';border-radius:14px;padding:12px 14px;display:flex;gap:12px;align-items:flex-start;cursor:pointer;margin-bottom:8px;transition:opacity .15s">'
+      +(clientBulkMode?'<div style="width:22px;height:22px;border-radius:50%;border:2px solid var(--accent);background:'+(sel?'var(--accent)':'transparent')+';display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:9px">'+(sel?'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>':'')+'</div>':'')
+      +'<div style="width:42px;height:42px;border-radius:50%;background:'+ac.bg+';border:1.5px solid '+ac.border+';display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:'+ac.text+';flex-shrink:0">'+initials+'</div>'
+      +'<div style="flex:1;min-width:0">'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;gap:6px">'
+          +'<span style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+toTitle(c.name)+'</span>'
+          +'<span style="font-size:9px;color:#25D366;background:rgba(37,211,102,.08);border:1px solid rgba(37,211,102,.3);border-radius:99px;padding:2px 7px;white-space:nowrap;flex-shrink:0">✅ CLIENT</span>'
+        +'</div>'
+        +'<div style="font-size:11px;color:var(--t3);margin-top:3px">'+(c.mobile||'')+(c.country?' · 🌍 '+toTitle(c.country):'')+(c.age?' · 🎂 '+c.age+' yrs':'')+'</div>'
+        +(prods?'<div style="font-size:11px;color:var(--t2);margin-top:2px">'+prods+'</div>':'')
+        +(sinceDate?'<div style="font-size:10px;color:var(--t3);margin-top:3px">Client since '+sinceDate+'</div>':'')
       +'</div>'
-      +'</div>';
+    +'</div>';
   }).join('');
 }
 
@@ -1782,11 +1853,28 @@ function nav(name,btn){
   if(pg) pg.classList.add('active');
   if(btn) btn.classList.add('active');
   // Render on page switch
-  if(name==='analytics') renderAnalytics();
-  if(name==='clients'){ renderClients(); setTimeout(addSearchClose,100); }
-  if(name==='settings') loadSettings();
-  if(name==='dash'){renderDash();setTimeout(addSearchClose,100);}
-  if(name==='leads'){ setTimeout(addSearchClose,100); initLeadSwipe(); }
+  if(name==='analytics'){
+    var sb4=document.getElementById('shared-search-bar'); if(sb4) sb4.style.display='none';
+    renderAnalytics();
+  }
+  if(name==='clients'){
+    var sb2=document.getElementById('shared-search-bar');
+    if(sb2){sb2.style.display='block';var si2=document.getElementById('shared-search');if(si2){si2.value='';si2.placeholder='Search clients…';}}
+    renderClients(); setTimeout(addSearchClose,100);
+  }
+  if(name==='settings'){
+    var sb5=document.getElementById('shared-search-bar'); if(sb5) sb5.style.display='none';
+    loadSettings();
+  }
+  if(name==='dash'){
+    var sb3=document.getElementById('shared-search-bar'); if(sb3) sb3.style.display='none';
+    renderDash();setTimeout(addSearchClose,100);
+  }
+  if(name==='leads'){
+    var sb=document.getElementById('shared-search-bar');
+    if(sb){sb.style.display='block';var si=document.getElementById('shared-search');if(si){si.value='';si.placeholder='Search leads…';}}
+    setTimeout(addSearchClose,100); initLeadSwipe();
+  }
   if(name==='clients') setTimeout(addSearchClose,100);
 }
 
@@ -2052,7 +2140,7 @@ function renderLeads(){
     return '<div class="chip'+(filterProduct===p?' active':'')+'" onclick="setFP(\''+p+'\')">'+p+' ('+n+')</div>';
   }).join('');
   if(chipsEl)chipsEl.innerHTML=statusChips.map(function(sc){return '<div class="chip'+(filterStatus===sc.key?' active':'')+'" onclick="setF(\''+sc.key+'\')">'+sc.label+' ('+sc.n+')</div>';}).join('');
-  var q=(document.getElementById('lead-search')?document.getElementById('lead-search').value||'':'').toLowerCase();
+  var q=(document.getElementById('shared-search')?document.getElementById('shared-search').value||'':'').toLowerCase();
   var arr=leads.filter(function(l){
     // Product filter
     if(filterProduct!=='All' && !(l.products||'').toUpperCase().includes(filterProduct.toUpperCase())) return false;
@@ -3022,7 +3110,7 @@ async function saveLead(){
   var email=document.getElementById('lf-email')?caps(document.getElementById('lf-email').value):'';
   var age=document.getElementById('lf-age')?document.getElementById('lf-age').value:'';
   var country=document.getElementById('lf-country')?caps(document.getElementById('lf-country').value):'';
-  var gender=document.getElementById('lf-gender')?caps(document.getElementById('lf-gender').value):'';
+  var gender=''; // gender field removed
   var remarks=document.getElementById('lf-rem')?caps(document.getElementById('lf-rem').value.trim()):'';
 
   if(editLead){
@@ -3455,7 +3543,7 @@ function renderFuInElement(container, subEl){
 function initLeadSwipe(){setTimeout(initSwipe,200);}
 
 function addSearchClose(){
-  ['lead-search','client-search'].forEach(function(id){
+  ['shared-search'].forEach(function(id){
     var inp=document.getElementById(id);
     if(!inp||inp.parentNode.querySelector('.search-clear'))return;
     var wrap=inp.parentNode;
@@ -4139,6 +4227,29 @@ function checkURLParams(){
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }catch(e){}
+}
+
+
+// Bulk WhatsApp for clients
+function bulkClientWhatsApp(){
+  if(selectedClients.size===0){toast('Select clients first');return;}
+  var msg=prompt('Enter message:','Hi');
+  if(!msg) return;
+  var enc=encodeURIComponent(msg);
+  var list=[];
+  clients.forEach(function(c){
+    if(selectedClients.has(c.mobile)){
+      var digits=(c.mobile||'').replace(/\D/g,'');
+      list.push(digits.length===10?'91'+digits:digits);
+    }
+  });
+  var idx=0;
+  function next(){
+    if(idx>=list.length){toast('Done!');return;}
+    window.open('https://wa.me/'+list[idx]+'?text='+enc,'_blank');
+    idx++;setTimeout(next,2000);
+  }
+  next();
 }
 
 // Load offline queue and flush any writes that failed last session
