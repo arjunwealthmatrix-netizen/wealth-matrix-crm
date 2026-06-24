@@ -2339,9 +2339,11 @@ function deleteActivityEntry(rowId, mob, clickTs){
     saveActivityLog();
     var el=document.getElementById('fu-hist-'+mob)||document.getElementById('cl-hist-'+mob);
     if(el){el.innerHTML=buildHistoryHtml(mob,_detailOpenType||'lead');el.scrollTop=el.scrollHeight;}
-    // Delete from sheet — send rowId AND fallback identifiers
+    // Delete from sheet by exact Raw ID — _writePending blocks auto-sync during delete
     if(hasScript()){
-      sheetWrite({action:'deleteLogById', rowId:rowId, mobile:mob, ts:delTs, activity:delAct});
+      _writePending = true;
+      sheetWrite({action:'deleteLogById', rowId:rowId, mobile:mob, ts:delTs, activity:delAct})
+        .then(function(){ _writePending = false; });
     }
     toast('Entry deleted');
   };
@@ -3074,6 +3076,10 @@ function leadRow(l){
 }
 
 // ── Core targeted write: ONE action for ONE lead ──
+// _writePending: true while a write is in-flight
+// Auto-sync checks this and skips overwriting local data during a write
+var _writePending = false;
+
 async function syncLead(lead, action){
   if(!hasScript()) return;
   var payload;
@@ -3081,9 +3087,11 @@ async function syncLead(lead, action){
   if(action==='update') payload = {action:'updateLead',  mobile:lead.mobile, row:leadRow(lead)};
   if(action==='delete') payload = {action:'deleteLead',  mobile:lead.mobile};
   if(!payload) return;
+  _writePending = true;          // block auto-sync while writing
+  _setSyncDot('syncing');
   var ok = await _doWrite(payload);
+  _writePending = false;         // release block
   if(!ok){
-    // Queue for retry
     _wq.push({payload:payload, ts:Date.now(), attempts:0});
     _saveQ();
     _setSyncDot('pending');
@@ -3849,8 +3857,6 @@ async function testLeadPush(){
   log('Done.');
 }
 
-
-_loadQ();
 // ── Quick-add lead from phone contacts ──
 // Uses Contact Picker API (Chrome Android). Falls back to manual entry.
 async function quickAddFromContacts(){
@@ -4054,15 +4060,43 @@ function loadSettings(){
   if(ntEl){ ntEl.checked=(cfg_.notifications==='on'); var sl=document.getElementById('notif-slider'); if(sl)sl.style.left=ntEl.checked?'22px':'2px'; }
 }
 
+// ── URL parameter pre-fill (for iOS Shortcuts integration) ──
+// When app is opened with ?name=X&mobile=Y it auto-opens Add Lead form
+function checkURLParams(){
+  try{
+    var params = new URLSearchParams(window.location.search);
+    var name   = params.get('name')   || params.get('n') || '';
+    var mobile = params.get('mobile') || params.get('m') || params.get('tel') || '';
+    var email  = params.get('email')  || params.get('e') || '';
+    var note   = params.get('note')   || '';
+    if(name || mobile){
+      // Clean mobile — strip spaces, dashes, brackets
+      mobile = mobile.replace(/[\s\-\(\)\+]/g,'');
+      // Small delay so app renders first
+      setTimeout(function(){
+        openAddLead({name:name, mob:mobile, email:email});
+        if(note){
+          var remEl=document.getElementById('lf-rem');
+          if(remEl) remEl.value=note;
+        }
+        toast('Contact loaded from Shortcuts — review and save');
+      }, 800);
+      // Clean URL so refresh doesn't re-open form
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }catch(e){}
+}
+
 // Load offline queue and flush any writes that failed last session
 _loadQ();
 load();applyDarkMode();loadActivityLog();bootSequenceV17();
+checkURLParams();
 scheduleDailySummary();
 initLeadSwipe();
 
 // ── Auto-sync: pull from sheet every 5 minutes silently ──
 setInterval(async function(){
-  if(!hasScript()||syncInProgress) return;
+  if(!hasScript()||syncInProgress||_writePending) return; // skip if write in flight
   try{
     syncInProgress=true;
     var ld=await scriptGet('LEADS');
@@ -4076,7 +4110,15 @@ setInterval(async function(){
         var mob=g(r,'mob',1).trim();if(!mob)return;
         var fu=g(r,'fu',9);if(fu&&!/^\d{4}-\d{2}-\d{2}$/.test(fu))fu='';
         var cm=C.contactMode>=0?String(r[C.contactMode]||'').trim():'';
-        sheetLeads.push({name:caps(g(r,'name',0)),mobile:mob,email:g(r,'email',2),age:g(r,'age',3),country:caps(g(r,'country',4)),contactMode:cm,status:caps(g(r,'status',5))||'PROSPECT',source:caps(g(r,'source',6)),referral:g(r,'ref',7),aum:g(r,'aum',8),nextFollowUp:fu,products:caps(g(r,'prod',10)),remarks:g(r,'rem',11),modifiedDate:g(r,'mod',12)||today(),createdDate:g(r,'created',13)||today(),notes:[]});
+        var sheetMod=g(r,'mod',12)||'';
+        var localLead=leads.find(function(x){return x.mobile===mob;});
+        // Only use sheet data if it's newer than or same as local
+        // This prevents auto-sync from overwriting a change the user just made
+        if(localLead && localLead.modifiedDate && sheetMod && sheetMod < localLead.modifiedDate){
+          sheetLeads.push(localLead); // keep local — it's newer
+        } else {
+          sheetLeads.push({name:caps(g(r,'name',0)),mobile:mob,email:g(r,'email',2),age:g(r,'age',3),country:caps(g(r,'country',4)),contactMode:cm,status:caps(g(r,'status',5))||'PROSPECT',source:caps(g(r,'source',6)),referral:g(r,'ref',7),aum:g(r,'aum',8),nextFollowUp:fu,products:caps(g(r,'prod',10)),remarks:g(r,'rem',11),modifiedDate:sheetMod||today(),createdDate:g(r,'created',13)||today(),notes:localLead?localLead.notes:[]});
+        }
       });
       leads=sheetLeads;saveL();
     }
@@ -4087,7 +4129,6 @@ setInterval(async function(){
   }catch(e){syncInProgress=false;}
 }, 300000); // 5 minutes
 setTimeout(flushWriteQueue, 4000); // retry pending writes after 4s
-setTimeout(flushWriteQueue, 3000); // flush any pending writes from previous session
 
 </script>
 </body>
