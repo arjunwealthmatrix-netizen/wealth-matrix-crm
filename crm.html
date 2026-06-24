@@ -489,53 +489,79 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 <!-- LEAD FORM -->
 <div class="ov" id="ov-lead"><div class="sh">
   <div class="sh-handle"></div>
-  <div class="sh-hdr"><div class="sh-title" id="lf-title">New Lead</div><button class="sh-x" onclick="closeOv('ov-lead')">✕</button></div>
+  <div class="sh-hdr">
+    <div class="sh-title" id="lf-title">New Lead</div>
+    <button class="sh-x" onclick="closeOv('ov-lead')">✕</button>
+  </div>
   <div class="sh-body">
     <input type="hidden" id="lf-orig">
-    <div class="frow">
-      <div class="fg"><label class="fl">Name *</label><input class="fi" id="lf-name" placeholder="Full name" autocomplete="off" oninput="autoCaps(this)"><div class="ac-list" id="lf-ac-list"></div></div>
-      <div class="fg"><label class="fl">Mobile *</label><input class="fi" id="lf-mob" type="tel" placeholder="9847012345"></div>
+
+    <div style="background:var(--s1);border-radius:10px;padding:12px 14px;margin-bottom:10px">
+      <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.6px;margin-bottom:8px">IDENTITY</div>
+      <div class="frow">
+        <div class="fg"><label class="fl">Name *</label><input class="fi" id="lf-name" placeholder="Full name" autocomplete="off" oninput="autoCaps(this)"><div class="ac-list" id="lf-ac-list"></div></div>
+        <div class="fg"><label class="fl">Mobile *</label><input class="fi" id="lf-mob" type="tel" placeholder="9847012345"></div>
+      </div>
+      <div class="frow">
+        <div class="fg"><label class="fl">Email</label><input class="fi" id="lf-email" type="email" autocomplete="off"></div>
+        <div class="fg"><label class="fl">Age</label><input class="fi" id="lf-age" type="number" placeholder="35"></div>
+      </div>
+      <div class="fg"><label class="fl">Country</label><input class="fi" id="lf-country" placeholder="India / UAE / Qatar…" oninput="autoCaps(this)"></div>
     </div>
-    <div class="frow">
-      <div class="fg"><label class="fl">Email</label><input class="fi" id="lf-email" type="email" autocomplete="off" oninput="this.value=this.value.toUpperCase()"></div>
-      <div class="fg"><label class="fl">Country</label><input class="fi" id="lf-country" placeholder="INDIA / UAE" oninput="autoCaps(this)"></div>
+
+    <div style="background:var(--s1);border-radius:10px;padding:12px 14px;margin-bottom:10px">
+      <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.6px;margin-bottom:8px">LEAD DETAILS</div>
+      <div class="frow">
+        <div class="fg"><label class="fl">Status</label>
+          <select class="fi fi-sel" id="lf-status">
+            <option>PROSPECT</option><option>CONTACTED</option>
+            <option>IN PROGRESS</option><option>CONVERTED</option><option>DROPPED</option>
+          </select>
+        </div>
+        <div class="fg"><label class="fl">Source</label>
+          <select class="fi fi-sel" id="lf-source" onchange="const rfw=document.getElementById('referral-field-wrap');if(rfw)rfw.style.display=(this.value==='REFERRAL'||this.value==='FRIENDS')?'block':'none'">
+            <option value="">Select</option><option>REFERRAL</option><option>FRIENDS</option>
+            <option>SOCIAL MEDIA</option><option>WALK-IN</option><option>SEMINAR</option>
+            <option>SIB</option><option>COLD CALL</option><option>WEBSITE</option><option>OTHER</option>
+          </select>
+        </div>
+      </div>
+      <div class="fg" id="referral-field-wrap" style="display:none">
+        <label class="fl">Referred by</label>
+        <input class="fi" id="lf-referral" placeholder="Client name or mobile" autocomplete="off" oninput="autoCaps(this)">
+      </div>
+      <div class="fg"><label class="fl">Estimated AUM / SIP</label>
+        <select class="fi fi-sel" id="lf-aum">
+          <option value="">Select range</option>
+          <option value="SIP>1L">SIP &gt; 1L/month</option>
+          <option value="SIP 50K-1L">SIP 50K–1L/month</option>
+          <option value="SIP~50K">SIP ~50K/month</option>
+          <option value="SIP<50K">SIP &lt; 50K/month</option>
+          <option value="100L+">Lumpsum 100L+</option>
+          <option value="50-100L">Lumpsum 50–100L</option>
+          <option value="25-50L">Lumpsum 25–50L</option>
+          <option value="<25L">Lumpsum &lt; 25L</option>
+        </select>
+      </div>
+      <div class="frow">
+        <div class="fg"><label class="fl">Mode of contact</label>
+          <select class="fi fi-sel" id="lf-mode">
+            <option value="Not contacted">Not contacted</option>
+            <option value="Phone">Phone</option>
+            <option value="WhatsApp">WhatsApp</option>
+            <option value="Botim">Botim</option>
+            <option value="Physically met">Physically met</option>
+            <option value="Zoom/GMeet">Zoom/GMeet</option>
+          </select>
+        </div>
+        <div class="fg"><label class="fl">Next follow-up</label>
+          <input class="fi" id="lf-followup" type="date">
+        </div>
+      </div>
     </div>
-    <div class="frow">
-      <div class="fg"><label class="fl">Age</label><input class="fi" id="lf-age" type="number" placeholder="35"></div>
-      
-    <div class="frow">
-      <div class="fg"><label class="fl">Status</label><select class="fi fi-sel" id="lf-status"><option>PROSPECT</option><option>CONTACTED</option><option>IN PROGRESS</option><option>CONVERTED</option><option>DROPPED</option></select></div>
-      <div class="fg"><label class="fl">Source</label><select class="fi fi-sel" id="lf-source" onchange="const rfw=document.getElementById('referral-field-wrap');if(rfw)rfw.style.display=(this.value==='REFERRAL'||this.value==='FRIENDS')?'block':'none'"><option value="">Select</option><option>REFERRAL</option><option>FRIENDS</option><option>SOCIAL MEDIA</option><option>WALK-IN</option><option>SEMINAR</option><option>SIB</option><option>COLD CALL</option><option>WEBSITE</option><option>OTHER</option></select></div>
-    </div>
-    <div class="fg" id="referral-field-wrap" style="display:none">
-      <label class="fl">Referred by (client name or mobile)</label>
-      <input class="fi" id="lf-referral" placeholder="e.g. Rajesh Pappinicode or 971504508254" autocomplete="off" oninput="autoCaps(this)">
-    </div>
-    <div class="fg"><label class="fl">Estimated AUM / SIP</label>
-      <select class="fi fi-sel" id="lf-aum">
-        <option value="">Select range</option>
-        <option value="SIP>1L">SIP &gt; 1L/month</option>
-        <option value="SIP 50K-1L">SIP 50K–1L/month</option>
-        <option value="SIP~50K">SIP ~50K/month</option>
-        <option value="SIP<50K">SIP &lt; 50K/month</option>
-        <option value="100L+">Lumpsum 100L+</option>
-        <option value="50-100L">Lumpsum 50–100L</option>
-        <option value="25-50L">Lumpsum 25–50L</option>
-        <option value="<25L">Lumpsum &lt; 25L</option>
-      </select>
-    </div>
-    <div class="fg"><label class="fl">Mode of contact</label>
-      <select class="fi fi-sel" id="lf-mode">
-        <option value="Not contacted">Not contacted</option>
-        <option value="Phone">Phone</option>
-        <option value="WhatsApp">WhatsApp</option>
-        <option value="Botim">Botim</option>
-        <option value="Physically met">Physically met</option>
-        <option value="Zoom/GMeet">Zoom/GMeet</option>
-      </select>
-    </div>
-    <div class="fg"><label class="fl">Next follow-up date</label><input class="fi" id="lf-followup" type="date"></div>
-    <div class="fg"><label class="fl">Interested products</label>
+
+    <div style="background:var(--s1);border-radius:10px;padding:12px 14px;margin-bottom:10px">
+      <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.6px;margin-bottom:8px">INTERESTED PRODUCTS</div>
       <div class="ptoggle-grid" id="lf-products-grid">
         <div class="pt" data-p="INVESTMENT" onclick="tp(this)">📈 Investment</div>
         <div class="pt" data-p="LIFE INSURANCE" onclick="tp(this)">🛡️ Life Ins.</div>
@@ -543,11 +569,17 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         <div class="pt" data-p="WILL" onclick="tp(this)">📜 WILL</div>
       </div>
     </div>
-    <div class="fg"><label class="fl">Remarks</label><textarea class="fi fi-ta" id="lf-rem" placeholder="Notes about this lead (saved to Remarks)…" oninput="autoCaps(this)"></textarea><div style="font-size:10px;color:var(--t3);margin-top:3px">Saved to the Remarks column. Shown under the lead name. Separate from the activity log.</div></div>
-    <button class="btn btn-gold btn-full" onclick="saveLead()" style="margin-top:4px">Save Lead</button>
-    <div style="height:8px"></div>
+
+    <div style="background:var(--s1);border-radius:10px;padding:12px 14px;margin-bottom:10px">
+      <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.6px;margin-bottom:8px">REMARKS</div>
+      <textarea class="fi fi-ta" id="lf-rem" placeholder="Notes about this lead…" oninput="autoCaps(this)" style="min-height:70px"></textarea>
+      <div style="font-size:10px;color:var(--t3);margin-top:3px">Saved to Remarks column. Separate from activity log.</div>
+    </div>
+
+    <button class="btn btn-gold btn-full" onclick="saveLead()" style="padding:14px;font-size:15px;border-radius:10px;margin-bottom:8px">Save Lead</button>
   </div>
 </div></div>
+</div>
 
 <!-- CLIENT FORM -->
 <div class="ov" id="ov-client"><div class="sh">
@@ -1381,32 +1413,51 @@ function saveClient(){
 // ═══════════════════════════════════════════════
 // AUTO-CONVERT
 // ═══════════════════════════════════════════════
+// autoConvert — called when a lead status is set to CONVERTED
+// Copies lead data to clients, removes from leads, updates both sheets
 async function autoConvert(l){
   if(clients.find(function(c){return c.mobile===l.mobile;})){
-    toast('✅ '+toTitle(l.name)+' is already in Clients');return;
+    toast('✅ '+toTitle(l.name)+' is already in Clients');
+    return;
   }
   var onboard=today();
-  var fa=new Date(onboard);fa.setFullYear(fa.getFullYear()+1);
+  var fa=new Date(onboard);
+  fa.setFullYear(fa.getFullYear()+1);
   var firstAnn=fa.toISOString().split('T')[0];
-  // Copy ALL relevant fields from lead to client
+
+  // Build client object from lead data
   var c={
-    name:l.name||'', mobile:l.mobile||'', email:l.email||'', country:l.country||'',
-    age:l.age||'', gender:l.gender||'', pan:'', products:l.products||'',
-    remarks:l.remarks||'', convertedDate:onboard, createdDate:l.createdDate||today(),
-    dob:'', spouseDob:'', anniversary:'', reviewDate:firstAnn, firstAnniversary:firstAnn,
+    name:l.name||'', mobile:l.mobile||'', email:l.email||'',
+    country:l.country||'', age:l.age||'', gender:'', pan:'',
+    products:l.products||'', remarks:l.remarks||'',
+    convertedDate:onboard, createdDate:l.createdDate||today(),
+    dob:'', spouseDob:'', anniversary:'',
+    reviewDate:firstAnn, firstAnniversary:firstAnn,
     appInstalled:false, broadcastAdded:false
   };
-  clients.push(c);saveC();
-  // Remove the lead from LEADS (converted leads live only in CLIENTS)
+
+  // Add to clients array (at START so it appears at top of clients page)
+  clients.unshift(c);
+  saveC();
+
+  // Remove from leads
   leads=leads.filter(function(x){return x.mobile!==l.mobile;});
   saveL();
+
+  // Update UI immediately
   renderAll();
   showConvertedBanner(toTitle(l.name));
-  logAnalytics(6, 1);
-  // Push BOTH sheets: CLIENTS gains the row, LEADS loses it
+  logAnalytics(6,1);
+
+  // Sync to sheet
   if(hasScript()){
+    _writePending=true;
+    // Push full clients sheet (includes new client)
     await _doWrite({action:'pushClients', rows:clientsRows()});
-    syncLead({mobile:l.mobile}, 'delete'); // remove converted lead from LEADS sheet
+    // Delete lead from LEADS sheet
+    await _doWrite({action:'deleteLead', mobile:l.mobile});
+    _writePending=false;
+    _setSyncDot('ok');
   }
 }
 
@@ -3123,10 +3174,12 @@ async function saveLead(){
       });
     }
     saveL();renderAll();closeOv('ov-lead');
-    // Update ONLY this lead's row (one row, fast, scalable)
-    syncLead(leads[idx], 'update');
-    toast('✅ Lead updated');
-    if(status==='CONVERTED') autoConvert(leads[idx]);
+    if(status==='CONVERTED'){
+      autoConvert(leads[idx]);
+    } else {
+      syncLead(leads[idx], 'update');
+      toast('✅ Lead updated');
+    }
     editLead=null;
   }else{
     if(leads.find(function(x){return x.mobile===mob;})){toast('Mobile already exists');return;}
@@ -3137,11 +3190,14 @@ async function saveLead(){
     leads.push(newLead);saveL();
     renderAll();
     closeOv('ov-lead');
-    // Write ONLY this new lead (one row, fast, scalable)
-    syncLead(newLead, 'add');
-    toast('✅ Lead added');
-    logAnalytics(2,1);
-    if(status==='CONVERTED') autoConvert(newLead);
+    if(status==='CONVERTED'){
+      // Convert immediately — autoConvert handles sheet sync
+      autoConvert(newLead);
+    } else {
+      syncLead(newLead, 'add');
+      toast('✅ Lead added');
+      logAnalytics(2,1);
+    }
   }
 }
 
