@@ -1662,7 +1662,7 @@ function showAppsScriptCode(){
   var ov=document.createElement('div');
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:flex-end;justify-content:center;padding:10px';
   ov.innerHTML='<div style="background:var(--s1);border-radius:12px;width:100%;max-width:540px;max-height:90vh;overflow-y:auto;padding:16px">'
-    +'<div style="font-weight:800;font-size:14px;margin-bottom:6px;color:var(--accent)">Apps Script v2.3 — Copy & Deploy</div>'
+    +'<div style="font-weight:800;font-size:14px;margin-bottom:6px;color:var(--accent)">Apps Script v2.4 — Copy & Deploy</div>'
     +'<div style="font-size:11px;color:var(--t2);margin-bottom:8px;background:var(--s2);padding:8px;border-radius:6px">'
     +'1. script.google.com → Your project → Delete all → Paste → Save<br>'
     +'2. Deploy → Manage deployments → Edit → New version → Deploy<br>'
@@ -2093,9 +2093,9 @@ function renderLeads(){
 
 
 
-// ── v2.3 CORE ──
+// ── v2.4 CORE ──
 // ═══════════════════════════════════════════════════
-// v2.3 CORE OVERRIDES
+// v2.4 CORE OVERRIDES
 // ═══════════════════════════════════════════════════
 
 // ── ACTIVITY LOG local cache ──
@@ -2183,7 +2183,7 @@ async function pullActivityLog(){
   } catch(e){ console.warn('pullActivityLog:', e.message); }
 }
 
-// ── NEW LEADS COLUMNS (v2.3): 13 columns ──
+// ── NEW LEADS COLUMNS (v2.4): 13 columns ──
 // Name(0) Mobile(1) Email(2) Age(3) Status(4) Source(5)
 // Referred By(6) AUM/SIP(7) Next Follow-up(8) Products(9) Remarks(10)
 // Modified Date(11) Created Date(12)
@@ -2192,7 +2192,7 @@ function leadsRows(){
   return [LEAD_HDRS].concat(leads.map(leadToRow));
 }
 
-// ── PULL FROM SHEET v2.3 (header-based, new columns) ──
+// ── PULL FROM SHEET v2.4 (header-based, new columns) ──
 async function pullFromSheet(manual){
   if(!hasScript()){if(manual)showSyncMsg('Add Apps Script URL first.',false);return;}
   if(syncInProgress)return;
@@ -2344,7 +2344,7 @@ function deleteActivityEntry(rowId, mob, clickTs){
   };
 }
 
-// ── NEW CHIPS (v2.3) ──
+// ── NEW CHIPS (v2.4) ──
 var V17_CHIPS = [
   ['📞','Called follow up'],
   ['🔄','Called-will call back'],
@@ -2406,7 +2406,7 @@ async function saveFuDateV17(mob, newDate){
   setTimeout(function(){renderFU();renderLeads();},300);
 }
 
-// ── OVERRIDE renderFuDetailInner (v2.3 unified popup) ──
+// ── OVERRIDE renderFuDetailInner (v2.4 unified popup) ──
 function renderFuDetailInner(mob){
   var l=leads.find(function(x){return x.mobile===mob;});if(!l)return;
   var d=daysAgo(l.modifiedDate||l.createdDate);
@@ -2573,7 +2573,7 @@ function renderFuDetailInner(mob){
   };
 }
 
-// ── BOOTSEQUENCE v2.3 (load activity log on startup) ──
+// ── BOOTSEQUENCE v2.4 (load activity log on startup) ──
 
 
 // Version marker
@@ -2581,9 +2581,9 @@ var APP_VERSION='1.7';
 
 
 
-// ── v2.3 ADDONS ──
+// ── v2.4 ADDONS ──
 // ═══════════════════════════════════════════════════
-// v2.3 ADDONS — Loading screen, Country chart,
+// v2.4 ADDONS — Loading screen, Country chart,
 //               Reliable push, FU card date button
 // ═══════════════════════════════════════════════════
 
