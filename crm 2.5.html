@@ -296,7 +296,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   <div id="product-chips" style="display:flex;gap:6px;padding:4px 12px 8px;overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch"></div>
   <div id="lead-list"></div>
   <!-- FAB: Add Lead -->
-  <button onclick="openAddLead()" style="position:fixed;bottom:80px;right:18px;width:54px;height:54px;border-radius:50%;background:#C0392B;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:200;box-shadow:0 4px 16px rgba(192,57,43,0.45)" aria-label="Add lead">
+  <button onclick="openAddLead()" style="position:fixed;bottom:80px;right:18px;width:54px;height:54px;border-radius:50%;background:#C0392B;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:999;box-shadow:0 4px 16px rgba(192,57,43,0.45)" aria-label="Add lead">
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
   </button>
 </div>
@@ -361,7 +361,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     </div>
   </div>
   <div id="client-list" style="padding:4px 12px 100px"></div>
-  <button onclick="openAddClient()" style="position:fixed;bottom:80px;right:18px;width:54px;height:54px;border-radius:50%;background:#C0392B;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:200;box-shadow:0 4px 16px rgba(192,57,43,0.45)" aria-label="Add client">
+  <button onclick="openAddClient()" style="position:fixed;bottom:80px;right:18px;width:54px;height:54px;border-radius:50%;background:#C0392B;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:999;box-shadow:0 4px 16px rgba(192,57,43,0.45)" aria-label="Add client">
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
   </button>
 </div></div>
@@ -1444,7 +1444,7 @@ async function autoConvert(l){
     name:l.name||'', mobile:l.mobile||'', email:l.email||'',
     country:l.country||'', age:l.age||'', gender:'', pan:'',
     source:l.source||'', referral:l.referral||'',
-    aum:l.aum||'', potentialAum:'',
+    aum:'', potentialAum:'',  // AUM in Clients is separate from Leads AUM
     products:l.products||'', remarks:l.remarks||'',
     convertedDate:onboard, createdDate:l.createdDate||today(),
     nextFollowUp:'', dob:'', spouseDob:'', anniversary:'',
@@ -1462,8 +1462,9 @@ async function autoConvert(l){
   leads=leads.filter(function(x){return x.mobile!==l.mobile;});
   saveL();
 
-  // Update UI immediately
+  // Update UI immediately — switch to clients page to show the new client
   renderAll();
+  renderClients();
   showConvertedBanner(toTitle(l.name));
   logAnalytics(6,1);
 
@@ -3484,10 +3485,51 @@ async function bootSequenceV17(){
     if(cd&&cd.rows&&cd.rows.length>1){
       var chdr=cd.rows[0].map(function(h){return (h||'').toLowerCase().trim();});
       var cci=function(keys){for(var ki=0;ki<keys.length;ki++)for(var hi=0;hi<chdr.length;hi++)if(chdr[hi].includes(keys[ki]))return hi;return -1;};
-      var CC={name:cci(['name']),mob:cci(['mobile']),email:cci(['email']),country:cci(['country']),age:cci(['age']),gender:cci(['gender']),pan:cci(['pan']),prod:cci(['product']),rem:cci(['remark']),conv:cci(['converted'])};
-      function gcc(r,k,fb){var i=CC[k]>=0?CC[k]:fb;return i>=0&&i<r.length?String(r[i]||''):'';}
+      // Map all 30 CLIENTS sheet columns by header name
+      var CC2={
+        name:cci(['name']),       mob:cci(['mobile']),
+        email:cci(['email']),     country:cci(['country']),
+        source:cci(['source']),   referral:cci(['referred']),
+        nextFU:cci(['next follow']),age:cci(['age']),
+        gender:cci(['gender']),   remarks:cci(['remark']),
+        created:cci(['created']), pan:cci(['pan']),
+        dob:cci(['dob']),         spouseDob:cci(['spouse']),
+        anniversary:cci(['anniversary']), conv:cci(['converted date']),
+        reviewDate:cci(['review date']),  firstAnn:cci(['1st anniv']),
+        appInstalled:cci(['app installed']),broadcastAdded:cci(['broadcast']),
+        sipDate:cci(['sip date']),healthIns:cci(['health ins']),
+        lifeIns:cci(['life ins']), willDone:cci(['will']),
+        dueDateH:cci(['due date health']),dueDateL:cci(['due date life']),
+        aum:cci(['aum']),          potAum:cci(['potential']),
+        welcome:cci(['welcome']),  products:cci(['product'])
+      };
+      function gcc(r,k){var i=CC2[k];return(i>=0&&i<r.length)?String(r[i]||''):'';}
       var sheetClients=[];
-      cd.rows.slice(1).forEach(function(r){var mob=gcc(r,'mob',1).trim();if(!mob)return;var obj={name:caps(gcc(r,'name',0)),mobile:mob,email:gcc(r,'email',2),country:caps(gcc(r,'country',3)),age:gcc(r,'age',4),gender:caps(gcc(r,'gender',5)),pan:caps(gcc(r,'pan',6)),products:caps(gcc(r,'prod',7)),remarks:gcc(r,'rem',8),convertedDate:gcc(r,'conv',9)};sheetClients.push(obj);});
+      cd.rows.slice(1).forEach(function(r){
+        var mob=gcc(r,'mob').trim();if(!mob)return;
+        sheetClients.push({
+          name:caps(gcc(r,'name')),  mobile:mob,
+          email:gcc(r,'email'),      country:caps(gcc(r,'country')),
+          source:gcc(r,'source'),    referral:gcc(r,'referral'),
+          nextFollowUp:gcc(r,'nextFU'), age:gcc(r,'age'),
+          gender:gcc(r,'gender'),    remarks:gcc(r,'remarks'),
+          createdDate:gcc(r,'created')||today(),
+          pan:gcc(r,'pan'),          dob:gcc(r,'dob'),
+          spouseDob:gcc(r,'spouseDob'), anniversary:gcc(r,'anniversary'),
+          convertedDate:gcc(r,'conv'),
+          reviewDate:gcc(r,'reviewDate'), firstAnniversary:gcc(r,'firstAnn'),
+          appInstalled:gcc(r,'appInstalled').toUpperCase()==='YES',
+          broadcastAdded:gcc(r,'broadcastAdded').toUpperCase()==='YES',
+          sipDate:gcc(r,'sipDate'),
+          healthInsurance:gcc(r,'healthIns'),
+          lifeInsurance:gcc(r,'lifeIns'),
+          willDone:gcc(r,'willDone').toUpperCase()==='YES',
+          dueDateHealth:gcc(r,'dueDateH'), dueDateLife:gcc(r,'dueDateL'),
+          aum:gcc(r,'aum'),          potentialAum:gcc(r,'potAum'),
+          welcomeSent:gcc(r,'welcome').toUpperCase()==='YES',
+          products:caps(gcc(r,'products'))
+        });
+      });
       clients=sheetClients;saveC();
     }
     await pullActivityLog();
