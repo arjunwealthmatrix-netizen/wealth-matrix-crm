@@ -348,12 +348,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 
 <!-- CLIENTS -->
 <div class="page" id="pg-clients">
-<div class="page" id="pg-clients">
   <div class="ph" style="padding-bottom:8px">
     <div><h1>Clients</h1><div class="sub" id="clients-sub"></div></div>
     <button class="btn btn-ghost" style="padding:6px 10px;font-size:11px" onclick="toggleClientBulk()" id="client-select-btn">☑️</button>
   </div>
-  <!-- Bulk action bar -->
   <div id="client-bulk-bar" style="display:none;padding:8px 12px;background:rgba(192,57,43,.08);border-bottom:1px solid var(--border);justify-content:space-between;align-items:center">
     <span id="client-sel-count" style="font-size:12px;font-weight:700;color:var(--accent)">0 selected</span>
     <div style="display:flex;gap:6px">
@@ -362,15 +360,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       <button class="btn btn-red" style="padding:5px 10px;font-size:11px" onclick="deleteSelectedClients()">🗑 Delete</button>
     </div>
   </div>
-
-  <!-- Client list -->
   <div id="client-list" style="padding:4px 12px 100px"></div>
-  <!-- FAB: Add Client -->
   <button onclick="openAddClient()" style="position:fixed;bottom:80px;right:18px;width:54px;height:54px;border-radius:50%;background:#C0392B;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:200;box-shadow:0 4px 16px rgba(192,57,43,0.45)" aria-label="Add client">
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
   </button>
-</div>
-</div>
+</div></div>
 
 <!-- FOLLOW-UPS -->
 <div class="page" id="pg-fu">
