@@ -1305,6 +1305,7 @@ function openDetail(mob,type){
     + '<button data-editclient="'+mob+'" style="background:var(--accent);border:none;border-radius:8px;padding:10px 4px;color:#fff;font-size:10px;font-weight:700;cursor:pointer">✏️ Modify</button>'
     + '<button data-delclient="'+mob+'" style="background:none;border:1px solid #e74c3c;border-radius:8px;padding:10px 4px;color:#e74c3c;font-size:10px;font-weight:700;cursor:pointer">🗑 Delete</button>'
     + '</div>';
+  document.getElementById('detail-sh').innerHTML = html;  // ← was missing!
   document.getElementById('ov-detail').classList.add('open');
   // Event delegation for client popup
   document.getElementById('detail-sh').onclick = function(e){
@@ -2252,7 +2253,7 @@ function renderLeads(){
     return '<div class="li'+(sel?' selected':'')+'" onclick="'+(bulkMode?'toggleSelect(\''+l.mobile+'\')':'openDetail(\''+l.mobile+'\',\'lead\')')+'">'
       +(bulkMode?'<div style="width:20px;height:20px;border-radius:50%;border:2px solid var(--accent);background:'+(sel?'var(--accent)':'transparent')+';display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:8px">'+(sel?'<svg width="10" height="10" viewBox="0 0 24 24" fill="white"><path d="M20 6L9 17l-5-5"/></svg>':'')+'</div>':'')
       +'<div class="av">'+ini(l.name)+'</div>'
-      +'<div class="li-info"><div class="li-name" style="display:flex;align-items:center;flex-wrap:wrap;gap:3px">'+toTitle(l.name)+badge+aumTag+'</div>'
+      +'<div class="li-info"><div class="li-name" style="display:flex;align-items:center;flex-wrap:wrap;gap:3px">'+toTitle(l.name)+' <span style="font-size:11px">'+leadHeat(leadScore(l)).emoji+'</span>'+badge+aumTag+'</div>'
       +'<div class="li-meta">'+(l.mobile||'')+(l.age?' · 🎂'+l.age:'')+(l.country?' · '+l.country:'')+'</div>'
       +((l.products||l.nextFollowUp)?'<div class="li-prod" style="display:flex;gap:6px;flex-wrap:wrap">'+(l.products?'<span>'+l.products+'</span>':'')+(l.nextFollowUp&&/^\d{4}-\d{2}-\d{2}$/.test(l.nextFollowUp)?'<span style="color:var(--accent)">📅 '+fmt(l.nextFollowUp)+'</span>':'')+'</div>':'')
       +(lastRem?'<div style="font-size:10px;color:var(--t3);margin-top:2px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">📝 '+lastRem+'</div>':'')
@@ -2443,6 +2444,7 @@ async function pullFromSheet(manual){
       saveC();
     }
     // Pull Activity Log
+    await pullAnalytics(); // fetch Analytics sheet for North Star Matrix
     await pullActivityLog();
     cfg_.lastPull=now(); saveCfg();
     var ts=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
@@ -2904,10 +2906,23 @@ function renderDash(){
   var cols=[{k:'total',h:'Total'},{k:'ftd',h:'FTD'},{k:'wtd',h:'WTD'},{k:'mtd',h:'MTD'},{k:'ytd',h:'YTD'}];
   var convLeads=leads.filter(function(l){return (l.status||'').toUpperCase()==='CONVERTED'&&l.createdDate;});
   var avgCycleDays=convLeads.length?Math.round(convLeads.reduce(function(s,l){return s+Math.max(0,Math.floor((new Date(l.modifiedDate||l.createdDate)-new Date(l.createdDate))/86400000));},0)/convLeads.length):null;
+  // Column mapping for analytics sheet: 1=LeadEntries,2=Prospects,3=Contacted,4=InProgress,5=Converted,6=Dropped
+  var nsColMap={'Total':1,'PROSPECT':2,'CONTACTED':3,'IN PROGRESS':4,'CONVERTED':5,'DROPPED':6};
   var nt='<thead><tr><th></th>'+cols.map(function(c){return '<th>'+c.h+'</th>';}).join('')+'</tr></thead><tbody>';
   nsRows.forEach(function(r){
     nt+='<tr class="'+r.cl+'"><td style="color:'+r.c+'">'+r.l+'</td>';
-    cols.forEach(function(c){var n=nsCount(leads,r.s,c.k);nt+='<td><span class="ns-num'+(n===0?' zero':'')+'">'+n+'</span></td>';});
+    cols.forEach(function(c){
+      var n;
+      var acol=nsColMap[r.s];
+      if(acol!==undefined && _analyticsData.length>0){
+        // Use analytics sheet data
+        n = c.k==='total' ? getAnalyticsBucket(acol,'total') : getAnalyticsBucket(acol,c.k);
+      } else {
+        // Fallback to local leads count
+        n = nsCount(leads,r.s,c.k);
+      }
+      nt+='<td><span class="ns-num'+(n===0?' zero':'')+'">'+n+'</span></td>';
+    });
     nt+='</tr>';
   });
   nt+='<tr style="border-top:2px solid var(--border)"><td style="color:var(--green);font-weight:700">⏱ Avg cycle</td><td colspan="5" style="text-align:center;color:var(--green);font-size:15px;font-weight:900">'+(avgCycleDays!==null?avgCycleDays+'d':'—')+'</td></tr>';
@@ -4467,9 +4482,81 @@ function sendWAQuick(waNum, type, mob){
   window.open('https://wa.me/'+waNum+'?text='+encodeURIComponent(msg),'_blank');
 }
 
+
+// ── Pull Analytics from sheet and render North Star Matrix ──
+// Analytics sheet columns: Date | Lead Entries | Prospects | Contacted | In Progress | Converted | Dropped
+var _analyticsData = []; // cached analytics rows
+
+async function pullAnalytics(){
+  if(!hasScript()) return;
+  try{
+    var res = await scriptGet('ANALYTICS');
+    if(res && res.rows && res.rows.length > 1){
+      _analyticsData = res.rows.slice(1); // skip header
+      localStorage.setItem('wm_analytics', JSON.stringify(_analyticsData));
+    }
+  }catch(e){ console.warn('Analytics pull failed:', e.message); }
+}
+
+function getAnalyticsRow(dateStr){
+  // Find row matching date string (format: YYYY-MM-DD or DD/MM/YYYY)
+  return _analyticsData.find(function(r){
+    return String(r[0]||'').trim() === dateStr ||
+           String(r[0]||'').trim() === formatDateForSheet(dateStr);
+  });
+}
+
+function formatDateForSheet(d){
+  // Convert YYYY-MM-DD to DD/MM/YYYY if needed
+  if(!d) return '';
+  var parts = d.split('-');
+  if(parts.length===3) return parts[2]+'/'+parts[1]+'/'+parts[0];
+  return d;
+}
+
+function getAnalyticsBucket(colIdx, bucket){
+  // colIdx: 1=LeadEntries, 2=Prospects, 3=Contacted, 4=InProgress, 5=Converted, 6=Dropped
+  var now = new Date();
+  var todayStr = today();
+  var total = 0;
+  _analyticsData.forEach(function(r){
+    var rowDate = new Date(String(r[0]||'').trim().split('/').reverse().join('-'));
+    if(isNaN(rowDate)) return;
+    var include = false;
+    if(bucket==='ftd') include = String(r[0]||'').trim() === todayStr || rowDate.toDateString()===now.toDateString();
+    if(bucket==='wtd'){ var w=new Date(now);w.setDate(w.getDate()-7);include=rowDate>=w; }
+    if(bucket==='mtd'){ var m=new Date(now);m.setDate(m.getDate()-30);include=rowDate>=m; }
+    if(bucket==='ytd'){ var y=new Date(now.getFullYear(),3,1);include=rowDate>=y; } // Apr 1
+    if(bucket==='total') include = true;
+    if(include) total += parseInt(r[colIdx]||0)||0;
+  });
+  return total;
+}
+
+// ── Improved logAnalytics ——updates ANALYTICS sheet in real time ──
+// col: 1=LeadEntries, 2=Prospects, 3=Contacted, 4=InProgress, 5=Converted, 6=Dropped
+function logAnalytics(col, delta){
+  if(!hasScript()) return;
+  // Update local cache immediately
+  var todayStr = today();
+  var existing = _analyticsData.find(function(r){ return String(r[0]||'').trim()===todayStr; });
+  if(existing){
+    existing[col] = Math.max(0, (parseInt(existing[col])||0) + (delta||1));
+  } else {
+    var newRow = [todayStr,0,0,0,0,0,0];
+    newRow[col] = Math.max(0, delta||1);
+    _analyticsData.push(newRow);
+    localStorage.setItem('wm_analytics', JSON.stringify(_analyticsData));
+  }
+  // Push to sheet
+  sheetWrite({action:'updateAnalytics', date:todayStr, col:col+1, delta:delta||1});
+}
+
 // Load offline queue and flush any writes that failed last session
 _loadQ();
 load();applyDarkMode();loadActivityLog();bootSequenceV17();
+// Load cached analytics
+try{_analyticsData=JSON.parse(localStorage.getItem('wm_analytics')||'[]');}catch(e){_analyticsData=[];}
 checkURLParams();
 scheduleDailySummary();
 initLeadSwipe();
