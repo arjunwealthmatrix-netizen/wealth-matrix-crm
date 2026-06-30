@@ -245,7 +245,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 
 /* FAB fixed buttons — only visible when inside active page */
 .page:not(.active){overflow:hidden}
-.cd-btn{display:flex;flex-direction:column;align-items:center;gap:4px;padding:9px 4px;border-radius:9px;cursor:pointer}.cd-icon{font-size:18px}.cd-btn span:last-child{font-size:10px;font-weight:700}.cd-wa{background:rgba(37,211,102,.08);border:1px solid rgba(37,211,102,.3)}.cd-wa span:last-child{color:#25D366}.cd-call{background:rgba(52,152,219,.08);border:1px solid rgba(52,152,219,.3)}.cd-call span:last-child{color:#3498db}.cd-meet{background:rgba(155,89,182,.08);border:1px solid rgba(155,89,182,.3)}.cd-meet span:last-child{color:#9b59b6}
+.cd-btn{display:flex;flex-direction:column;align-items:center;gap:4px;padding:9px 4px;border-radius:9px;cursor:pointer}.cd-icon{font-size:18px}.cd-btn span:last-child{font-size:10px;font-weight:700}.cd-wa{background:rgba(37,211,102,.08);border:1px solid rgba(37,211,102,.3)}.cd-wa span:last-child{color:#25D366}.cd-call{background:rgba(52,152,219,.08);border:1px solid rgba(52,152,219,.3)}.cd-call span:last-child{color:#3498db}.cd-meet{background:rgba(155,89,182,.08);border:1px solid rgba(155,89,182,.3)}.cd-meet span:last-child{color:#9b59b6}.cd-mail{background:rgba(241,196,15,.08);border:1px solid rgba(241,196,15,.3)}.cd-mail span:last-child{color:#f1c40f}
+.qwa-btn{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 2px;border-radius:8px;cursor:pointer;border:1px solid;background:none}.qwa-ico{font-size:16px}.qwa-lbl{font-size:8px;font-weight:700;line-height:1.2;text-align:center}.qwa-green{border-color:rgba(37,211,102,.25);background:rgba(37,211,102,.06)}.qwa-green .qwa-lbl{color:#25D366}.qwa-blue{border-color:rgba(52,152,219,.25);background:rgba(52,152,219,.06)}.qwa-blue .qwa-lbl{color:#3498db}.qwa-amber{border-color:rgba(243,156,18,.25);background:rgba(243,156,18,.06)}.qwa-amber .qwa-lbl{color:#f39c12}.qwa-purple{border-color:rgba(155,89,182,.25);background:rgba(155,89,182,.06)}.qwa-purple .qwa-lbl{color:#9b59b6}
 </style>
 <style>
 /* ── AUTOCOMPLETE ── */
@@ -352,11 +353,14 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div><h1>Clients</h1><div class="sub" id="clients-sub"></div></div>
     <button class="btn btn-ghost" style="padding:6px 10px;font-size:11px" onclick="toggleClientBulk()" id="client-select-btn">☑️</button>
   </div>
+  <div style="display:flex;gap:6px;padding:0 12px 8px">
+    <button id="sort-aum-btn" onclick="setClientSort('aum')" style="flex:1;padding:7px 4px;font-size:11px;font-weight:700;border-radius:8px;border:1.5px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer">💰 AUM ↓</button>
+    <button id="sort-potaum-btn" onclick="setClientSort('potentialAum')" style="flex:1;padding:7px 4px;font-size:11px;font-weight:700;border-radius:8px;border:1.5px solid var(--border);background:transparent;color:var(--t2);cursor:pointer">📈 Potential AUM ↓</button>
+  </div>
   <div id="client-bulk-bar" style="display:none;padding:8px 12px;background:rgba(192,57,43,.08);border-bottom:1px solid var(--border);justify-content:space-between;align-items:center">
     <span id="client-sel-count" style="font-size:12px;font-weight:700;color:var(--accent)">0 selected</span>
     <div style="display:flex;gap:6px">
       <button class="btn btn-ghost" style="padding:5px 10px;font-size:11px" onclick="clientSelectAll()">All</button>
-      <button style="padding:5px 12px;font-size:11px;background:#25D366;color:#fff;border:none;border-radius:6px;cursor:pointer" onclick="bulkClientWhatsApp()">💬 WA</button>
       <button class="btn btn-red" style="padding:5px 10px;font-size:11px" onclick="deleteSelectedClients()">🗑 Delete</button>
     </div>
   </div>
@@ -579,30 +583,95 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 <!-- CLIENT FORM -->
 <div class="ov" id="ov-client"><div class="sh">
   <div class="sh-handle"></div>
-  <div class="sh-hdr"><div class="sh-title" id="cf-title">New Client</div><button class="sh-x" onclick="closeOv('ov-client')">✕</button></div>
+  <div class="sh-hdr">
+    <div class="sh-title" id="cf-title">New Client</div>
+    <button class="sh-x" onclick="closeOv('ov-client')">✕</button>
+  </div>
   <div class="sh-body">
     <input type="hidden" id="cf-orig">
-    <div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)">Personal Details</div>
-    <div class="frow">
-      <div class="fg"><label class="fl">Name *</label><input class="fi" id="cf-name" oninput="autoCaps(this)"><div class="ac-list" id="cf-ac-list"></div></div>
-      <div class="fg"><label class="fl">Mobile *</label><input class="fi" id="cf-mob" type="tel"></div>
+
+    <div style="background:var(--s1);border-radius:10px;padding:12px 14px;margin-bottom:10px">
+      <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.6px;margin-bottom:8px">IDENTITY</div>
+      <div class="frow">
+        <div class="fg"><label class="fl">Name *</label><input class="fi" id="cf-name" placeholder="Full name" oninput="autoCaps(this)"><div class="ac-list" id="cf-ac-list"></div></div>
+        <div class="fg"><label class="fl">Mobile *</label><input class="fi" id="cf-mob" type="tel" placeholder="9847012345"></div>
+      </div>
+      <div class="frow">
+        <div class="fg"><label class="fl">Email</label><input class="fi" id="cf-email" type="email"></div>
+        <div class="fg"><label class="fl">Age</label><input class="fi" id="cf-age" type="number"></div>
+      </div>
+      <div class="frow">
+        <div class="fg"><label class="fl">Country</label><input class="fi" id="cf-country" oninput="autoCaps(this)"></div>
+        <div class="fg"><label class="fl">Gender</label>
+          <select class="fi fi-sel" id="cf-gender"><option value="">Select</option><option>MALE</option><option>FEMALE</option><option>OTHER</option></select>
+        </div>
+      </div>
+      <div class="frow">
+        <div class="fg"><label class="fl">PAN</label><input class="fi" id="cf-pan" placeholder="ABCDE1234F" oninput="this.value=this.value.toUpperCase()"></div>
+        <div class="fg"><label class="fl">DOB</label><input class="fi" id="cf-dob" type="date"></div>
+      </div>
     </div>
-    <div class="frow">
-      <div class="fg"><label class="fl">Email</label><input class="fi" id="cf-email" oninput="this.value=this.value.toUpperCase()"></div>
-      <div class="fg"><label class="fl">Country</label><input class="fi" id="cf-country" oninput="autoCaps(this)"></div>
+
+    <div style="background:var(--s1);border-radius:10px;padding:12px 14px;margin-bottom:10px">
+      <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.6px;margin-bottom:8px">SOURCE</div>
+      <div class="frow">
+        <div class="fg"><label class="fl">Source</label><input class="fi" id="cf-source" oninput="autoCaps(this)"></div>
+        <div class="fg"><label class="fl">Referred by</label><input class="fi" id="cf-referral" oninput="autoCaps(this)"></div>
+      </div>
     </div>
-    <div class="frow">
-      <div class="fg"><label class="fl">Age</label><input class="fi" id="cf-age" type="number"></div>
-      <div class="fg"><label class="fl">Gender</label><select class="fi fi-sel" id="cf-gender"><option value="">Select</option><option>MALE</option><option>FEMALE</option></select></div>
+
+    <div style="background:var(--s1);border-radius:10px;padding:12px 14px;margin-bottom:10px">
+      <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.6px;margin-bottom:8px">FINANCIAL</div>
+      <div class="frow">
+        <div class="fg"><label class="fl">AUM</label><input class="fi" id="cf-aum" placeholder="₹ amount"></div>
+        <div class="fg"><label class="fl">Potential AUM</label><input class="fi" id="cf-potaum" placeholder="₹ estimate"></div>
+      </div>
+      <div class="frow">
+        <div class="fg"><label class="fl">SIP Date</label><input class="fi" id="cf-sipdate" type="number" min="1" max="28" placeholder="1–28"></div>
+        <div class="fg"><label class="fl">Review Date</label><input class="fi" id="cf-review" type="date"></div>
+      </div>
+      <div class="fg"><label class="fl">Next Follow-up</label><input class="fi" id="cf-nextfu" type="date"></div>
     </div>
-    <div class="frow">
-      <div class="fg"><label class="fl">Date of Birth</label><input class="fi" id="cf-dob" type="date"></div>
-      <div class="fg"><label class="fl">Spouse DOB</label><input class="fi" id="cf-sdob" type="date"></div>
+
+    <div style="background:var(--s1);border-radius:10px;padding:12px 14px;margin-bottom:10px">
+      <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.6px;margin-bottom:8px">INSURANCE</div>
+      <div class="frow">
+        <div class="fg"><label class="fl">Health Insurance</label><input class="fi" id="cf-healthins" placeholder="Provider / plan"></div>
+        <div class="fg"><label class="fl">Due Date Health</label><input class="fi" id="cf-duehealth" type="date"></div>
+      </div>
+      <div class="frow">
+        <div class="fg"><label class="fl">Life Insurance</label><input class="fi" id="cf-lifeins" placeholder="Provider / plan"></div>
+        <div class="fg"><label class="fl">Due Date Life</label><input class="fi" id="cf-duelife" type="date"></div>
+      </div>
     </div>
-    <div class="fg"><label class="fl">Wedding Anniversary</label><input class="fi" id="cf-anniversary" type="date"></div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.6px;margin:12px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border)">Business Details</div>
-    <div class="fg"><label class="fl">PAN</label><input class="fi" id="cf-pan" placeholder="ABCDE1234F" oninput="this.value=this.value.toUpperCase()"></div>
-    <div class="fg"><label class="fl">Products</label>
+
+    <div style="background:var(--s1);border-radius:10px;padding:12px 14px;margin-bottom:10px">
+      <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.6px;margin-bottom:8px">PERSONAL DATES</div>
+      <div class="frow">
+        <div class="fg"><label class="fl">Spouse DOB</label><input class="fi" id="cf-sdob" type="date"></div>
+        <div class="fg"><label class="fl">Anniversary</label><input class="fi" id="cf-anniversary" type="date"></div>
+      </div>
+      <div class="frow">
+        <div class="fg"><label class="fl">Converted Date</label><input class="fi" id="cf-cdate" type="date"></div>
+        <div class="fg"><label class="fl">1st Anniversary</label><input class="fi" id="cf-firstann" type="date" readonly style="opacity:.6"></div>
+      </div>
+    </div>
+
+    <div style="background:var(--s1);border-radius:10px;padding:12px 14px;margin-bottom:10px">
+      <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.6px;margin-bottom:8px">STATUS TOGGLES</div>
+      <div class="ptoggle-grid" id="cf-toggles">
+        <div class="pt" data-tog="appInstalled" onclick="tp(this)">📲 App Installed</div>
+        <div class="pt" data-tog="broadcastAdded" onclick="tp(this)">📢 Broadcast Added</div>
+        <div class="pt" data-tog="welcomeSent" onclick="tp(this)">👋 Welcome Msg Sent</div>
+        <div class="pt" data-tog="willDone" onclick="tp(this)">📜 WILL Done</div>
+      </div>
+    </div>
+
+    <div style="background:var(--s1);border-radius:10px;padding:12px 14px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.6px">PRODUCTS</div>
+        <span id="cf-prod-badge" style="font-size:9px;background:rgba(192,57,43,.15);color:var(--accent);border-radius:99px;padding:2px 7px;font-weight:700">Auto-filled from lead</span>
+      </div>
       <div class="ptoggle-grid" id="cf-products">
         <div class="pt" data-p="INVESTMENT" onclick="tp(this)">📈 Investment</div>
         <div class="pt" data-p="LIFE INSURANCE" onclick="tp(this)">🛡️ Life Ins.</div>
@@ -610,25 +679,13 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         <div class="pt" data-p="WILL" onclick="tp(this)">📜 WILL</div>
       </div>
     </div>
-    <div class="frow">
-      <div class="fg"><label class="fl">Onboarding Date</label><input class="fi" id="cf-cdate" type="date" oninput="autoSetReview(this.value)"></div>
-      <div class="fg"><label class="fl">Review Date</label><input class="fi" id="cf-review" type="date"></div>
+
+    <div style="background:var(--s1);border-radius:10px;padding:12px 14px;margin-bottom:10px">
+      <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.6px;margin-bottom:8px">REMARKS</div>
+      <textarea class="fi fi-ta" id="cf-rem" placeholder="Notes about this client…" oninput="autoCaps(this)" style="min-height:70px"></textarea>
     </div>
-    <div style="font-size:10px;color:var(--t3);margin:-6px 0 10px">Review date defaults to 1 year after onboarding. You can change it.</div>
-    <div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.6px;margin:12px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border)">Onboarding Checklist</div>
-    <div class="sg" style="margin:0 0 12px">
-      <div class="si">
-        <span>📱 Wealth Matrix App installed</span>
-        <label class="toggle"><input type="checkbox" id="cf-app"><span class="toggle-slider"></span></label>
-      </div>
-      <div class="si">
-        <span>📢 WhatsApp Broadcast added</span>
-        <label class="toggle"><input type="checkbox" id="cf-broadcast"><span class="toggle-slider"></span></label>
-      </div>
-    </div>
-    <div class="fg"><label class="fl">Remarks / Notes</label><textarea class="fi fi-ta" id="cf-rem" oninput="autoCaps(this)"></textarea></div>
-    <button class="btn btn-gold btn-full" onclick="saveClient()" style="margin-top:4px">Save Client</button>
-    <div style="height:8px"></div>
+
+    <button class="btn btn-gold btn-full" onclick="saveClient()" style="padding:14px;font-size:15px;border-radius:10px;margin-bottom:8px">Save Client</button>
   </div>
 </div></div>
 
@@ -673,6 +730,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 // ═══════════════════════════════════════════════
 var leads=[], clients=[], cfg_={}, editLead=null, editClient=null, filterStatus='Active';
 var filterProduct='All';
+var clientSortBy='aum'; // 'aum' or 'potentialAum'
 var syncInProgress=false, bulkMode=false, selectedLeads=new Set();
 var _detailOpenMobile=null, _detailOpenType=null, _detailModified=false;
 
@@ -1155,24 +1213,20 @@ async function deleteSelectedClients(){
 function renderClients(){
   var q=(document.getElementById('shared-search')?document.getElementById('shared-search').value||'':'').toLowerCase();
   // Sort newest first (most recently converted at top)
-  // Parse AUM value to a numeric score for sorting
-  function aumScore(v){
-    v=(v||'').toUpperCase();
-    if(v.includes('100L'))  return 8;
-    if(v.includes('50-100'))return 7;
-    if(v.includes('25-50')) return 6;
-    if(v.includes('<25'))   return 5;
-    if(v.includes('SIP>1L'))return 4;
-    if(v.includes('50K-1L'))return 3;
-    if(v.includes('~50K'))  return 2;
-    if(v.includes('<50K'))  return 1;
-    return 0;
+  // Parse a financial value string (e.g. "25,00,000" or "₹25L") into a number for sorting
+  function clientAumValue(v){
+    v=(v||'').toString().toUpperCase().replace(/[₹,\s]/g,'');
+    var num=parseFloat(v)||0;
+    if(v.includes('CR')) num*=10000000;
+    else if(v.includes('L')) num*=100000;
+    else if(v.includes('K')) num*=1000;
+    return num;
   }
   var arr=clients.filter(function(c){
     return !q||(c.name||'').toLowerCase().includes(q)||(c.mobile||'').includes(q)||(c.products||'').toLowerCase().includes(q);
   }).sort(function(a,b){
-    // Sort by AUM descending, then by converted date descending
-    var diff=aumScore(b.aum)-aumScore(a.aum);
+    // Sort by selected field (AUM or Potential AUM) descending
+    var diff=clientAumValue(b[clientSortBy])-clientAumValue(a[clientSortBy]);
     if(diff!==0) return diff;
     var da=a.convertedDate||a.createdDate||'';
     var db=b.convertedDate||b.createdDate||'';
@@ -1220,9 +1274,13 @@ function renderClients(){
           +'<span style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+toTitle(c.name)+'</span>'
           +'<span style="font-size:9px;color:#25D366;background:rgba(37,211,102,.08);border:1px solid rgba(37,211,102,.3);border-radius:99px;padding:2px 7px;white-space:nowrap;flex-shrink:0">✅ CLIENT</span>'
         +'</div>'
-        +'<div style="font-size:11px;color:var(--t3);margin-top:3px">'+(c.mobile||'')+(c.country?' · 🌍 '+toTitle(c.country):'')+(c.age?' · 🎂 '+c.age+' yrs':'')+'</div>'
-        +(prods?'<div style="font-size:11px;color:var(--t2);margin-top:2px">'+prods+'</div>':'')
-        +(sinceDate?'<div style="font-size:10px;color:var(--t3);margin-top:3px">Client since '+sinceDate+'</div>':'')
+        +'<div style="font-size:11px;color:var(--t3);margin-top:3px">'+(c.mobile||'')+(c.country?' · 🌍 '+toTitle(c.country):'')+'</div>'
+        +'<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:4px">'
+          +(sinceDate?'<span style="font-size:9px;color:var(--t3);background:var(--s2);border-radius:5px;padding:2px 6px">📅 '+sinceDate+'</span>':'')
+          +(c.aum?'<span style="font-size:9px;color:#2ecc71;background:rgba(46,204,113,.1);border-radius:5px;padding:2px 6px;font-weight:700">💰 '+c.aum+'</span>':'')
+          +(c.age?'<span style="font-size:9px;color:var(--t3);background:var(--s2);border-radius:5px;padding:2px 6px">🎂 '+c.age+'y</span>':'')
+        +'</div>'
+        +(prods?'<div style="font-size:11px;color:var(--t2);margin-top:4px">'+prods+'</div>':'')
       +'</div>'
     +'</div>';
   }).join('');
@@ -1267,10 +1325,11 @@ function openDetail(mob,type){
     + '<div><div style="font-size:16px;font-weight:800;color:var(--text)">'+toTitle(c.name)+'</div>'
     + '<div style="font-size:10px;color:var(--green);font-weight:700;margin-top:2px">✅ CLIENT · Since '+fmt(c.convertedDate||c.createdDate||'')+'</div></div>'
     + '<button class="sh-x" data-action="close-client">✕</button></div>'
-    + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;padding:10px 14px 6px">'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;padding:10px 14px 6px">'
     + '<div data-wa="'+waNum+'" class="cd-btn cd-wa"><span class="cd-icon">💬</span><span>WhatsApp</span></div>'
     + '<div data-tel="'+c.mobile+'" class="cd-btn cd-call"><span class="cd-icon">📞</span><span>Call</span></div>'
-    + '<div data-meet="'+mob+'" class="cd-btn cd-meet"><span class="cd-icon">🤝</span><span>Meet</span></div>'
+    + '<div data-meet="'+mob+'" class="cd-btn cd-meet"><span class="cd-icon">🎥</span><span>Meet</span></div>'
+    + '<div data-mail="'+(c.email||'')+'" data-mailname="'+toTitle(c.name)+'" class="cd-btn cd-mail"><span class="cd-icon">✉️</span><span>Email</span></div>'
     + '</div>'
     + '<div style="padding:0 14px 8px"><div style="background:var(--s2);border-radius:9px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between">'
     + '<div><div style="font-size:10px;color:var(--t3);margin-bottom:2px">📅 Next Follow-up</div>'
@@ -1291,10 +1350,11 @@ function openDetail(mob,type){
     + '</div></div></div>'
     + '<div style="padding:0 14px 8px">'
     + '<div style="font-size:9px;color:var(--t3);font-weight:700;letter-spacing:.5px;margin-bottom:6px">QUICK WHATSAPP</div>'
-    + '<div style="display:flex;flex-direction:column;gap:5px">'
-    + '<button data-waq="app" data-wanum="'+waNum+'" data-mob="'+mob+'" style="background:rgba(37,211,102,.08);border:1px solid rgba(37,211,102,.2);border-radius:8px;padding:8px 12px;color:#25D366;font-size:11px;font-weight:700;text-align:left;cursor:pointer;width:100%">📲 Send App Link</button>'
-    + '<button data-waq="cas" data-wanum="'+waNum+'" style="background:rgba(52,152,219,.08);border:1px solid rgba(52,152,219,.2);border-radius:8px;padding:8px 12px;color:#3498db;font-size:11px;font-weight:700;text-align:left;cursor:pointer;width:100%">📊 Send CAMS CAS Report Link</button>'
-    + '<button data-waq="sip" data-wanum="'+waNum+'" data-mob="'+mob+'" style="background:rgba(243,156,18,.08);border:1px solid rgba(243,156,18,.2);border-radius:8px;padding:8px 12px;color:#f39c12;font-size:11px;font-weight:700;text-align:left;cursor:pointer;width:100%">💰 Send SIP Reminder</button>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px">'
+    + '<button data-waq="app" data-wanum="'+waNum+'" data-mob="'+mob+'" class="qwa-btn qwa-green"><span class="qwa-ico">📲</span><span class="qwa-lbl">App Link</span></button>'
+    + '<button data-waq="cas" data-wanum="'+waNum+'" class="qwa-btn qwa-blue"><span class="qwa-ico">📊</span><span class="qwa-lbl">CAMS CAS</span></button>'
+    + '<button data-waq="sip" data-wanum="'+waNum+'" data-mob="'+mob+'" class="qwa-btn qwa-amber"><span class="qwa-ico">💰</span><span class="qwa-lbl">SIP Rem</span></button>'
+    + '<button data-waq="chg" data-wanum="'+waNum+'" class="qwa-btn qwa-purple"><span class="qwa-ico">🔄</span><span class="qwa-lbl">Mob/Mail<br>Chng</span></button>'
     + '</div></div>'
     + '<div style="padding:0 14px 8px"><div style="background:var(--s2);border-radius:9px;padding:10px 12px">'
     + '<div style="font-size:9px;color:var(--accent);font-weight:700;letter-spacing:.5px;margin-bottom:7px">ACTIVITY LOG</div>'
@@ -1386,14 +1446,18 @@ function logClientNote(mob){
 function openAddClient(pre){
   editClient=null;
   document.getElementById('cf-title').textContent='New Client';
-  ['name','mob','email','country','age','pan','rem'].forEach(function(f){var el=document.getElementById('cf-'+f);if(el)el.value='';});
-  var gEl=document.getElementById('cf-gender');if(gEl)gEl.value='';
+  var fields=['name','mob','email','country','age','gender','pan','source','referral',
+    'aum','potaum','sipdate','healthins','lifeins','rem'];
+  fields.forEach(function(f){var el=document.getElementById('cf-'+f);if(el)el.value='';});
+  ['dob','sdob','anniversary','review','nextfu','duehealth','duelife'].forEach(function(f){
+    var el=document.getElementById('cf-'+f);if(el)el.value='';
+  });
   var cdEl=document.getElementById('cf-cdate');if(cdEl)cdEl.value=today();
-  ['dob','sdob','anniversary','review'].forEach(function(f){var el=document.getElementById('cf-'+f);if(el)el.value='';});
-  var appEl=document.getElementById('cf-app');if(appEl)appEl.checked=false;
-  var bcEl=document.getElementById('cf-broadcast');if(bcEl)bcEl.checked=false;
+  var faEl=document.getElementById('cf-firstann');
+  if(faEl){var fa=new Date();fa.setFullYear(fa.getFullYear()+1);faEl.value=fa.toISOString().split('T')[0];}
+  document.querySelectorAll('#cf-toggles .pt').forEach(function(t){t.classList.remove('on');});
   document.querySelectorAll('#cf-products .pt').forEach(function(t){t.classList.remove('on');});
-  var revEl=document.getElementById('cf-review');if(revEl){var defRev=new Date();defRev.setFullYear(defRev.getFullYear()+1);revEl.value=defRev.toISOString().split('T')[0];}
+  var badge=document.getElementById('cf-prod-badge');if(badge)badge.style.display='none';
   document.getElementById('ov-client').classList.add('open');
   setupAutocomplete('cf-name','cf-ac-list','client');
 }
@@ -1401,28 +1465,86 @@ function editClientOpen(mob){
   var c=clients.find(function(x){return x.mobile===mob;});if(!c)return;
   editClient=mob;
   document.getElementById('cf-title').textContent='Edit Client';
-  var fields={name:c.name,mob:c.mobile,email:c.email||'',country:c.country||'',age:c.age||'',pan:c.pan||'',rem:c.remarks||''};
-  Object.keys(fields).forEach(function(f){var el=document.getElementById('cf-'+f);if(el)el.value=fields[f];});
-  var gEl=document.getElementById('cf-gender');if(gEl)gEl.value=c.gender||'';
-  var cdEl=document.getElementById('cf-cdate');if(cdEl)cdEl.value=c.convertedDate||'';
-  ['dob','sdob','anniversary','review'].forEach(function(f,i){var keys=['dob','spouseDob','anniversary','reviewDate'];var el=document.getElementById('cf-'+f);if(el)el.value=c[keys[i]]||'';});
-  var appEl=document.getElementById('cf-app');if(appEl)appEl.checked=!!(c.appInstalled);
-  var bcEl=document.getElementById('cf-broadcast');if(bcEl)bcEl.checked=!!(c.broadcastAdded);
-  document.querySelectorAll('#cf-products .pt').forEach(function(t){t.classList.toggle('on',!!(c.products&&c.products.toUpperCase().includes(t.dataset.p)));});
+
+  function sv(id,val){var el=document.getElementById(id);if(el)el.value=val||'';}
+  sv('cf-name', c.name); sv('cf-mob', c.mobile);
+  sv('cf-email', c.email); sv('cf-country', c.country);
+  sv('cf-age', c.age); sv('cf-gender', c.gender);
+  sv('cf-pan', c.pan); sv('cf-dob', c.dob);
+  sv('cf-source', c.source); sv('cf-referral', c.referral);
+  sv('cf-aum', c.aum); sv('cf-potaum', c.potentialAum);
+  sv('cf-sipdate', c.sipDate); sv('cf-review', c.reviewDate);
+  sv('cf-nextfu', c.nextFollowUp);
+  sv('cf-healthins', c.healthInsurance); sv('cf-duehealth', c.dueDateHealth);
+  sv('cf-lifeins', c.lifeInsurance); sv('cf-duelife', c.dueDateLife);
+  sv('cf-sdob', c.spouseDob); sv('cf-anniversary', c.anniversary);
+  sv('cf-cdate', c.convertedDate); sv('cf-firstann', c.firstAnniversary);
+  sv('cf-rem', c.remarks);
+
+  // Status toggles
+  document.querySelectorAll('#cf-toggles .pt').forEach(function(t){
+    var key=t.dataset.tog;
+    t.classList.toggle('on', !!c[key]);
+  });
+
+  // Products — pre-checked from client's products field (which itself came from the lead originally)
+  document.querySelectorAll('#cf-products .pt').forEach(function(t){
+    t.classList.toggle('on', !!(c.products && c.products.toUpperCase().includes(t.dataset.p)));
+  });
+  var badge=document.getElementById('cf-prod-badge');
+  if(badge) badge.style.display='none';
+
   document.getElementById('ov-client').classList.add('open');
 }
-function saveClient(){
+async function saveClient(){
   var name=caps(document.getElementById('cf-name').value);
   var mob=document.getElementById('cf-mob').value.trim();
   if(!name||!mob){toast('Name and mobile required');return;}
+
+  function gv(id){var el=document.getElementById(id);return el?el.value.trim():'';}
+  function gtog(key){var el=document.querySelector('#cf-toggles [data-tog="'+key+'"]');return el?el.classList.contains('on'):false;}
+
   var prods=[].slice.call(document.querySelectorAll('#cf-products .pt.on')).map(function(t){return t.dataset.p;}).join(', ');
-  var onboard=document.getElementById('cf-cdate').value;
-  var firstAnn='';if(onboard){var fa=new Date(onboard);fa.setFullYear(fa.getFullYear()+1);firstAnn=fa.toISOString().split('T')[0];}
-  var reviewEl=document.getElementById('cf-review');
-  var data={name:name,mobile:mob,email:caps(document.getElementById('cf-email').value),country:caps(document.getElementById('cf-country').value),age:document.getElementById('cf-age').value,gender:caps(document.getElementById('cf-gender')?document.getElementById('cf-gender').value:''),pan:caps(document.getElementById('cf-pan').value),products:prods,remarks:caps(document.getElementById('cf-rem').value),convertedDate:onboard,dob:document.getElementById('cf-dob')?document.getElementById('cf-dob').value:'',spouseDob:document.getElementById('cf-sdob')?document.getElementById('cf-sdob').value:'',anniversary:document.getElementById('cf-anniversary')?document.getElementById('cf-anniversary').value:'',reviewDate:(reviewEl?reviewEl.value:'')||firstAnn,firstAnniversary:firstAnn,appInstalled:document.getElementById('cf-app')?document.getElementById('cf-app').checked:false,broadcastAdded:document.getElementById('cf-broadcast')?document.getElementById('cf-broadcast').checked:false};
-  if(editClient){var idx=clients.findIndex(function(c){return c.mobile===editClient;});if(idx>=0)clients[idx]=Object.assign({},clients[idx],data);toast('Client updated');}
-  else{if(clients.find(function(c){return c.mobile===mob;})){toast('Mobile already exists');return;}data.createdDate=today();clients.push(data);toast('✅ Client added');}
-  saveC();closeOv('ov-client');renderClients();pushClients();
+  var convertedDate=gv('cf-cdate');
+  var firstAnn='';
+  if(convertedDate){var fa=new Date(convertedDate);fa.setFullYear(fa.getFullYear()+1);firstAnn=fa.toISOString().split('T')[0];}
+
+  var data={
+    name:name, mobile:mob,
+    email:caps(gv('cf-email')), country:caps(gv('cf-country')),
+    age:gv('cf-age'), gender:caps(gv('cf-gender')),
+    pan:gv('cf-pan').toUpperCase(), dob:gv('cf-dob'),
+    source:caps(gv('cf-source')), referral:gv('cf-referral'),
+    aum:gv('cf-aum'), potentialAum:gv('cf-potaum'),
+    sipDate:gv('cf-sipdate'), reviewDate:gv('cf-review'),
+    nextFollowUp:gv('cf-nextfu'),
+    healthInsurance:gv('cf-healthins'), dueDateHealth:gv('cf-duehealth'),
+    lifeInsurance:gv('cf-lifeins'), dueDateLife:gv('cf-duelife'),
+    spouseDob:gv('cf-sdob'), anniversary:gv('cf-anniversary'),
+    convertedDate:convertedDate, firstAnniversary:firstAnn,
+    appInstalled:gtog('appInstalled'), broadcastAdded:gtog('broadcastAdded'),
+    welcomeSent:gtog('welcomeSent'), willDone:gtog('willDone'),
+    products:prods, remarks:caps(gv('cf-rem'))
+  };
+
+  if(editClient){
+    var idx=clients.findIndex(function(c){return c.mobile===editClient;});
+    if(idx>=0){
+      clients[idx]=Object.assign({},clients[idx],data,{modifiedDate:now()});
+      saveC();closeOv('ov-client');renderClients();
+      syncClient(clients[idx],'update'); // targeted — one row
+      toast('✅ Client updated');
+    }
+    editClient=null;
+  } else {
+    if(clients.find(function(c){return c.mobile===mob;})){toast('Mobile already exists');return;}
+    data.createdDate=today();
+    data.modifiedDate=now();
+    clients.unshift(data); // newest at top
+    saveC();closeOv('ov-client');renderClients();
+    syncClient(data,'add'); // targeted — appends one row
+    toast('✅ Client added');
+  }
 }
 
 // ═══════════════════════════════════════════════
@@ -1469,15 +1591,10 @@ async function autoConvert(l){
   showConvertedBanner(toTitle(l.name));
   logAnalytics(6,1);
 
-  // Sync to sheet
+  // Sync to sheet — targeted operations only, no full rewrite
   if(hasScript()){
-    _writePending=true;
-    // Push full clients sheet (includes new client)
-    await _doWrite({action:'pushClients', rows:clientsRows()});
-    // Delete lead from LEADS sheet
-    await _doWrite({action:'deleteLead', mobile:l.mobile});
-    _writePending=false;
-    _setSyncDot('ok');
+    await syncClient(c, 'add');           // append only this new client's row
+    await syncLead({mobile:l.mobile}, 'delete'); // delete only this lead's row
   }
 }
 
@@ -1531,7 +1648,13 @@ function deleteLogFromSheet(mob){
   fetch(cfg_.scriptUrl+'?payload='+payload+'&t='+Date.now(),{method:'GET',mode:'no-cors'})
     .catch(function(){});
 }
-function deleteClient(mob){if(!confirm('Delete this client?'))return;clients=clients.filter(function(x){return x.mobile!==mob;});saveC();closeOv('ov-detail');renderClients();toast('Client deleted');pushClients();}
+async function deleteClient(mob){
+  if(!confirm('Delete this client?'))return;
+  var c=clients.find(function(x){return x.mobile===mob;});
+  clients=clients.filter(function(x){return x.mobile!==mob;});
+  saveC();closeOv('ov-detail');renderClients();toast('Client deleted');
+  if(c) syncClient(c,'delete'); // targeted — deletes only this client's row
+}
 
 function retagClientAsLead(mob,status){
   var c=clients.find(function(x){return x.mobile===mob;});if(!c)return;
@@ -1754,21 +1877,8 @@ async function scriptPostChunked(action,rows){
 }
 
 function clientsRows(){
-  var hdr=['Name','Mobile','Email','Country','Source','Referred By','Next Follow up date','Age','Gender','Remarks','Created date','PAN','DOB','Spouse DOB','Anniversary','Converted Date','Review Date','1st Anniversary','App Installed','Broadcast Added','SIP date','Health insurance','Life insurance','WILL','Due date Health','Due date Life','AUM','Potential AUM','Welcome Message send','Products'];
-  return [hdr].concat(clients.map(function(c){
-    return [
-      c.name||'', c.mobile||'', c.email||'', c.country||'',
-      c.source||'', c.referral||'', c.nextFollowUp||'', c.age||'', c.gender||'',
-      c.remarks||'', c.createdDate||'', c.pan||'', c.dob||'',
-      c.spouseDob||'', c.anniversary||'', c.convertedDate||'',
-      c.reviewDate||'', c.firstAnniversary||'',
-      c.appInstalled?'YES':'NO', c.broadcastAdded?'YES':'NO',
-      c.sipDate||'', c.healthInsurance||'', c.lifeInsurance||'',
-      c.willDone?'YES':'NO', c.dueDateHealth||'', c.dueDateLife||'',
-      c.aum||'', c.potentialAum||'', c.welcomeSent?'YES':'NO',
-      c.products||''
-    ];
-  }));
+  // Uses CLIENT_HDRS + clientToRow so column order matches CLIENT_COLS exactly
+  return [CLIENT_HDRS].concat(clients.map(clientToRow));
 }
 
 async function pushClients(){
@@ -1807,19 +1917,7 @@ async function importFromSheet(){
   try{var d=await scriptGet(tab);if(!d.rows||d.rows.length<2){showSyncMsg('No data in tab: '+tab,false);return;}var hdr=d.rows[0].map(function(h){return (h||'').toString().toLowerCase().trim();});var nameI=hdr.findIndex(function(h){return h.includes('name');});var mobI=hdr.findIndex(function(h){return h.includes('mobile')||h.includes('phone');});if(nameI<0||mobI<0){showSyncMsg('No Name/Mobile columns found',false);return;}var added=0,skipped=0;d.rows.slice(1).forEach(function(r){var mob=String(r[mobI]||'').trim();var name=caps(String(r[nameI]||''));if(!mob||!name){skipped++;return;}if(leads.find(function(l){return l.mobile===mob;})){skipped++;return;}leads.push({name:name,mobile:mob,email:'',country:'',status:'PROSPECT',source:'',referral:'',products:'',age:'',gender:'',remarks:'',notes:[],createdDate:today(),modifiedDate:today()});added++;});saveL();pushLeads();renderLeads();renderDash();showSyncMsg('Imported '+added+' leads. Skipped '+skipped+'.',true);}catch(e){showSyncMsg('Import failed: '+e.message,false);}
 }
 function showAppsScriptCode(){
-  var code="const SHEET_ID='1oPQMj6KB39M20RnEoix9PCvSA8RFhVhOV4BG2M4TXlQ';\n"
-    +"const LEADS_TAB='LEADS',CLIENTS_TAB='CLIENTS',LOG_TAB='ACTIVITY_LOG';\n"
-    +"function doGet(e){try{var p=e.parameter||{};if(p.action==='pullLog'&&p.mobile)return pullLog(p.mobile);if(p.payload)return writeData(JSON.parse(decodeURIComponent(p.payload)));return readTab(p.tab||LEADS_TAB);}catch(err){return out({error:err.message});}}\n"
-    +"function doPost(e){try{var d;if(e.postData&&e.postData.contents)d=JSON.parse(e.postData.contents);else if(e.parameter&&e.parameter.payload)d=JSON.parse(decodeURIComponent(e.parameter.payload));return writeData(d);}catch(err){return out({error:err.message});}}\n"
-    +"function readTab(t){var ss=SpreadsheetApp.openById(SHEET_ID);var sh=ss.getSheetByName(t);if(!sh)return out({rows:[],error:'Tab not found:'+t});var lr=sh.getLastRow(),lc=sh.getLastColumn();if(lr===0||lc===0)return out({rows:[]});var raw=sh.getRange(1,1,lr,lc).getValues();var cleaned=raw.map(function(row){return row.map(function(c){if(c===null||c===undefined||c==='')return'';if(c instanceof Date){var y=c.getFullYear();var m=String(c.getMonth()+1).padStart(2,'0');var d=String(c.getDate()).padStart(2,'0');return y+'-'+m+'-'+d;}if(typeof c==='number')return String(c);return String(c).trim();});});return out({rows:cleaned});}\n"
-    +"function pullLog(mobile){var ss=SpreadsheetApp.openById(SHEET_ID);var sh=ss.getSheetByName(LOG_TAB);if(!sh||sh.getLastRow()<=1)return out({rows:[]});var lr=sh.getLastRow(),lc=sh.getLastColumn();var raw=sh.getRange(2,1,lr-1,lc).getValues();var filtered=raw.filter(function(r){return String(r[2]||'').trim()===String(mobile).trim();});return out({rows:filtered});}\n"
-    +"function writeData(data){var ss=SpreadsheetApp.openById(SHEET_ID);\n"
-    +"if(data.action==='appendLog'){var logSh=ss.getSheetByName(LOG_TAB)||ss.insertSheet(LOG_TAB);if(logSh.getLastRow()===0){var hdr=[['Timestamp','Name','Mobile','Type','Activity','Notes','Raw ID']];var hr=logSh.getRange(1,1,1,7);hr.setValues(hdr);hr.setFontWeight('bold').setBackground('#C0392B').setFontColor('#FFFFFF');logSh.setFrozenRows(1);}logSh.appendRow(data.row||[]);var lr3=logSh.getLastRow();logSh.getRange(lr3,1).setNumberFormat('@');logSh.getRange(lr3,7).setNumberFormat('@');return out({success:true});}\n"
-    +"if(data.action==='deleteLogById'){var lsh=ss.getSheetByName(LOG_TAB);if(lsh&&lsh.getLastRow()>1){var rid=String(data.rowId||'').trim();var dmob=String(data.mobile||'').trim();var dts=String(data.ts||'').trim();var dact=String(data.activity||'').trim();var n=lsh.getLastRow();var rng=lsh.getRange(2,1,n-1,7).getValues();for(var rj=0;rj<rng.length;rj++){var row=rng[rj];var gId=String(row[6]||'').trim();var rTs=String(row[0]||'').trim();var rMob=String(row[2]||'').trim();var rAct=String(row[4]||'').trim();var matchById=(rid!==''&&gId===rid);var matchByTs=(rid===''||gId==='')&&dts!==''&&rMob===dmob&&rTs===dts&&rAct===dact;if(matchById||matchByTs){lsh.deleteRow(rj+2);break;}}}return out({success:true,deleted:true});}if(data.action==='deleteLog'){var lsh2=ss.getSheetByName(LOG_TAB);if(lsh2&&lsh2.getLastRow()>1){var mob3=String(data.mobile||'').trim();var n2=lsh2.getLastRow();for(var rk=n2;rk>=2;rk--){if(String(lsh2.getRange(rk,3).getValue()||'').trim()===mob3){lsh2.deleteRow(rk);}}}return out({success:true});}\n"
- +"if(data.action===\'updateAnalytics\'){var aS=ss.getSheetByName(\'ANALYTICS\')||ss.insertSheet(\'ANALYTICS\');if(aS.getLastRow()===0){aS.getRange(1,1,1,7).setValues([[\'Date\',\'Lead Entries\',\'Prospects\',\'Contacted\',\'In Progress\',\'Converted\',\'Dropped\']]).setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');aS.setFrozenRows(1);}var ad=data.date,ac=parseInt(data.col)||2,adel=parseInt(data.delta)||1,alr=aS.getLastRow(),af=false;if(alr>1){var adts=aS.getRange(2,1,alr-1,1).getValues();for(var i=0;i<adts.length;i++){if(String(adts[i][0]).trim()===ad){var acel=aS.getRange(i+2,ac);acel.setValue(Math.max(0,(parseInt(acel.getValue())||0)+adel));af=true;break;}}}if(!af&&adel>0){var anr=[ad,0,0,0,0,0,0];anr[ac-1]=adel;aS.appendRow(anr);}return out({success:true});}\n"
-       +"if(data.action==='appendLeads'||data.action==='appendClients'){var atab=data.action==='appendLeads'?LEADS_TAB:CLIENTS_TAB;var ash=ss.getSheetByName(atab);if(ash&&data.rows&&data.rows.length){data.rows.forEach(function(rw){ash.appendRow(rw);});var alr=ash.getLastRow();ash.getRange(2,1,alr-1,data.rows[0].length).setNumberFormat('@');}return out({success:true});}if(data.action==='appendLead'){var aSh=ss.getSheetByName(LEADS_TAB)||ss.insertSheet(LEADS_TAB);if(aSh.getLastRow()===0){var lHdr=[['Name','Mobile','Email','Age','Country','Status','Source','Referred By','Estimated AUM/SIP','Next Follow-up','Investment Products','Mode of Contact','Remarks','Modified Date','Created Date']];var lHr=aSh.getRange(1,1,1,15);lHr.setValues(lHdr);lHr.setFontWeight('bold').setBackground('#C0392B').setFontColor('#FFFFFF');aSh.setFrozenRows(1);}var aRow=data.row||[];aSh.appendRow(aRow);var aLr=aSh.getLastRow();aSh.getRange(aLr,1,1,aRow.length).setNumberFormat('@');return out({success:true,action:'appendLead'});}if(data.action==='updateLead'){var uSh=ss.getSheetByName(LEADS_TAB);if(uSh&&uSh.getLastRow()>1){var uMob=String(data.mobile||'').trim();var uRow=data.row||[];var uN=uSh.getLastRow();var uVals=uSh.getRange(2,2,uN-1,1).getValues();for(var ui=0;ui<uVals.length;ui++){if(String(uVals[ui][0]||'').trim()===uMob){var uRng=uSh.getRange(ui+2,1,1,uRow.length);uRng.setValues([uRow]);uRng.setNumberFormat('@');break;}}}return out({success:true,action:'updateLead'});}if(data.action==='deleteLead'){var dSh=ss.getSheetByName(LEADS_TAB);if(dSh&&dSh.getLastRow()>1){var dMob=String(data.mobile||'').trim();var dN=dSh.getLastRow();var dVals=dSh.getRange(2,2,dN-1,1).getValues();for(var di=dN-1;di>=0;di--){if(String(dVals[di][0]||'').trim()===dMob){dSh.deleteRow(di+2);break;}}}return out({success:true,action:'deleteLead'});}var tab=data.action==='pushLeads'?LEADS_TAB:data.action==='pushClients'?CLIENTS_TAB:null;if(!tab)return out({error:'Bad action:'+data.action});var rows=data.rows;if(!rows||rows.length===0)return out({error:'No rows'});var sh=ss.getSheetByName(tab)||ss.insertSheet(tab);sh.clearContents();var r=sh.getRange(1,1,rows.length,rows[0].length);r.setNumberFormat('@');r.setValues(rows);var h=sh.getRange(1,1,1,rows[0].length);h.setFontWeight('bold').setBackground('#C0392B').setFontColor('#FFFFFF');sh.setFrozenRows(1);return out({success:true,written:rows.length-1});}\n"
-    +"function out(o){return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);}\n"
-    +"function testConnection(){Logger.log('OK: '+SpreadsheetApp.openById(SHEET_ID).getName());}";
+  var code='const SHEET_ID=\'1oPQMj6KB39M20RnEoix9PCvSA8RFhVhOV4BG2M4TXlQ\';\nconst LEADS_TAB=\'LEADS\',CLIENTS_TAB=\'CLIENTS\',LOG_TAB=\'ACTIVITY_LOG\';\nfunction doGet(e){try{var p=e.parameter||{};if(p.action===\'pullLog\'&&p.mobile)return pullLog(p.mobile);if(p.payload)return writeData(JSON.parse(decodeURIComponent(p.payload)));return readTab(p.tab||LEADS_TAB);}catch(err){return out({error:err.message});}}\nfunction doPost(e){try{var d;if(e.postData&&e.postData.contents)d=JSON.parse(e.postData.contents);else if(e.parameter&&e.parameter.payload)d=JSON.parse(decodeURIComponent(e.parameter.payload));return writeData(d);}catch(err){return out({error:err.message});}}\nfunction readTab(t){var ss=SpreadsheetApp.openById(SHEET_ID);var sh=ss.getSheetByName(t);if(!sh)return out({rows:[],error:\'Tab not found:\'+t});var lr=sh.getLastRow(),lc=sh.getLastColumn();if(lr===0||lc===0)return out({rows:[]});var raw=sh.getRange(1,1,lr,lc).getValues();var cleaned=raw.map(function(row){return row.map(function(c){if(c===null||c===undefined||c===\'\')return\'\';if(c instanceof Date){var y=c.getFullYear();var m=String(c.getMonth()+1).padStart(2,\'0\');var d=String(c.getDate()).padStart(2,\'0\');return y+\'-\'+m+\'-\'+d;}if(typeof c===\'number\')return String(c);return String(c).trim();});});return out({rows:cleaned});}\nfunction pullLog(mobile){var ss=SpreadsheetApp.openById(SHEET_ID);var sh=ss.getSheetByName(LOG_TAB);if(!sh||sh.getLastRow()<=1)return out({rows:[]});var lr=sh.getLastRow(),lc=sh.getLastColumn();var raw=sh.getRange(2,1,lr-1,lc).getValues();var filtered=raw.filter(function(r){return String(r[2]||\'\').trim()===String(mobile).trim();});return out({rows:filtered});}\nfunction writeData(data){var ss=SpreadsheetApp.openById(SHEET_ID);\nif(data.action===\'appendLog\'){var logSh=ss.getSheetByName(LOG_TAB)||ss.insertSheet(LOG_TAB);if(logSh.getLastRow()===0){var hdr=[[\'Timestamp\',\'Name\',\'Mobile\',\'Type\',\'Activity\',\'Notes\',\'Raw ID\']];var hr=logSh.getRange(1,1,1,7);hr.setValues(hdr);hr.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');logSh.setFrozenRows(1);}logSh.appendRow(data.row||[]);var lr3=logSh.getLastRow();logSh.getRange(lr3,1).setNumberFormat(\'@\');logSh.getRange(lr3,7).setNumberFormat(\'@\');return out({success:true});}\nif(data.action===\'deleteLogById\'){var lsh=ss.getSheetByName(LOG_TAB);if(lsh&&lsh.getLastRow()>1){var rid=String(data.rowId||\'\').trim();var dmob=String(data.mobile||\'\').trim();var dts=String(data.ts||\'\').trim();var dact=String(data.activity||\'\').trim();var n=lsh.getLastRow();var rng=lsh.getRange(2,1,n-1,7).getValues();for(var rj=0;rj<rng.length;rj++){var row=rng[rj];var gId=String(row[6]||\'\').trim();var rTs=String(row[0]||\'\').trim();var rMob=String(row[2]||\'\').trim();var rAct=String(row[4]||\'\').trim();var matchById=(rid!==\'\'&&gId===rid);var matchByTs=(rid===\'\'||gId===\'\')&&dts!==\'\'&&rMob===dmob&&rTs===dts&&rAct===dact;if(matchById||matchByTs){lsh.deleteRow(rj+2);break;}}}return out({success:true,deleted:true});}if(data.action===\'deleteLog\'){var lsh2=ss.getSheetByName(LOG_TAB);if(lsh2&&lsh2.getLastRow()>1){var mob3=String(data.mobile||\'\').trim();var n2=lsh2.getLastRow();for(var rk=n2;rk>=2;rk--){if(String(lsh2.getRange(rk,3).getValue()||\'\').trim()===mob3){lsh2.deleteRow(rk);}}}return out({success:true});}\nif(data.action===\'updateAnalytics\'){var aS=ss.getSheetByName(\'ANALYTICS\')||ss.insertSheet(\'ANALYTICS\');if(aS.getLastRow()===0){aS.getRange(1,1,1,7).setValues([[\'Date\',\'Lead Entries\',\'Prospects\',\'Contacted\',\'In Progress\',\'Converted\',\'Dropped\']]).setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');aS.setFrozenRows(1);}var ad=data.date,ac=parseInt(data.col)||2,adel=parseInt(data.delta)||1,alr=aS.getLastRow(),af=false;if(alr>1){var adts=aS.getRange(2,1,alr-1,1).getValues();for(var i=0;i<adts.length;i++){if(String(adts[i][0]).trim()===ad){var acel=aS.getRange(i+2,ac);acel.setValue(Math.max(0,(parseInt(acel.getValue())||0)+adel));af=true;break;}}}if(!af&&adel>0){var anr=[ad,0,0,0,0,0,0];anr[ac-1]=adel;aS.appendRow(anr);}return out({success:true});}\nif(data.action===\'appendLeads\'||data.action===\'appendClients\'){var atab=data.action===\'appendLeads\'?LEADS_TAB:CLIENTS_TAB;var ash=ss.getSheetByName(atab);if(ash&&data.rows&&data.rows.length){data.rows.forEach(function(rw){ash.appendRow(rw);});var alr=ash.getLastRow();ash.getRange(2,1,alr-1,data.rows[0].length).setNumberFormat(\'@\');}return out({success:true});}if(data.action===\'appendLead\'){var aSh=ss.getSheetByName(LEADS_TAB)||ss.insertSheet(LEADS_TAB);if(aSh.getLastRow()===0){var lHdr=[[\'Name\',\'Mobile\',\'Email\',\'Age\',\'Country\',\'Status\',\'Source\',\'Referred By\',\'Estimated AUM/SIP\',\'Next Follow-up\',\'Investment Products\',\'Mode of Contact\',\'Remarks\',\'Modified Date\',\'Created Date\']];var lHr=aSh.getRange(1,1,1,15);lHr.setValues(lHdr);lHr.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');aSh.setFrozenRows(1);}var aRow=data.row||[];aSh.appendRow(aRow);var aLr=aSh.getLastRow();aSh.getRange(aLr,1,1,aRow.length).setNumberFormat(\'@\');return out({success:true,action:\'appendLead\'});}if(data.action===\'updateLead\'){var uSh=ss.getSheetByName(LEADS_TAB);if(uSh&&uSh.getLastRow()>1){var uMob=String(data.mobile||\'\').trim();var uRow=data.row||[];var uN=uSh.getLastRow();var uVals=uSh.getRange(2,2,uN-1,1).getValues();for(var ui=0;ui<uVals.length;ui++){if(String(uVals[ui][0]||\'\').trim()===uMob){var uRng=uSh.getRange(ui+2,1,1,uRow.length);uRng.setValues([uRow]);uRng.setNumberFormat(\'@\');break;}}}return out({success:true,action:\'updateLead\'});}if(data.action===\'deleteLead\'){var dSh=ss.getSheetByName(LEADS_TAB);if(dSh&&dSh.getLastRow()>1){var dMob=String(data.mobile||\'\').trim();var dN=dSh.getLastRow();var dVals=dSh.getRange(2,2,dN-1,1).getValues();for(var di=dN-1;di>=0;di--){if(String(dVals[di][0]||\'\').trim()===dMob){dSh.deleteRow(di+2);break;}}}return out({success:true,action:\'deleteLead\'});}\n\n  // ── Append ONE client row (new client) ──\n  if(data.action===\'appendClient\'){\n    var aShC=ss.getSheetByName(CLIENTS_TAB)||ss.insertSheet(CLIENTS_TAB);\n    if(aShC.getLastRow()===0){\n      var cHdr=[[\'Name\',\'Mobile\',\'Email\',\'Country\',\'Source\',\'Referred By\',\'Next Follow up date\',\n        \'Age\',\'Gender\',\'Remarks\',\'Created date\',\'PAN\',\'DOB\',\'Spouse DOB\',\'Anniversary\',\n        \'Converted Date\',\'Review Date\',\'1st Anniversary\',\'App Installed\',\'Broadcast Added\',\n        \'SIP date\',\'Health insurance\',\'Life insurance\',\'WILL\',\'Due date Health\',\'Due date Life\',\n        \'AUM\',\'Potential AUM\',\'Welcome Message send\',\'Products\']];\n      var cHr=aShC.getRange(1,1,1,30);\n      cHr.setValues(cHdr);cHr.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');\n      aShC.setFrozenRows(1);\n    }\n    var cRow=data.row||[];\n    aShC.appendRow(cRow);\n    var cLr=aShC.getLastRow();\n    aShC.getRange(cLr,1,1,cRow.length).setNumberFormat(\'@\');\n    return out({success:true,action:\'appendClient\'});\n  }\n\n  // ── Update ONE client row (find by mobile col B, replace in place) ──\n  if(data.action===\'updateClient\'){\n    var uShC=ss.getSheetByName(CLIENTS_TAB);\n    if(uShC&&uShC.getLastRow()>1){\n      var uMobC=String(data.mobile||\'\').trim();\n      var uRowC=data.row||[];\n      var uNC=uShC.getLastRow();\n      var uValsC=uShC.getRange(2,2,uNC-1,1).getValues();\n      for(var uic=0;uic<uValsC.length;uic++){\n        if(String(uValsC[uic][0]||\'\').trim()===uMobC){\n          var uRngC=uShC.getRange(uic+2,1,1,uRowC.length);\n          uRngC.setValues([uRowC]);\n          uRngC.setNumberFormat(\'@\');\n          break;\n        }\n      }\n    }\n    return out({success:true,action:\'updateClient\'});\n  }\n\n  // ── Delete ONE client row (find by mobile col B) ──\n  if(data.action===\'deleteClient\'){\n    var dShC=ss.getSheetByName(CLIENTS_TAB);\n    if(dShC&&dShC.getLastRow()>1){\n      var dMobC=String(data.mobile||\'\').trim();\n      var dNC=dShC.getLastRow();\n      var dValsC=dShC.getRange(2,2,dNC-1,1).getValues();\n      for(var dic=dNC-1;dic>=0;dic--){\n        if(String(dValsC[dic][0]||\'\').trim()===dMobC){dShC.deleteRow(dic+2);break;}\n      }\n    }\n    return out({success:true,action:\'deleteClient\'});\n  }\nvar tab=data.action===\'pushLeads\'?LEADS_TAB:data.action===\'pushClients\'?CLIENTS_TAB:null;if(!tab)return out({error:\'Bad action:\'+data.action});var rows=data.rows;if(!rows||rows.length===0)return out({error:\'No rows\'});var sh=ss.getSheetByName(tab)||ss.insertSheet(tab);sh.clearContents();var r=sh.getRange(1,1,rows.length,rows[0].length);r.setNumberFormat(\'@\');r.setValues(rows);var h=sh.getRange(1,1,1,rows[0].length);h.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');sh.setFrozenRows(1);return out({success:true,written:rows.length-1});}\nfunction out(o){return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);}\nfunction testConnection(){Logger.log(\'OK: \'+SpreadsheetApp.openById(SHEET_ID).getName());}'
   var ov=document.createElement('div');
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:flex-end;justify-content:center;padding:10px';
   ov.innerHTML='<div style="background:var(--s1);border-radius:12px;width:100%;max-width:540px;max-height:90vh;overflow-y:auto;padding:16px">'
@@ -1948,6 +2046,7 @@ function nav(name,btn){
     var sb2=document.getElementById('shared-search-bar');
     if(sb2){sb2.style.display='block';var si2=document.getElementById('shared-search');if(si2){si2.value='';si2.placeholder='Search clients…';}}
     renderClients(); setTimeout(addSearchClose,100);
+    setTimeout(checkStaleAumPopup, 400); // potential-AUM stale contact alert
   }
   if(name==='settings'){
     var sb5=document.getElementById('shared-search-bar'); if(sb5) sb5.style.display='none';
@@ -4386,33 +4485,29 @@ function checkURLParams(){
 }
 
 
-// Bulk WhatsApp for clients
-function bulkClientWhatsApp(){
-  if(selectedClients.size===0){toast('Select clients first');return;}
-  var msg=prompt('Enter message:','Hi');
-  if(!msg) return;
-  var enc=encodeURIComponent(msg);
-  var list=[];
-  clients.forEach(function(c){
-    if(selectedClients.has(c.mobile)){
-      var digits=(c.mobile||'').replace(/\D/g,'');
-      list.push(digits.length===10?'91'+digits:digits);
-    }
-  });
-  var idx=0;
-  function next(){
-    if(idx>=list.length){toast('Done!');return;}
-    window.open('https://wa.me/'+list[idx]+'?text='+enc,'_blank');
-    idx++;setTimeout(next,2000);
-  }
-  next();
-}
+// bulkClientWhatsApp removed — bulk WA sending no longer offered for clients
 
 
 document.getElementById('ov-detail').addEventListener('click',function(e){
   if(e.target.closest('.cd-wa')){var wn=e.target.closest('.cd-wa').dataset.wa;if(wn)window.open('https://wa.me/'+wn,'_blank');}
   if(e.target.closest('.cd-call')){var tel=e.target.closest('.cd-call').dataset.tel;if(tel)window.open('tel:'+tel,'_blank');}
-  if(e.target.closest('.cd-meet')){var mm=e.target.closest('.cd-meet').dataset.meet;if(mm)logActivity(mm,'client','Meeting scheduled','');}
+  if(e.target.closest('.cd-meet')){
+    var mm=e.target.closest('.cd-meet').dataset.meet;
+    if(mm){
+      window.open('https://meet.google.com/new','_blank'); // opens Google Meet — creates an instant meeting
+      logActivity(mm,'client','Google Meet started','');
+    }
+  }
+  if(e.target.closest('.cd-mail')){
+    var mailBtn=e.target.closest('.cd-mail');
+    var mailTo=mailBtn.dataset.mail;
+    var mailName=mailBtn.dataset.mailname||'';
+    if(mailTo){
+      window.open('mailto:'+mailTo+'?subject='+encodeURIComponent('Wealth Matrix Finserv')+'&body='+encodeURIComponent('Hi '+mailName+',\n\n'),'_blank');
+    } else {
+      toast('No email address on file for this client');
+    }
+  }
   if(e.target.dataset.waq) sendWAQuick(e.target.dataset.wanum,e.target.dataset.waq,e.target.dataset.mob);
   if(e.target.dataset.revert) revertClientToLead(e.target.dataset.revert);
   if(e.target.dataset.editclient){editClientOpen(e.target.dataset.editclient);closeOv('ov-detail');}
@@ -4438,12 +4533,7 @@ async function updateClientField(mob, field, value){
   c.modifiedDate=now();
   saveC();
   renderClients();
-  if(!hasScript()) return;
-  _writePending=true;
-  _setSyncDot('syncing');
-  await _doWrite({action:'pushClients', rows:clientsRows()});
-  _writePending=false;
-  _setSyncDot('ok');
+  syncClient(c, 'update'); // targeted — updates only this client's row
   toast('✅ '+field+' updated in sheet');
 }
 
@@ -4474,6 +4564,13 @@ function sendWAQuick(waNum, type, mob){
   } else if(type==='sip'){
     msg='Hi'
       +'\n\nYour SIP is due coming on '+sipDate+'th, please ensure enough funds are available in your account linked with your investments.'
+      +'\n\nRegards'
+      +'\nArjun K T M';
+  } else if(type==='chg'){
+    msg='Hi'
+      +'\n\nYou can change the mobile number and mail id of all your mutual fund folios using the following links'
+      +'\n\nCAMS RTA- https://www.camsonline.com/Investors/Service-requests/GoGreen/Update-email'
+      +'\n\nKFintech RTA- https://mfs.kfintech.com/investor/Transact/ChangeFolioEmail'
       +'\n\nRegards'
       +'\nArjun K T M';
   }
@@ -4551,6 +4648,182 @@ function logAnalytics(col, delta){
   // Push to sheet
   sheetWrite({action:'updateAnalytics', date:todayStr, col:col+1, delta:delta||1});
 }
+
+
+// ── CLIENT_COLS: single source of truth for CLIENTS sheet column order ──
+var CLIENT_COLS = ['name','mobile','email','country','source','referral','nextFollowUp',
+  'age','gender','remarks','createdDate','pan','dob','spouseDob','anniversary',
+  'convertedDate','reviewDate','firstAnniversary','appInstalled','broadcastAdded',
+  'sipDate','healthInsurance','lifeInsurance','willDone','dueDateHealth','dueDateLife',
+  'aum','potentialAum','welcomeSent','products'];
+var CLIENT_HDRS = ['Name','Mobile','Email','Country','Source','Referred By','Next Follow up date',
+  'Age','Gender','Remarks','Created date','PAN','DOB','Spouse DOB','Anniversary',
+  'Converted Date','Review Date','1st Anniversary','App Installed','Broadcast Added',
+  'SIP date','Health insurance','Life insurance','WILL','Due date Health','Due date Life',
+  'AUM','Potential AUM','Welcome Message send','Products'];
+
+// Convert a client object → sheet row using CLIENT_COLS order
+function clientToRow(c){
+  return CLIENT_COLS.map(function(k){
+    if(k==='appInstalled')   return c.appInstalled  ? 'YES':'NO';
+    if(k==='broadcastAdded') return c.broadcastAdded? 'YES':'NO';
+    if(k==='willDone')       return c.willDone      ? 'YES':'NO';
+    if(k==='welcomeSent')    return c.welcomeSent   ? 'YES':'NO';
+    return c[k]||'';
+  });
+}
+
+
+// ── syncClient: targeted row sync for ONE client — mirrors syncLead architecture ──
+// add → appendClient | update → updateClient | delete → deleteClient
+// Falls back to full pushClients only if the targeted action isn't supported by Apps Script
+async function syncClient(client, action){
+  if(!hasScript()){
+    toast('⚠️ No Apps Script URL — check Settings');
+    return;
+  }
+  _writePending = true;
+  _setSyncDot('syncing');
+  var ok = false;
+
+  try{
+    if(action==='add'){
+      var res = await _doWrite({action:'appendClient', row:clientToRow(client)});
+      if(res && res.success){ ok = true; }
+      else if(res && res.error && res.error.indexOf('Bad action')>=0){
+        console.warn('appendClient not supported, falling back to pushClients');
+        var res2 = await _doWrite({action:'pushClients', rows:clientsRows()});
+        ok = !!(res2 && res2.success);
+      }
+    } else if(action==='update'){
+      var res3 = await _doWrite({action:'updateClient', mobile:client.mobile, row:clientToRow(client)});
+      if(res3 && res3.success){ ok = true; }
+      else if(res3 && res3.error && res3.error.indexOf('Bad action')>=0){
+        console.warn('updateClient not supported, falling back to pushClients');
+        var res4 = await _doWrite({action:'pushClients', rows:clientsRows()});
+        ok = !!(res4 && res4.success);
+      }
+    } else if(action==='delete'){
+      var res5 = await _doWrite({action:'deleteClient', mobile:client.mobile});
+      if(res5 && res5.success){ ok = true; }
+      else {
+        var res6 = await _doWrite({action:'pushClients', rows:clientsRows()});
+        ok = !!(res6 && res6.success);
+      }
+    }
+  } catch(e){
+    console.warn('syncClient error:', e.message);
+    ok = false;
+  }
+
+  _writePending = false;
+
+  if(!ok){
+    var payload = action==='add'
+      ? {action:'appendClient', row:clientToRow(client)}
+      : action==='update'
+      ? {action:'updateClient', mobile:client.mobile, row:clientToRow(client)}
+      : {action:'deleteClient', mobile:client.mobile};
+    _wq.push({payload:payload, ts:Date.now(), attempts:0});
+    _saveQ();
+    _setSyncDot('pending');
+    toast('⚠️ Saved locally — will sync when connection ready');
+  } else {
+    _setSyncDot('ok');
+  }
+}
+
+
+// ── Toggle client sort between AUM and Potential AUM ──
+function setClientSort(field){
+  clientSortBy = field;
+  var aumBtn=document.getElementById('sort-aum-btn');
+  var potBtn=document.getElementById('sort-potaum-btn');
+  if(aumBtn && potBtn){
+    if(field==='aum'){
+      aumBtn.style.background='var(--accent)'; aumBtn.style.color='#fff'; aumBtn.style.borderColor='var(--accent)';
+      potBtn.style.background='transparent'; potBtn.style.color='var(--t2)'; potBtn.style.borderColor='var(--border)';
+    } else {
+      potBtn.style.background='var(--accent)'; potBtn.style.color='#fff'; potBtn.style.borderColor='var(--accent)';
+      aumBtn.style.background='transparent'; aumBtn.style.color='var(--t2)'; aumBtn.style.borderColor='var(--border)';
+    }
+  }
+  renderClients();
+}
+
+
+// ── Find clients with Potential AUM who haven't been contacted in 14+ days ──
+// "Last contacted" = most recent activity log entry date, falls back to convertedDate
+function getStaleAumClients(){
+  var cutoffDays=14;
+  var result=[];
+  clients.forEach(function(c){
+    var potAum=parseFloat((c.potentialAum||'').toString().replace(/[^0-9.]/g,''))||0;
+    if(potAum<=0) return; // no potential AUM on file
+    var log=getActivity(c.mobile);
+    var lastDateStr = log.length ? log[log.length-1].ts : (c.convertedDate||c.createdDate||'');
+    if(!lastDateStr) return;
+    var lastDate=new Date(lastDateStr);
+    if(isNaN(lastDate)) return;
+    var days=Math.floor((new Date()-lastDate)/86400000);
+    if(days>=cutoffDays){
+      result.push({client:c, days:days, potAum:c.potentialAum});
+    }
+  });
+  return result.sort(function(a,b){return b.days-a.days;});
+}
+
+// ── Show a one-time popup per day if stale-potential-AUM clients exist ──
+function checkStaleAumPopup(){
+  var stale=getStaleAumClients();
+  if(!stale.length) return;
+  var shownKey='wm_staleaum_'+today();
+  if(localStorage.getItem(shownKey)) return; // already shown today
+  localStorage.setItem(shownKey,'1');
+
+  var topClient=stale[0];
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:99999;display:flex;align-items:center;justify-content:center;padding:24px';
+  ov.innerHTML='<div style="background:var(--s1);border-radius:14px;width:100%;max-width:340px;overflow:hidden;border:1px solid var(--accent)">'
+    +'<div style="padding:18px 18px 14px;text-align:center">'
+    +'<div style="font-size:32px;margin-bottom:8px">💰</div>'
+    +'<div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:6px">Potential Business Alert</div>'
+    +'<div style="font-size:12px;color:var(--t2);line-height:1.5"><b>'+toTitle(topClient.client.name)+'</b> has potential business of <b style="color:var(--accent)">'+(topClient.potAum||'—')+'</b>, not contacted for <b>'+topClient.days+' days</b>.'
+    +(stale.length>1?'<br><br>+'+(stale.length-1)+' more client'+(stale.length>2?'s':'')+' need attention.':'')+'</div>'
+    +'</div>'
+    +'<div style="display:flex;border-top:1px solid var(--border)">'
+    +'<button id="_staleClose" style="flex:1;padding:13px;border:none;background:none;color:var(--t2);cursor:pointer;border-right:1px solid var(--border);font-size:12px">Dismiss</button>'
+    +'<button id="_staleView" style="flex:1;padding:13px;border:none;background:var(--accent);color:#fff;font-weight:700;cursor:pointer;font-size:12px">View All ('+stale.length+')</button>'
+    +'</div></div>';
+  document.body.appendChild(ov);
+  document.getElementById('_staleClose').onclick=function(){ov.remove();};
+  document.getElementById('_staleView').onclick=function(){ov.remove();showStaleAumList();};
+}
+
+// ── Full list popup of stale potential-AUM clients ──
+function showStaleAumList(){
+  var stale=getStaleAumClients();
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:99999;display:flex;align-items:flex-end;justify-content:center';
+  var rows=stale.map(function(item){
+    var c=item.client;
+    return '<div onclick="closeStaleList();openDetail(\''+c.mobile+'\',\'client\')" style="padding:11px 14px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;justify-content:space-between;align-items:center">'
+      +'<div><div style="font-size:13px;font-weight:700;color:var(--text)">'+toTitle(c.name)+'</div>'
+      +'<div style="font-size:10px;color:var(--t3);margin-top:2px">'+item.days+' days since contact</div></div>'
+      +'<div style="font-size:12px;font-weight:700;color:var(--accent)">'+(item.potAum||'—')+'</div>'
+      +'</div>';
+  }).join('');
+  ov.innerHTML='<div style="background:var(--s1);border-radius:14px 14px 0 0;width:100%;max-width:420px;max-height:75vh;display:flex;flex-direction:column">'
+    +'<div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">'
+    +'<span style="font-size:14px;font-weight:800;color:var(--text)">💰 Potential AUM — Stale Contacts</span>'
+    +'<span id="_staleListClose" style="font-size:18px;color:var(--t2);cursor:pointer">✕</span></div>'
+    +'<div style="overflow-y:auto;flex:1">'+(rows||'<div style="padding:20px;text-align:center;color:var(--t3);font-size:12px">None found</div>')+'</div>'
+    +'</div>';
+  document.body.appendChild(ov);
+  ov.id='_staleListOv';
+  document.getElementById('_staleListClose').onclick=closeStaleList;
+}
+function closeStaleList(){var el=document.getElementById('_staleListOv');if(el)el.remove();}
 
 // Load offline queue and flush any writes that failed last session
 _loadQ();
