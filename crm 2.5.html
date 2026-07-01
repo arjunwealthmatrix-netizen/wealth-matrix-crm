@@ -303,7 +303,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 </div>
 
 <!-- DASHBOARD -->
-<div class="page active" id="pg-dash">
+<div class="page" id="pg-dash">
   <div class="ph">
     <div style="display:flex;align-items:center;gap:8px">
       <div style="width:32px;height:32px;background:var(--accent);border-radius:4px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(192,57,43,.5)"><span style="font-size:12px;font-weight:900;color:#fff;letter-spacing:.5px">WM</span></div>
@@ -315,39 +315,38 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       <span style="font-size:9px;font-weight:700;color:var(--accent);background:var(--accent2);padding:2px 7px;border-radius:999px;border:1px solid var(--accent)">v2.5</span>
     </div>
   </div>
+
+  <!-- Count tiles -->
   <div style="display:flex;gap:10px;padding:0 14px 12px">
     <div style="flex:1;background:var(--s1);border:2px solid var(--accent);border-radius:var(--r);padding:14px 12px;text-align:center">
       <div id="dash-total-leads" onclick="nav('leads',document.querySelector('.nb'))" style="font-size:36px;font-weight:900;color:var(--accent);line-height:1;cursor:pointer">—</div>
-      <div style="font-size:11px;color:var(--t2);margin-top:5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">Total Leads</div><div id="dash-prospect-count" style="font-size:10px;color:#f39c12;margin-top:3px;font-weight:700"></div>
+      <div style="font-size:11px;color:var(--t2);margin-top:5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">Active Leads</div>
+      <div id="dash-prospect-count" style="font-size:10px;color:#f39c12;margin-top:3px;font-weight:700"></div>
     </div>
     <div style="flex:1;background:var(--s1);border:2px solid #4FC3F7;border-radius:var(--r);padding:14px 12px;text-align:center">
       <div id="dash-total-clients" style="font-size:36px;font-weight:900;color:#4FC3F7;line-height:1">—</div>
       <div style="font-size:11px;color:var(--t2);margin-top:5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">Clients</div>
     </div>
   </div>
-  <div style="padding:3px 14px 8px;display:flex;align-items:center;gap:6px">
-    <div id="top-sync-dot" class="sync-dot idle" style="width:7px;height:7px;border-radius:50%;background:#555;flex-shrink:0"></div>
-    <div id="top-sync-txt" style="font-size:11px;color:var(--t3)">Loading…</div>
+
+  <!-- Follow-ups -->
+  <div class="sec">
+    <div class="lbl" style="color:var(--accent)">📋 Follow-ups</div>
+    <div id="dash-alert"></div>
   </div>
-  <div id="sync-status-bar" style="margin:0 12px 8px;padding:6px 10px;border-radius:var(--r2);font-size:10px;font-weight:600;display:flex;align-items:center;justify-content:space-between;gap:6px;background:var(--s1);border:1px solid var(--border)">
-    <div style="display:flex;align-items:center;gap:6px">
-      <div class="sync-dot idle" id="top-sync-dot" style="width:7px;height:7px"></div>
-      <span id="top-sync-txt" style="color:var(--t3)">Loading…</span>
-    </div>
-    <div id="last-sync-time" style="font-size:10px;color:var(--t3);font-weight:500"></div>
-  </div>
-  <div class="sec" id="dash-alert"></div>
-  <div class="sec" id="goal-section-wrap"></div>
+
+  <!-- Reminders -->
   <div class="sec" id="dash-reminders-wrap">
     <div class="lbl" style="color:var(--accent)">🔔 Reminders</div>
     <div id="dash-reminders"><div style="font-size:11px;color:var(--t3);text-align:center;padding:8px">Loading...</div></div>
   </div>
-  <div class="sec"><div class="lbl" style="color:var(--accent)">⭐ North Star Matrix</div><div class="card ns-wrap"><table class="ns-table" id="ns-table"></table></div></div>
-  <div class="sec"><div class="lbl">Analytics</div><div class="ana-grid" id="analytics"></div></div>
 
-
-
-<div class="card" style="padding:12px" id="country-chart"></div></div>
+  <!-- North Star Matrix -->
+  <div class="sec">
+    <div class="lbl" style="color:var(--accent)">⭐ North Star Matrix</div>
+    <div class="card ns-wrap"><table class="ns-table" id="ns-table"></table></div>
+  </div>
+</div>
 
   
 
@@ -436,6 +435,21 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div class="syc"><button class="btn btn-ghost btn-full" style="font-size:10px" onclick="diagActivityDelete()">🔍 Show log Raw IDs</button></div>
     <div class="syc"><button class="btn btn-ghost btn-full" style="font-size:10px" onclick="diagLeadActivity()">🔬 Diagnose lead activity</button></div>
     <div class="syc"><button class="btn btn-ghost btn-full" style="font-size:10px" onclick="testLeadPush()">🧪 Test lead write</button></div>
+  </div>
+
+  <!-- Special Days -->
+  <div style="padding:0 12px;margin-bottom:7px;margin-top:14px" class="lbl">📅 Special Days</div>
+  <div class="sg">
+    <div class="si" style="font-size:11px;color:var(--t3);font-style:italic"><span>App alerts you 14 days before each special day. Built-in list has 33 events. Add custom ones below.</span></div>
+    <div style="padding:0 12px 8px">
+      <div style="font-size:11px;color:var(--t2);margin-bottom:5px;font-weight:700">Add New Special Day</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div class="fg"><label class="fl">Date</label><input class="fi" type="date" id="sd-date" placeholder="Select date"></div>
+        <div class="fg"><label class="fl">Speciality / Event Name</label><input class="fi" id="sd-name" placeholder="e.g. Doctors Day, Ugadi…"></div>
+        <button class="btn btn-gold btn-full" onclick="saveSpecialDay()" style="margin-top:4px">💾 Save Special Day</button>
+      </div>
+    </div>
+    <div class="syc"><button class="btn btn-ghost btn-full" onclick="showSpecialDaysList()">📋 View Upcoming Special Days</button></div>
   </div>
 
   <div style="text-align:center;padding:20px 0 40px;font-size:10px;color:var(--t3)">Wealth Matrix CRM v2.5</div>
@@ -1949,7 +1963,7 @@ async function importFromSheet(){
   try{var d=await scriptGet(tab);if(!d.rows||d.rows.length<2){showSyncMsg('No data in tab: '+tab,false);return;}var hdr=d.rows[0].map(function(h){return (h||'').toString().toLowerCase().trim();});var nameI=hdr.findIndex(function(h){return h.includes('name');});var mobI=hdr.findIndex(function(h){return h.includes('mobile')||h.includes('phone');});if(nameI<0||mobI<0){showSyncMsg('No Name/Mobile columns found',false);return;}var added=0,skipped=0;d.rows.slice(1).forEach(function(r){var mob=String(r[mobI]||'').trim();var name=caps(String(r[nameI]||''));if(!mob||!name){skipped++;return;}if(leads.find(function(l){return l.mobile===mob;})){skipped++;return;}leads.push({name:name,mobile:mob,email:'',country:'',status:'PROSPECT',source:'',referral:'',products:'',age:'',gender:'',remarks:'',notes:[],createdDate:today(),modifiedDate:today()});added++;});saveL();pushLeads();renderLeads();renderDash();showSyncMsg('Imported '+added+' leads. Skipped '+skipped+'.',true);}catch(e){showSyncMsg('Import failed: '+e.message,false);}
 }
 function showAppsScriptCode(){
-  var code='const SHEET_ID=\'1oPQMj6KB39M20RnEoix9PCvSA8RFhVhOV4BG2M4TXlQ\';\nconst LEADS_TAB=\'LEADS\',CLIENTS_TAB=\'CLIENTS\',LOG_TAB=\'ACTIVITY_LOG\';\nfunction doGet(e){try{var p=e.parameter||{};if(p.action===\'pullLog\'&&p.mobile)return pullLog(p.mobile);if(p.payload)return writeData(JSON.parse(decodeURIComponent(p.payload)));return readTab(p.tab||LEADS_TAB);}catch(err){return out({error:err.message});}}\nfunction doPost(e){try{var d;if(e.postData&&e.postData.contents)d=JSON.parse(e.postData.contents);else if(e.parameter&&e.parameter.payload)d=JSON.parse(decodeURIComponent(e.parameter.payload));return writeData(d);}catch(err){return out({error:err.message});}}\nfunction readTab(t){var ss=SpreadsheetApp.openById(SHEET_ID);var sh=ss.getSheetByName(t);if(!sh)return out({rows:[],error:\'Tab not found:\'+t});var lr=sh.getLastRow(),lc=sh.getLastColumn();if(lr===0||lc===0)return out({rows:[]});var raw=sh.getRange(1,1,lr,lc).getValues();var cleaned=raw.map(function(row){return row.map(function(c){if(c===null||c===undefined||c===\'\')return\'\';if(c instanceof Date){var y=c.getFullYear();var m=String(c.getMonth()+1).padStart(2,\'0\');var d=String(c.getDate()).padStart(2,\'0\');return y+\'-\'+m+\'-\'+d;}if(typeof c===\'number\')return String(c);return String(c).trim();});});return out({rows:cleaned});}\nfunction pullLog(mobile){var ss=SpreadsheetApp.openById(SHEET_ID);var sh=ss.getSheetByName(LOG_TAB);if(!sh||sh.getLastRow()<=1)return out({rows:[]});var lr=sh.getLastRow(),lc=sh.getLastColumn();var raw=sh.getRange(2,1,lr-1,lc).getValues();var filtered=raw.filter(function(r){return String(r[2]||\'\').trim()===String(mobile).trim();});return out({rows:filtered});}\nfunction writeData(data){var ss=SpreadsheetApp.openById(SHEET_ID);\nif(data.action===\'appendLog\'){var logSh=ss.getSheetByName(LOG_TAB)||ss.insertSheet(LOG_TAB);if(logSh.getLastRow()===0){var hdr=[[\'Timestamp\',\'Name\',\'Mobile\',\'Type\',\'Activity\',\'Notes\',\'Raw ID\']];var hr=logSh.getRange(1,1,1,7);hr.setValues(hdr);hr.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');logSh.setFrozenRows(1);}logSh.appendRow(data.row||[]);var lr3=logSh.getLastRow();logSh.getRange(lr3,1).setNumberFormat(\'@\');logSh.getRange(lr3,7).setNumberFormat(\'@\');return out({success:true});}\nif(data.action===\'deleteLogById\'){var lsh=ss.getSheetByName(LOG_TAB);if(lsh&&lsh.getLastRow()>1){var rid=String(data.rowId||\'\').trim();var dmob=String(data.mobile||\'\').trim();var dts=String(data.ts||\'\').trim();var dact=String(data.activity||\'\').trim();var n=lsh.getLastRow();var rng=lsh.getRange(2,1,n-1,7).getValues();for(var rj=0;rj<rng.length;rj++){var row=rng[rj];var gId=String(row[6]||\'\').trim();var rTs=String(row[0]||\'\').trim();var rMob=String(row[2]||\'\').trim();var rAct=String(row[4]||\'\').trim();var matchById=(rid!==\'\'&&gId===rid);var matchByTs=(rid===\'\'||gId===\'\')&&dts!==\'\'&&rMob===dmob&&rTs===dts&&rAct===dact;if(matchById||matchByTs){lsh.deleteRow(rj+2);break;}}}return out({success:true,deleted:true});}if(data.action===\'deleteLog\'){var lsh2=ss.getSheetByName(LOG_TAB);if(lsh2&&lsh2.getLastRow()>1){var mob3=String(data.mobile||\'\').trim();var n2=lsh2.getLastRow();for(var rk=n2;rk>=2;rk--){if(String(lsh2.getRange(rk,3).getValue()||\'\').trim()===mob3){lsh2.deleteRow(rk);}}}return out({success:true});}\nif(data.action===\'updateAnalytics\'){var aS=ss.getSheetByName(\'ANALYTICS\')||ss.insertSheet(\'ANALYTICS\');if(aS.getLastRow()===0){aS.getRange(1,1,1,7).setValues([[\'Date\',\'Lead Entries\',\'Prospects\',\'Contacted\',\'In Progress\',\'Converted\',\'Dropped\']]).setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');aS.setFrozenRows(1);}var ad=data.date,ac=parseInt(data.col)||2,adel=parseInt(data.delta)||1,alr=aS.getLastRow(),af=false;if(alr>1){var adts=aS.getRange(2,1,alr-1,1).getValues();for(var i=0;i<adts.length;i++){if(String(adts[i][0]).trim()===ad){var acel=aS.getRange(i+2,ac);acel.setValue(Math.max(0,(parseInt(acel.getValue())||0)+adel));af=true;break;}}}if(!af&&adel>0){var anr=[ad,0,0,0,0,0,0];anr[ac-1]=adel;aS.appendRow(anr);}return out({success:true});}\nif(data.action===\'appendLeads\'||data.action===\'appendClients\'){var atab=data.action===\'appendLeads\'?LEADS_TAB:CLIENTS_TAB;var ash=ss.getSheetByName(atab);if(ash&&data.rows&&data.rows.length){data.rows.forEach(function(rw){ash.appendRow(rw);});var alr=ash.getLastRow();ash.getRange(2,1,alr-1,data.rows[0].length).setNumberFormat(\'@\');}return out({success:true});}if(data.action===\'appendLead\'){var aSh=ss.getSheetByName(LEADS_TAB)||ss.insertSheet(LEADS_TAB);if(aSh.getLastRow()===0){var lHdr=[[\'Name\',\'Mobile\',\'Email\',\'Age\',\'Country\',\'Status\',\'Source\',\'Referred By\',\'Estimated AUM/SIP\',\'Next Follow-up\',\'Investment Products\',\'Mode of Contact\',\'Remarks\',\'Modified Date\',\'Created Date\']];var lHr=aSh.getRange(1,1,1,15);lHr.setValues(lHdr);lHr.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');aSh.setFrozenRows(1);}var aRow=data.row||[];aSh.appendRow(aRow);var aLr=aSh.getLastRow();aSh.getRange(aLr,1,1,aRow.length).setNumberFormat(\'@\');return out({success:true,action:\'appendLead\'});}if(data.action===\'updateLead\'){var uSh=ss.getSheetByName(LEADS_TAB);if(uSh&&uSh.getLastRow()>1){var uMob=String(data.mobile||\'\').trim();var uRow=data.row||[];var uN=uSh.getLastRow();var uVals=uSh.getRange(2,2,uN-1,1).getValues();for(var ui=0;ui<uVals.length;ui++){if(String(uVals[ui][0]||\'\').trim()===uMob){var uRng=uSh.getRange(ui+2,1,1,uRow.length);uRng.setValues([uRow]);uRng.setNumberFormat(\'@\');break;}}}return out({success:true,action:\'updateLead\'});}if(data.action===\'deleteLead\'){var dSh=ss.getSheetByName(LEADS_TAB);if(dSh&&dSh.getLastRow()>1){var dMob=String(data.mobile||\'\').trim();var dN=dSh.getLastRow();var dVals=dSh.getRange(2,2,dN-1,1).getValues();for(var di=dN-1;di>=0;di--){if(String(dVals[di][0]||\'\').trim()===dMob){dSh.deleteRow(di+2);break;}}}return out({success:true,action:\'deleteLead\'});}\n\n  // ── Append ONE client row (new client) ──\n  if(data.action===\'appendClient\'){\n    var aShC=ss.getSheetByName(CLIENTS_TAB)||ss.insertSheet(CLIENTS_TAB);\n    if(aShC.getLastRow()===0){\n      var cHdr=[[\'Name\',\'Mobile\',\'Email\',\'Country\',\'Source\',\'Referred By\',\'Next Follow up date\',\n        \'Age\',\'Gender\',\'Remarks\',\'Created date\',\'PAN\',\'DOB\',\'Spouse DOB\',\'Anniversary\',\n        \'Converted Date\',\'Review Date\',\'1st Anniversary\',\'App Installed\',\'Broadcast Added\',\n        \'SIP date\',\'Health insurance\',\'Life insurance\',\'WILL\',\'Due date Health\',\'Due date Life\',\n        \'AUM\',\'Potential AUM\',\'Welcome Message send\',\'Products\']];\n      var cHr=aShC.getRange(1,1,1,30);\n      cHr.setValues(cHdr);cHr.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');\n      aShC.setFrozenRows(1);\n    }\n    var cRow=data.row||[];\n    aShC.appendRow(cRow);\n    var cLr=aShC.getLastRow();\n    aShC.getRange(cLr,1,1,cRow.length).setNumberFormat(\'@\');\n    return out({success:true,action:\'appendClient\'});\n  }\n\n  // ── Update ONE client row (find by mobile col B, replace in place) ──\n  if(data.action===\'updateClient\'){\n    var uShC=ss.getSheetByName(CLIENTS_TAB);\n    if(uShC&&uShC.getLastRow()>1){\n      var uMobC=String(data.mobile||\'\').trim();\n      var uRowC=data.row||[];\n      var uNC=uShC.getLastRow();\n      var uValsC=uShC.getRange(2,2,uNC-1,1).getValues();\n      for(var uic=0;uic<uValsC.length;uic++){\n        if(String(uValsC[uic][0]||\'\').trim()===uMobC){\n          var uRngC=uShC.getRange(uic+2,1,1,uRowC.length);\n          uRngC.setValues([uRowC]);\n          uRngC.setNumberFormat(\'@\');\n          break;\n        }\n      }\n    }\n    return out({success:true,action:\'updateClient\'});\n  }\n\n  // ── Delete ONE client row (find by mobile col B) ──\n  if(data.action===\'deleteClient\'){\n    var dShC=ss.getSheetByName(CLIENTS_TAB);\n    if(dShC&&dShC.getLastRow()>1){\n      var dMobC=String(data.mobile||\'\').trim();\n      var dNC=dShC.getLastRow();\n      var dValsC=dShC.getRange(2,2,dNC-1,1).getValues();\n      for(var dic=dNC-1;dic>=0;dic--){\n        if(String(dValsC[dic][0]||\'\').trim()===dMobC){dShC.deleteRow(dic+2);break;}\n      }\n    }\n    return out({success:true,action:\'deleteClient\'});\n  }\nvar tab=data.action===\'pushLeads\'?LEADS_TAB:data.action===\'pushClients\'?CLIENTS_TAB:null;if(!tab)return out({error:\'Bad action:\'+data.action});var rows=data.rows;if(!rows||rows.length===0)return out({error:\'No rows\'});var sh=ss.getSheetByName(tab)||ss.insertSheet(tab);sh.clearContents();var r=sh.getRange(1,1,rows.length,rows[0].length);r.setNumberFormat(\'@\');r.setValues(rows);var h=sh.getRange(1,1,1,rows[0].length);h.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');sh.setFrozenRows(1);return out({success:true,written:rows.length-1});}\nfunction out(o){return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);}\nfunction testConnection(){Logger.log(\'OK: \'+SpreadsheetApp.openById(SHEET_ID).getName());}'
+  var code='const SHEET_ID=\'1oPQMj6KB39M20RnEoix9PCvSA8RFhVhOV4BG2M4TXlQ\';\nconst LEADS_TAB=\'LEADS\',CLIENTS_TAB=\'CLIENTS\',LOG_TAB=\'ACTIVITY_LOG\',SPECIAL_TAB=\'Special Days\';\nfunction doGet(e){try{var p=e.parameter||{};if(p.action===\'pullLog\'&&p.mobile)return pullLog(p.mobile);if(p.payload)return writeData(JSON.parse(decodeURIComponent(p.payload)));return readTab(p.tab||LEADS_TAB);}catch(err){return out({error:err.message});}}\nfunction doPost(e){try{var d;if(e.postData&&e.postData.contents)d=JSON.parse(e.postData.contents);else if(e.parameter&&e.parameter.payload)d=JSON.parse(decodeURIComponent(e.parameter.payload));return writeData(d);}catch(err){return out({error:err.message});}}\nfunction readTab(t){var ss=SpreadsheetApp.openById(SHEET_ID);var sh=ss.getSheetByName(t);if(!sh)return out({rows:[],error:\'Tab not found:\'+t});var lr=sh.getLastRow(),lc=sh.getLastColumn();if(lr===0||lc===0)return out({rows:[]});var raw=sh.getRange(1,1,lr,lc).getValues();var cleaned=raw.map(function(row){return row.map(function(c){if(c===null||c===undefined||c===\'\')return\'\';if(c instanceof Date){var y=c.getFullYear();var m=String(c.getMonth()+1).padStart(2,\'0\');var d=String(c.getDate()).padStart(2,\'0\');return y+\'-\'+m+\'-\'+d;}if(typeof c===\'number\')return String(c);return String(c).trim();});});return out({rows:cleaned});}\nfunction pullLog(mobile){var ss=SpreadsheetApp.openById(SHEET_ID);var sh=ss.getSheetByName(LOG_TAB);if(!sh||sh.getLastRow()<=1)return out({rows:[]});var lr=sh.getLastRow(),lc=sh.getLastColumn();var raw=sh.getRange(2,1,lr-1,lc).getValues();var filtered=raw.filter(function(r){return String(r[2]||\'\').trim()===String(mobile).trim();});return out({rows:filtered});}\nfunction writeData(data){var ss=SpreadsheetApp.openById(SHEET_ID);\nif(data.action===\'appendLog\'){var logSh=ss.getSheetByName(LOG_TAB)||ss.insertSheet(LOG_TAB);if(logSh.getLastRow()===0){var hdr=[[\'Timestamp\',\'Name\',\'Mobile\',\'Type\',\'Activity\',\'Notes\',\'Raw ID\']];var hr=logSh.getRange(1,1,1,7);hr.setValues(hdr);hr.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');logSh.setFrozenRows(1);}logSh.appendRow(data.row||[]);var lr3=logSh.getLastRow();logSh.getRange(lr3,1).setNumberFormat(\'@\');logSh.getRange(lr3,7).setNumberFormat(\'@\');return out({success:true});}\nif(data.action===\'deleteLogById\'){var lsh=ss.getSheetByName(LOG_TAB);if(lsh&&lsh.getLastRow()>1){var rid=String(data.rowId||\'\').trim();var dmob=String(data.mobile||\'\').trim();var dts=String(data.ts||\'\').trim();var dact=String(data.activity||\'\').trim();var n=lsh.getLastRow();var rng=lsh.getRange(2,1,n-1,7).getValues();for(var rj=0;rj<rng.length;rj++){var row=rng[rj];var gId=String(row[6]||\'\').trim();var rTs=String(row[0]||\'\').trim();var rMob=String(row[2]||\'\').trim();var rAct=String(row[4]||\'\').trim();var matchById=(rid!==\'\'&&gId===rid);var matchByTs=(rid===\'\'||gId===\'\')&&dts!==\'\'&&rMob===dmob&&rTs===dts&&rAct===dact;if(matchById||matchByTs){lsh.deleteRow(rj+2);break;}}}return out({success:true,deleted:true});}if(data.action===\'deleteLog\'){var lsh2=ss.getSheetByName(LOG_TAB);if(lsh2&&lsh2.getLastRow()>1){var mob3=String(data.mobile||\'\').trim();var n2=lsh2.getLastRow();for(var rk=n2;rk>=2;rk--){if(String(lsh2.getRange(rk,3).getValue()||\'\').trim()===mob3){lsh2.deleteRow(rk);}}}return out({success:true});}\nif(data.action===\'updateAnalytics\'){var aS=ss.getSheetByName(\'ANALYTICS\')||ss.insertSheet(\'ANALYTICS\');if(aS.getLastRow()===0){aS.getRange(1,1,1,7).setValues([[\'Date\',\'Lead Entries\',\'Prospects\',\'Contacted\',\'In Progress\',\'Converted\',\'Dropped\']]).setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');aS.setFrozenRows(1);}var ad=data.date,ac=parseInt(data.col)||2,adel=parseInt(data.delta)||1,alr=aS.getLastRow(),af=false;if(alr>1){var adts=aS.getRange(2,1,alr-1,1).getValues();for(var i=0;i<adts.length;i++){if(String(adts[i][0]).trim()===ad){var acel=aS.getRange(i+2,ac);acel.setValue(Math.max(0,(parseInt(acel.getValue())||0)+adel));af=true;break;}}}if(!af&&adel>0){var anr=[ad,0,0,0,0,0,0];anr[ac-1]=adel;aS.appendRow(anr);}return out({success:true});}\nif(data.action===\'appendLeads\'||data.action===\'appendClients\'){var atab=data.action===\'appendLeads\'?LEADS_TAB:CLIENTS_TAB;var ash=ss.getSheetByName(atab);if(ash&&data.rows&&data.rows.length){data.rows.forEach(function(rw){ash.appendRow(rw);});var alr=ash.getLastRow();ash.getRange(2,1,alr-1,data.rows[0].length).setNumberFormat(\'@\');}return out({success:true});}if(data.action===\'appendLead\'){var aSh=ss.getSheetByName(LEADS_TAB)||ss.insertSheet(LEADS_TAB);if(aSh.getLastRow()===0){var lHdr=[[\'Name\',\'Mobile\',\'Email\',\'Age\',\'Country\',\'Status\',\'Source\',\'Referred By\',\'Estimated AUM/SIP\',\'Next Follow-up\',\'Investment Products\',\'Mode of Contact\',\'Remarks\',\'Modified Date\',\'Created Date\']];var lHr=aSh.getRange(1,1,1,15);lHr.setValues(lHdr);lHr.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');aSh.setFrozenRows(1);}var aRow=data.row||[];aSh.appendRow(aRow);var aLr=aSh.getLastRow();aSh.getRange(aLr,1,1,aRow.length).setNumberFormat(\'@\');return out({success:true,action:\'appendLead\'});}if(data.action===\'updateLead\'){var uSh=ss.getSheetByName(LEADS_TAB);if(uSh&&uSh.getLastRow()>1){var uMob=String(data.mobile||\'\').trim();var uRow=data.row||[];var uN=uSh.getLastRow();var uVals=uSh.getRange(2,2,uN-1,1).getValues();for(var ui=0;ui<uVals.length;ui++){if(String(uVals[ui][0]||\'\').trim()===uMob){var uRng=uSh.getRange(ui+2,1,1,uRow.length);uRng.setValues([uRow]);uRng.setNumberFormat(\'@\');break;}}}return out({success:true,action:\'updateLead\'});}if(data.action===\'deleteLead\'){var dSh=ss.getSheetByName(LEADS_TAB);if(dSh&&dSh.getLastRow()>1){var dMob=String(data.mobile||\'\').trim();var dN=dSh.getLastRow();var dVals=dSh.getRange(2,2,dN-1,1).getValues();for(var di=dN-1;di>=0;di--){if(String(dVals[di][0]||\'\').trim()===dMob){dSh.deleteRow(di+2);break;}}}return out({success:true,action:\'deleteLead\'});}\n\n  // ── Append ONE client row (new client) ──\n  if(data.action===\'appendClient\'){\n    var aShC=ss.getSheetByName(CLIENTS_TAB)||ss.insertSheet(CLIENTS_TAB);\n    if(aShC.getLastRow()===0){\n      var cHdr=[[\'Name\',\'Mobile\',\'Email\',\'Country\',\'Source\',\'Referred By\',\'Next Follow up date\',\n        \'Age\',\'Gender\',\'Remarks\',\'Created date\',\'PAN\',\'DOB\',\'Spouse DOB\',\'Anniversary\',\n        \'Converted Date\',\'Review Date\',\'1st Anniversary\',\'App Installed\',\'Broadcast Added\',\n        \'SIP date\',\'Health insurance\',\'Life insurance\',\'WILL\',\'Due date Health\',\'Due date Life\',\n        \'AUM\',\'Potential AUM\',\'Welcome Message send\',\'Products\']];\n      var cHr=aShC.getRange(1,1,1,30);\n      cHr.setValues(cHdr);cHr.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');\n      aShC.setFrozenRows(1);\n    }\n    var cRow=data.row||[];\n    aShC.appendRow(cRow);\n    var cLr=aShC.getLastRow();\n    aShC.getRange(cLr,1,1,cRow.length).setNumberFormat(\'@\');\n    return out({success:true,action:\'appendClient\'});\n  }\n\n  // ── Update ONE client row (find by mobile col B, replace in place) ──\n  if(data.action===\'updateClient\'){\n    var uShC=ss.getSheetByName(CLIENTS_TAB);\n    if(uShC&&uShC.getLastRow()>1){\n      var uMobC=String(data.mobile||\'\').trim();\n      var uRowC=data.row||[];\n      var uNC=uShC.getLastRow();\n      var uValsC=uShC.getRange(2,2,uNC-1,1).getValues();\n      for(var uic=0;uic<uValsC.length;uic++){\n        if(String(uValsC[uic][0]||\'\').trim()===uMobC){\n          var uRngC=uShC.getRange(uic+2,1,1,uRowC.length);\n          uRngC.setValues([uRowC]);\n          uRngC.setNumberFormat(\'@\');\n          break;\n        }\n      }\n    }\n    return out({success:true,action:\'updateClient\'});\n  }\n\n  // ── Delete ONE client row (find by mobile col B) ──\n  if(data.action===\'deleteClient\'){\n    var dShC=ss.getSheetByName(CLIENTS_TAB);\n    if(dShC&&dShC.getLastRow()>1){\n      var dMobC=String(data.mobile||\'\').trim();\n      var dNC=dShC.getLastRow();\n      var dValsC=dShC.getRange(2,2,dNC-1,1).getValues();\n      for(var dic=dNC-1;dic>=0;dic--){\n        if(String(dValsC[dic][0]||\'\').trim()===dMobC){dShC.deleteRow(dic+2);break;}\n      }\n    }\n    return out({success:true,action:\'deleteClient\'});\n  }\n  if(data.action===\'readSpecialDays\'){var spSh=ss.getSheetByName(SPECIAL_TAB);if(!spSh)return out({rows:[]});var spLr=spSh.getLastRow();if(spLr<2)return out({rows:[]});var spVals=spSh.getRange(2,1,spLr-1,2).getValues();var spRows=spVals.map(function(r){return[String(r[0]||\'\').trim(),String(r[1]||\'\').trim()];}).filter(function(r){return r[0]&&r[1];});return out({rows:spRows});}\n  if(data.action===\'appendSpecialDay\'){var spSh2=ss.getSheetByName(SPECIAL_TAB)||ss.insertSheet(SPECIAL_TAB);if(spSh2.getLastRow()===0){var spH=spSh2.getRange(1,1,1,2);spH.setValues([[\'Date (MM-DD)\',\'Speciality\']]);spH.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');spSh2.setFrozenRows(1);}spSh2.appendRow([data.date||\'\',data.speciality||\'\']);return out({success:true,action:\'appendSpecialDay\'});}\nvar tab=data.action===\'pushLeads\'?LEADS_TAB:data.action===\'pushClients\'?CLIENTS_TAB:null;if(!tab)return out({error:\'Bad action:\'+data.action});var rows=data.rows;if(!rows||rows.length===0)return out({error:\'No rows\'});var sh=ss.getSheetByName(tab)||ss.insertSheet(tab);sh.clearContents();var r=sh.getRange(1,1,rows.length,rows[0].length);r.setNumberFormat(\'@\');r.setValues(rows);var h=sh.getRange(1,1,1,rows[0].length);h.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');sh.setFrozenRows(1);return out({success:true,written:rows.length-1});}\nfunction out(o){return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);}\nfunction testConnection(){Logger.log(\'OK: \'+SpreadsheetApp.openById(SHEET_ID).getName());}'
   var ov=document.createElement('div');
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:flex-end;justify-content:center;padding:10px';
   ov.innerHTML='<div style="background:var(--s1);border-radius:12px;width:100%;max-width:540px;max-height:90vh;overflow-y:auto;padding:16px">'
@@ -2580,6 +2594,7 @@ async function pullFromSheet(manual){
     }
     // Pull Activity Log
     await pullAnalytics(); // fetch Analytics sheet for North Star Matrix
+    await pullSpecialDays(); // sync Special Days from sheet
     await pullActivityLog();
     cfg_.lastPull=now(); saveCfg();
     var ts=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
@@ -4622,10 +4637,13 @@ function sendWAQuick(waNum, type, mob){
       +'\n\nRegards'
       +'\nArjun';
   } else if(type==='sip'){
-    msg='Hi'
-      +'\n\nYour SIP is due coming on '+sipDate+'th, please ensure enough funds are available in your account linked with your investments.'
-      +'\n\nRegards'
-      +'\nArjun K T M';
+    msg='Dear Sir/Madam,'
+      +'\n\nA gentle reminder that your SIP is due on '+sipDate+'th.'
+      +'\n\nEvery SIP is a step towards building long-term wealth and securing your family\'s financial future. Please ensure that sufficient funds are available in your bank account to avoid missing this month\'s investment.'
+      +'\n\nWealth is created through discipline, not timing.'
+      +'\n\nRegards,'
+      +'\nArjun K T M'
+      +'\nWealth Matrix Finserv LLP';
   } else if(type==='chg'){
     msg='Hi'
       +'\n\nYou can change the mobile number and mail id of all your mutual fund folios using the following links'
@@ -4660,6 +4678,8 @@ function sendWAQuick(waNum, type, mob){
 
   if(!msg) return;
   window.open('https://wa.me/'+waNum+'?text='+encodeURIComponent(msg),'_blank');
+  // Mark SIP reminder as sent for this client (so dash count reduces)
+  if(type==='sip' && mob) markSipReminderSent(mob);
 }
 
 
@@ -4945,7 +4965,8 @@ function renderReminders(){
   function waNum(c){var n=(c.mobile||'').replace(/\D/g,'');return n.length===10?'91'+n:n;}
 
   // ── SIP due within 5 days ──
-  var sipDue=clients.filter(function(c){return c.sipDate&&daysToSip(c.sipDate)<=5&&daysToSip(c.sipDate)>=0;});
+  // Exclude clients who already received SIP reminder this month
+  var sipDue=clients.filter(function(c){return c.sipDate&&daysToSip(c.sipDate)<=5&&daysToSip(c.sipDate)>=0&&!isSipReminderSent(c.mobile);});
   if(sipDue.length){
     items.push({icon:'💰',color:'#f39c12',bg:'rgba(243,156,18,.08)',
       title:'SIP due — '+sipDue.length+' client'+(sipDue.length>1?'s':''),
@@ -5000,13 +5021,30 @@ function renderReminders(){
       list:ann1s, listType:'cas'});
   }
 
+  // ── Upcoming Special Days (next 14 days) ──
+  if(typeof _specialDays !== 'undefined'){
+    _specialDays.forEach(function(sd){
+      var r=daysUntilAnnual(sd.date);
+      if(r.days>=0&&r.days<=14){
+        var dayName=DAYS_OF_WEEK[r.date.getDay()];
+        var dateStr=r.date.getDate()+' '+MONTHS[r.date.getMonth()];
+        var daysStr=r.days===0?'Today!':r.days===1?'Tomorrow':r.days+' days';
+        items.push({icon:'📅',color:'#8e44ad',bg:'rgba(142,68,173,.08)',
+          title:sd.speciality+' — '+daysStr,
+          sub:dateStr+' ('+dayName+') · Plan accordingly',
+          isSpecialDay:true, spIdx:null});
+      }
+    });
+  }
+
   if(!items.length){
     el.innerHTML='<div style="font-size:11px;color:var(--t3);text-align:center;padding:10px;font-style:italic">No reminders today 🎉</div>';
     return;
   }
 
   el.innerHTML=items.map(function(item,idx){
-    return '<div onclick="showReminderList('+idx+')" style="display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:9px;background:'+item.bg+';border:1px solid '+item.color+'33;margin-bottom:6px;cursor:pointer">'
+    var clickable=item.isSpecialDay?'onclick="showSpecialDaysList()"':'onclick="showReminderList('+idx+')"';
+    return '<div '+clickable+' style="display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:9px;background:'+item.bg+';border:1px solid '+item.color+'33;margin-bottom:6px;cursor:pointer">'
       +'<span style="font-size:20px;flex-shrink:0">'+item.icon+'</span>'
       +'<div style="flex:1;min-width:0">'
       +'<div style="font-size:12px;font-weight:700;color:var(--text)">'+item.title+'</div>'
@@ -5046,7 +5084,18 @@ function showReminderList(idx){
   // Click delegation on popup
   ov.addEventListener('click',function(e){
     var b=e.target.closest('.rem-wa-btn');
-    if(b) sendWAQuick(b.dataset.rwanum,b.dataset.rwaq,b.dataset.rmob);
+    if(b){
+      sendWAQuick(b.dataset.rwanum,b.dataset.rwaq,b.dataset.rmob);
+      // If SIP reminder sent, mark it so this client won't appear again this month
+      if(b.dataset.rwaq==='sip' && b.dataset.rmob){
+        markSipReminderSent(b.dataset.rmob);
+        // Remove this client's row from popup immediately
+        var row=b.closest('[style*="border-bottom"]');
+        if(row) row.style.opacity='0.3';
+        // Refresh reminders after short delay
+        setTimeout(function(){ ov.remove(); renderReminders(); renderDash(); }, 800);
+      }
+    }
     var ch=e.target.closest('.rem-chip-open');
     if(ch){ov.remove();openDetail(ch.dataset.cmob,'client');}
   });
@@ -5059,9 +5108,153 @@ document.getElementById('pg-dash').addEventListener('click',function(e){
   if(remBtn) sendWAQuick(remBtn.dataset.rwanum,remBtn.dataset.rwaq,remBtn.dataset.rmob);
 });
 
+
+// ── Special Days system ──
+// _specialDays: [{date:'MM-DD', speciality:'...'}, ...]
+var _specialDays = [{date:"01-01",speciality:"New Year's Day"},{date:"01-12",speciality:"National Youth Day"},{date:"01-15",speciality:"Army Day"},{date:"01-23",speciality:"Netaji Subhas Chandra Bose Jayanti"},{date:"01-26",speciality:"Republic Day"},{date:"02-04",speciality:"World Cancer Day"},{date:"02-14",speciality:"Valentine's Day"},{date:"02-28",speciality:"National Science Day"},{date:"03-08",speciality:"International Women's Day"},{date:"03-22",speciality:"World Water Day"},{date:"04-07",speciality:"World Health Day"},{date:"04-14",speciality:"Dr. Ambedkar Jayanti / Vishu"},{date:"04-22",speciality:"Earth Day"},{date:"05-01",speciality:"International Labour Day"},{date:"05-12",speciality:"International Nurses Day"},{date:"06-01",speciality:"World Milk Day"},{date:"06-05",speciality:"World Environment Day"},{date:"06-21",speciality:"International Yoga Day"},{date:"07-01",speciality:"Doctors Day (India)"},{date:"07-11",speciality:"World Population Day"},{date:"07-26",speciality:"Kargil Vijay Diwas"},{date:"08-01",speciality:"Chartered Accountants Day"},{date:"08-12",speciality:"International Youth Day"},{date:"08-15",speciality:"Independence Day"},{date:"09-05",speciality:"Teachers Day"},{date:"09-27",speciality:"World Tourism Day"},{date:"10-02",speciality:"Gandhi Jayanti"},{date:"10-31",speciality:"National Unity Day"},{date:"11-01",speciality:"Kerala Piravi"},{date:"11-14",speciality:"Childrens Day"},{date:"12-01",speciality:"World AIDS Day"},{date:"12-10",speciality:"Human Rights Day"},{date:"12-25",speciality:"Christmas Day"}];
+
+// Pull latest Special Days from sheet (merges with built-in list)
+async function pullSpecialDays(){
+  if(!hasScript()) return;
+  try{
+    var res=await apiFetch({action:'readSpecialDays'});
+    if(res&&res.rows&&res.rows.length){
+      // Sheet rows override built-in for same date
+      var sheetDays=res.rows.map(function(r){return {date:r[0],speciality:r[1]};});
+      // Merge: add sheet days not already in built-in list
+      sheetDays.forEach(function(sd){
+        if(!_specialDays.find(function(d){return d.date===sd.date&&d.speciality===sd.speciality;})){
+          _specialDays.push(sd);
+        }
+      });
+      localStorage.setItem('wm_specialdays',JSON.stringify(_specialDays));
+    }
+  }catch(e){ console.warn('pullSpecialDays failed:', e.message); }
+}
+
+// Days until next occurrence of a MM-DD recurring date
+function daysUntilAnnual(mmdd){
+  var now=new Date();
+  var parts=mmdd.split('-');
+  if(parts.length!==2) return 9999;
+  var m=parseInt(parts[0])-1, d=parseInt(parts[1]);
+  var thisYear=new Date(now.getFullYear(),m,d);
+  var diff=Math.round((thisYear-now)/86400000);
+  if(diff<0){ thisYear=new Date(now.getFullYear()+1,m,d); diff=Math.round((thisYear-now)/86400000); }
+  return {days:diff, date:thisYear};
+}
+
+var DAYS_OF_WEEK=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+var MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+// Check special days coming within 14 days — show banner on dashboard
+function checkSpecialDayAlerts(){
+  var upcoming=[];
+  _specialDays.forEach(function(sd){
+    var r=daysUntilAnnual(sd.date);
+    if(r.days>=0&&r.days<=14){
+      var dayName=DAYS_OF_WEEK[r.date.getDay()];
+      var dateStr=r.date.getDate()+' '+MONTHS[r.date.getMonth()];
+      var daysStr=r.days===0?'Today!':r.days===1?'Tomorrow':r.days+' days';
+      upcoming.push({
+        speciality:sd.speciality, days:r.days,
+        msg:sd.speciality+' is coming on '+dateStr+' ('+dayName+'). Plan accordingly.',
+        daysStr:daysStr, dayName:dayName, dateStr:dateStr
+      });
+    }
+  });
+  // Sort by days ascending
+  upcoming.sort(function(a,b){return a.days-b.days;});
+  if(!upcoming.length) return;
+
+  // Show banner only once per day per event
+  var shownKey='wm_spday_'+today();
+  if(localStorage.getItem(shownKey)) return;
+  localStorage.setItem(shownKey,'1');
+
+  var item=upcoming[0];
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+  var moreHtml=upcoming.length>1?'<div style="margin-top:8px;font-size:11px;color:var(--t3)">+'+(upcoming.length-1)+' more special day'+(upcoming.length>2?'s':'')+' coming up</div>':'';
+  ov.innerHTML='<div style="background:var(--s1);border-radius:14px;width:100%;max-width:340px;border:1px solid var(--accent);overflow:hidden">'
+    +'<div style="padding:18px 18px 14px;text-align:center">'
+    +'<div style="font-size:32px;margin-bottom:8px">📅</div>'
+    +'<div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:8px">'+item.daysStr+'</div>'
+    +'<div style="font-size:13px;color:var(--t2);line-height:1.5">'+item.msg+'</div>'
+    +moreHtml
+    +'</div>'
+    +'<div style="display:flex;border-top:1px solid var(--border)">'
+    +'<button id="_spdClose" style="flex:1;padding:13px;border:none;background:none;color:var(--t2);cursor:pointer;font-size:12px;border-right:1px solid var(--border)">Dismiss</button>'
+    +'<button id="_spdView" style="flex:1;padding:13px;border:none;background:none;color:var(--accent);font-weight:700;cursor:pointer;font-size:12px">View All</button>'
+    +'</div></div>';
+  document.body.appendChild(ov);
+  document.getElementById('_spdClose').onclick=function(){ov.remove();};
+  document.getElementById('_spdView').onclick=function(){ov.remove();showSpecialDaysList();};
+}
+
+// Full list of upcoming special days
+function showSpecialDaysList(){
+  var upcoming=[];
+  _specialDays.forEach(function(sd){
+    var r=daysUntilAnnual(sd.date);
+    if(r.days>=0&&r.days<=30){ // show next 30 days
+      upcoming.push({speciality:sd.speciality,days:r.days,
+        dateStr:r.date.getDate()+' '+MONTHS[r.date.getMonth()]+' ('+DAYS_OF_WEEK[r.date.getDay()]+')'});
+    }
+  });
+  upcoming.sort(function(a,b){return a.days-b.days;});
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:99999;display:flex;align-items:flex-end;justify-content:center';
+  var rows=upcoming.map(function(u){
+    return '<div style="padding:11px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">'
+      +'<div><div style="font-size:13px;font-weight:700;color:var(--text)">'+u.speciality+'</div>'
+      +'<div style="font-size:10px;color:var(--t3);margin-top:2px">'+u.dateStr+'</div></div>'
+      +'<div style="font-size:12px;font-weight:700;color:var(--accent)">'+u.days+'d</div></div>';
+  }).join('');
+  ov.innerHTML='<div style="background:var(--s1);border-radius:14px 14px 0 0;width:100%;max-width:420px;max-height:75vh;display:flex;flex-direction:column">'
+    +'<div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">'
+    +'<span style="font-size:14px;font-weight:800;color:var(--text)">📅 Upcoming Special Days (30 days)</span>'
+    +'<span id="_spdListX" style="font-size:18px;color:var(--t2);cursor:pointer">✕</span></div>'
+    +'<div style="overflow-y:auto;flex:1">'+(rows||'<div style="padding:20px;text-align:center;color:var(--t3)">None in next 30 days</div>')+'</div></div>';
+  document.body.appendChild(ov);
+  ov.id='_spdListOv';
+  document.getElementById('_spdListX').onclick=function(){ov.remove();};
+}
+
+// Add a new special day (from Settings form) — saves to sheet + local cache
+async function saveSpecialDay(){
+  var dateEl=document.getElementById('sd-date');
+  var nameEl=document.getElementById('sd-name');
+  if(!dateEl||!nameEl) return;
+  var date=dateEl.value.trim(); // YYYY-MM-DD from date input
+  var name=nameEl.value.trim();
+  if(!date||!name){toast('Enter date and speciality');return;}
+  // Convert YYYY-MM-DD to MM-DD
+  var mmdd=date.substring(5); // e.g. "07-01"
+  if(_specialDays.find(function(d){return d.date===mmdd&&d.speciality===name;})){
+    toast('Already exists');return;
+  }
+  _specialDays.push({date:mmdd,speciality:name});
+  localStorage.setItem('wm_specialdays',JSON.stringify(_specialDays));
+  // Save to sheet
+  var res=await apiFetch({action:'appendSpecialDay',date:mmdd,speciality:name});
+  if(res&&res.success){toast('✅ Special Day saved to sheet');}
+  else{toast('✅ Saved locally (sheet sync pending)');}
+  dateEl.value='';nameEl.value='';
+}
+
+
+// ── SIP reminder tracking — once sent per month, don't show again ──
+function sipReminderKey(mob){ return 'wm_sip_'+today().substring(0,7)+'_'+mob; } // YYYY-MM
+function markSipReminderSent(mob){ localStorage.setItem(sipReminderKey(mob),'1'); }
+function isSipReminderSent(mob){ return !!localStorage.getItem(sipReminderKey(mob)); }
+
 // Load offline queue and flush any writes that failed last session
 _loadQ();
+// Load cached special days
+try{var _sd=localStorage.getItem('wm_specialdays');if(_sd){var _sdo=JSON.parse(_sd);if(_sdo.length>_specialDays.length)_specialDays=_sdo;}}catch(e){}
 load();applyDarkMode();loadActivityLog();bootSequenceV17();
+setTimeout(checkSpecialDayAlerts, 1000); // show special day popup on open
 // Load cached analytics
 try{_analyticsData=JSON.parse(localStorage.getItem('wm_analytics')||'[]');}catch(e){_analyticsData=[];}
 checkURLParams();
