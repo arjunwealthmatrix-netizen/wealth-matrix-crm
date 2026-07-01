@@ -318,7 +318,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   <div style="display:flex;gap:10px;padding:0 14px 12px">
     <div style="flex:1;background:var(--s1);border:2px solid var(--accent);border-radius:var(--r);padding:14px 12px;text-align:center">
       <div id="dash-total-leads" onclick="nav('leads',document.querySelector('.nb'))" style="font-size:36px;font-weight:900;color:var(--accent);line-height:1;cursor:pointer">—</div>
-      <div style="font-size:11px;color:var(--t2);margin-top:5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">Total Leads</div>
+      <div style="font-size:11px;color:var(--t2);margin-top:5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">Total Leads</div><div id="dash-prospect-count" style="font-size:10px;color:#f39c12;margin-top:3px;font-weight:700"></div>
     </div>
     <div style="flex:1;background:var(--s1);border:2px solid #4FC3F7;border-radius:var(--r);padding:14px 12px;text-align:center">
       <div id="dash-total-clients" style="font-size:36px;font-weight:900;color:#4FC3F7;line-height:1">—</div>
@@ -450,7 +450,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 
 <!-- ANALYTICS -->
 <div class="page" id="pg-analytics">
-  <div class="ph"><h1>Analytics</h1><div id="ana-sub" class="sub"></div></div>
+  <div class="ph">
+    <div><h1>Analytics</h1><div id="ana-sub" class="sub"></div></div>
+  <div id="ana-section"></div>
+    <button onclick="pullAnalytics().then(renderAnalytics)" style="background:none;border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:11px;color:var(--t2);cursor:pointer">🔄 Refresh</button>
+  </div>
   <div class="sec"><div class="lbl" style="font-size:16px;font-weight:900;color:var(--text);padding:14px 14px 6px">📊 Productivity</div></div>
   <div id="ana-contact-rate" style="padding:0 14px 6px"></div>
   <div class="sec"><div class="lbl" style="font-size:16px;font-weight:900;color:var(--text);padding:14px 14px 4px">📈 Monthly Trend</div></div>
@@ -1654,9 +1658,12 @@ function deleteLead(mob){
   document.getElementById('_ldn').onclick=function(){ov.remove();};
   document.getElementById('_ldy').onclick=function(){
     ov.remove();
+    var _delSt=(leads.find(function(x){return x.mobile===mob;})||{status:''}).status.toUpperCase();
     leads=leads.filter(function(x){return x.mobile!==mob;});
     saveL();
     logAnalytics(2,-1);
+    var _dMap2={'PROSPECT':3,'CONTACTED':4,'IN PROGRESS':5,'CONVERTED':6,'DROPPED':7};
+    if(_dMap2[_delSt]) logAnalytics(_dMap2[_delSt],-1);
     syncLead({mobile:mob}, 'delete'); // delete only this row from sheet
     // Also delete this lead's activity log rows from sheet
     if(hasScript()) sheetWrite({action:'deleteLog', mobile:mob});
@@ -2181,7 +2188,8 @@ async function quickStatus(mob,status){
   l.remarks=migrateRemarks(l.remarks||'');
   l.remarks=appendRemark(l.remarks,'Status changed: '+prev+' → '+status);
   var _anaCol={'PROSPECT':3,'CONTACTED':4,'IN PROGRESS':5,'CONVERTED':6,'DROPPED':7};
-  if(_anaCol[status]) logAnalytics(_anaCol[status], 1);
+  if(_anaCol[prev]&&prev!==status.toUpperCase()) logAnalytics(_anaCol[prev],-1);
+  if(_anaCol[status]) logAnalytics(_anaCol[status],1);
   saveL();
   closeOv('ov-detail');closeFuDetail();
   renderLeads();renderDash();renderFU();
@@ -3022,9 +3030,11 @@ function renderDash(){
       +'</div>';
 
   // North Star Matrix only
+  // Total Leads = Contacted + In Progress (active working leads)
+  // Prospect shown separately as a feeder pipeline
   var nsRows=[
-    {l:'Total Leads',s:'Total',c:'var(--accent)',cl:'row-total'},
-    {l:'Prospect',s:'PROSPECT',c:'#888',cl:''},
+    {l:'Active Leads',s:'ACTIVE',c:'var(--accent)',cl:'row-total',tip:'Contacted + In Progress'},
+    {l:'Prospect',s:'PROSPECT',c:'#f39c12',cl:''},
     {l:'Contacted',s:'CONTACTED',c:'#AAA',cl:'row-contacted'},
     {l:'In Progress',s:'IN PROGRESS',c:'#CCC',cl:'row-inprogress'},
     {l:'Converted',s:'CONVERTED',c:'var(--green)',cl:'row-converted'},
@@ -3033,20 +3043,29 @@ function renderDash(){
   var cols=[{k:'total',h:'Total'},{k:'ftd',h:'FTD'},{k:'wtd',h:'WTD'},{k:'mtd',h:'MTD'},{k:'ytd',h:'YTD'}];
   var convLeads=leads.filter(function(l){return (l.status||'').toUpperCase()==='CONVERTED'&&l.createdDate;});
   var avgCycleDays=convLeads.length?Math.round(convLeads.reduce(function(s,l){return s+Math.max(0,Math.floor((new Date(l.modifiedDate||l.createdDate)-new Date(l.createdDate))/86400000));},0)/convLeads.length):null;
-  // Column mapping for analytics sheet: 1=LeadEntries,2=Prospects,3=Contacted,4=InProgress,5=Converted,6=Dropped
-  var nsColMap={'Total':1,'PROSPECT':2,'CONTACTED':3,'IN PROGRESS':4,'CONVERTED':5,'DROPPED':6};
+  // Analytics col mapping: 2=Prospects,3=Contacted,4=InProgress,5=Converted,6=Dropped
+  var nsColMap={'PROSPECT':2,'CONTACTED':3,'IN PROGRESS':4,'CONVERTED':5,'DROPPED':6};
   var nt='<thead><tr><th></th>'+cols.map(function(c){return '<th>'+c.h+'</th>';}).join('')+'</tr></thead><tbody>';
   nsRows.forEach(function(r){
-    nt+='<tr class="'+r.cl+'"><td style="color:'+r.c+'">'+r.l+'</td>';
+    nt+='<tr class="'+r.cl+'"><td style="color:'+r.c+'">'+r.l+(r.tip?'<div style="font-size:8px;color:var(--t3)">'+r.tip+'</div>':'')+'</td>';
     cols.forEach(function(c){
-      var n;
-      var acol=nsColMap[r.s];
-      if(acol!==undefined && _analyticsData.length>0){
-        // Use analytics sheet data
-        n = c.k==='total' ? getAnalyticsBucket(acol,'total') : getAnalyticsBucket(acol,c.k);
+      var n=0;
+      if(r.s==='ACTIVE'){
+        // Active = Contacted + In Progress
+        if(_analyticsData.length>0){
+          var nc=c.k==='total'?getAnalyticsBucket(3,'total'):getAnalyticsBucket(3,c.k);
+          var ni=c.k==='total'?getAnalyticsBucket(4,'total'):getAnalyticsBucket(4,c.k);
+          n=nc+ni;
+        } else {
+          n=leads.filter(function(l){return ['CONTACTED','IN PROGRESS'].includes((l.status||'').toUpperCase());}).length;
+        }
       } else {
-        // Fallback to local leads count
-        n = nsCount(leads,r.s,c.k);
+        var acol=nsColMap[r.s];
+        if(acol&&_analyticsData.length>0){
+          n=c.k==='total'?getAnalyticsBucket(acol,'total'):getAnalyticsBucket(acol,c.k);
+        } else {
+          n=nsCount(leads,r.s,c.k);
+        }
       }
       nt+='<td><span class="ns-num'+(n===0?' zero':'')+'">'+n+'</span></td>';
     });
@@ -3057,12 +3076,17 @@ function renderDash(){
 
   // Update prominent totals
   // Total leads = active leads (Prospect + Contacted + In Progress)
+  // Active Leads = Contacted + In Progress (working pipeline)
   var totalLeads=leads.filter(function(l){
-    return ['PROSPECT','CONTACTED','IN PROGRESS'].includes((l.status||'').toUpperCase());
+    return ['CONTACTED','IN PROGRESS'].includes((l.status||'').toUpperCase());
   }).length;
-  var totalClients=clients.length; // total rows in CLIENTS sheet
+  var prospCount=leads.filter(function(l){
+    return (l.status||'').toUpperCase()==='PROSPECT';
+  }).length;
+  var totalClients=clients.length;
   var tlEl=document.getElementById('dash-total-leads');if(tlEl)tlEl.textContent=totalLeads;
   var tcEl=document.getElementById('dash-total-clients');if(tcEl)tcEl.textContent=totalClients;
+  var prEl=document.getElementById('dash-prospect-count');if(prEl)prEl.textContent=prospCount+' prospects';
   updateFUBadge();
   renderReminders(); // build reminders section in dashboard
   // Show popup for leads/clients not physically met in 1+ year
@@ -3693,88 +3717,91 @@ function renderAnalytics(){
   var sub=document.getElementById('ana-sub');
   if(sub) sub.textContent=leads.length+' leads · '+clients.length+' clients';
 
-  var total=leads.length;
+  var anaEl=document.getElementById('ana-section');
+  if(!anaEl) return;
+
+  // ── Summary tiles (from local leads/clients arrays) ──
+  var active=leads.filter(function(l){return ['CONTACTED','IN PROGRESS'].includes((l.status||'').toUpperCase());}).length;
+  var prospect=leads.filter(function(l){return (l.status||'').toUpperCase()==='PROSPECT';}).length;
   var conv=leads.filter(function(l){return (l.status||'').toUpperCase()==='CONVERTED';}).length;
   var drop=leads.filter(function(l){return (l.status||'').toUpperCase()==='DROPPED';}).length;
-  var convRate = total ? (conv/total*100).toFixed(1) : '0';
-  var dropRate = total ? (drop/total*100).toFixed(1) : '0';
+  var total=leads.length;
+  var convRate=total?(conv/total*100).toFixed(1):'0';
 
-  var dur = calcStatusDurations();
-  var avgConv = avg(dur.convDays);
-  var avgPros = avg(dur.prospectDays);
-  var avgCont = avg(dur.contactedDays);
-  var avgInPr = avg(dur.inProgressDays);
-
-  function metricCard(label, value, unit, sub, color){
-    color = color||'var(--accent)';
-    return '<div style="background:var(--s2);border-radius:var(--r2);padding:14px 12px;text-align:center">'
-      +'<div style="font-size:28px;font-weight:900;color:'+color+';line-height:1">'+(value!==null?value+unit:'—')+'</div>'
-      +'<div style="font-size:11px;font-weight:700;color:var(--text);margin-top:5px">'+label+'</div>'
-      +(sub?'<div style="font-size:10px;color:var(--t3);margin-top:2px">'+sub+'</div>':'')
-      +'</div>';
-  }
-
-  // ── Productivity section ──
-  var prodEl=document.getElementById('ana-contact-rate');
-  if(prodEl) prodEl.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px">'
-    +metricCard('Conversion Rate', convRate, '%', conv+' of '+total+' leads', '#4FC3F7')
-    +metricCard('Drop Rate', dropRate, '%', drop+' of '+total+' leads', '#888')
-    +metricCard('Avg. Conversion', avgConv, 'd', 'entry → converted', 'var(--accent)')
-    +metricCard('Avg. Prospect', avgPros, 'd', 'time in prospect stage', '#AAA')
-    +metricCard('Avg. Contacted', avgCont, 'd', 'time in contacted stage', '#4FC3F7')
-    +metricCard('Avg. In Progress', avgInPr, 'd', 'time in in-progress stage', '#FFB300')
+  var summaryHtml='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">'
+    +'<div style="background:var(--s2);border-radius:10px;padding:12px;text-align:center"><div style="font-size:26px;font-weight:900;color:var(--accent)">'+active+'</div><div style="font-size:10px;color:var(--t2);margin-top:3px">Active Leads<br><span style="color:#f39c12">'+prospect+' prospects</span></div></div>'
+    +'<div style="background:var(--s2);border-radius:10px;padding:12px;text-align:center"><div style="font-size:26px;font-weight:900;color:var(--green)">'+clients.length+'</div><div style="font-size:10px;color:var(--t2);margin-top:3px">Total Clients</div></div>'
+    +'<div style="background:var(--s2);border-radius:10px;padding:12px;text-align:center"><div style="font-size:26px;font-weight:900;color:var(--green)">'+convRate+'%</div><div style="font-size:10px;color:var(--t2);margin-top:3px">Conversion Rate</div></div>'
+    +'<div style="background:var(--s2);border-radius:10px;padding:12px;text-align:center"><div style="font-size:26px;font-weight:900;color:#e74c3c">'+drop+'</div><div style="font-size:10px;color:var(--t2);margin-top:3px">Dropped</div></div>'
     +'</div>';
 
-  // ── Monthly trend ──
-  var months=[];
-  for(var i=5;i>=0;i--){var d=new Date();d.setMonth(d.getMonth()-i);months.push({y:d.getFullYear(),m:d.getMonth(),lbl:d.toLocaleDateString('en-IN',{month:'short'})});}
-  var mEntered=months.map(function(mo){return leads.filter(function(l){var d2=new Date(l.createdDate||'');return d2.getFullYear()===mo.y&&d2.getMonth()===mo.m;}).length;});
-  var mConv=months.map(function(mo){return leads.filter(function(l){var d2=new Date(l.modifiedDate||'');return (l.status||'').toUpperCase()==='CONVERTED'&&d2.getFullYear()===mo.y&&d2.getMonth()===mo.m;}).length;});
-  var maxM=Math.max.apply(null,mEntered.concat(mConv).concat([1]));
+  // ── Productivity trend from Analytics sheet (last 14 days) ──
+  var prodHtml='';
+  if(_analyticsData.length>0){
+    var recent=_analyticsData.slice(-14).reverse(); // last 14 days newest first
+    prodHtml='<div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.5px;margin-bottom:8px">📈 PRODUCTIVITY TREND (Last 14 Days)</div>'
+      +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px">'
+      +'<thead><tr>'
+      +'<th style="padding:6px 8px;text-align:left;color:var(--t3);border-bottom:1px solid var(--border)">Date</th>'
+      +'<th style="padding:6px 4px;text-align:center;color:#f39c12;border-bottom:1px solid var(--border)">Prosp</th>'
+      +'<th style="padding:6px 4px;text-align:center;color:#AAA;border-bottom:1px solid var(--border)">Cont</th>'
+      +'<th style="padding:6px 4px;text-align:center;color:#CCC;border-bottom:1px solid var(--border)">InProg</th>'
+      +'<th style="padding:6px 4px;text-align:center;color:var(--green);border-bottom:1px solid var(--border)">Conv</th>'
+      +'<th style="padding:6px 4px;text-align:center;color:var(--accent);font-weight:900;border-bottom:1px solid var(--border)">Total</th>'
+      +'</tr></thead><tbody>';
 
-  var trendEl=document.getElementById('ana-trend');
-  if(trendEl){
-    trendEl.innerHTML='<div style="display:flex;align-items:flex-end;gap:6px;height:80px;padding:0 4px">'
-      +months.map(function(mo,i){
-        var hE=Math.max(mEntered[i]/maxM*72,mEntered[i]>0?3:0);
-        var hC=Math.max(mConv[i]/maxM*72,mConv[i]>0?3:0);
-        return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">'
-          +'<div style="font-size:9px;color:var(--t3)">'+(mEntered[i]||'')+'</div>'
-          +'<div style="width:100%;display:flex;gap:2px;align-items:flex-end">'
-          +'<div style="flex:1;background:#444;border-radius:2px 2px 0 0;height:'+hE+'px" title="Entered: '+mEntered[i]+'"></div>'
-          +'<div style="flex:1;background:var(--accent);border-radius:2px 2px 0 0;height:'+hC+'px" title="Converted: '+mConv[i]+'"></div>'
-          +'</div></div>';
-      }).join('')
-      +'</div>'
-      +'<div style="display:flex;gap:6px;margin-top:5px">'
-      +months.map(function(mo){return '<div style="flex:1;text-align:center;font-size:9px;color:var(--t3)">'+mo.lbl+'</div>';}).join('')
-      +'</div>'
-      +'<div style="display:flex;gap:12px;margin-top:8px;justify-content:center">'
-      +'<div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--t3)"><div style="width:10px;height:10px;background:#444;border-radius:2px"></div>Entered</div>'
-      +'<div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--t3)"><div style="width:10px;height:10px;background:var(--accent);border-radius:2px"></div>Converted</div>'
-      +'</div>';
+    recent.forEach(function(r){
+      var p=parseInt(r[1])||0, ct=parseInt(r[2])||0, ip=parseInt(r[3])||0, cv=parseInt(r[4])||0, dr=parseInt(r[5])||0;
+      var dayTotal=p+ct+ip+cv;
+      var dateStr=String(r[0]||'').trim();
+      // Format date nicely
+      var d=new Date(dateStr);
+      var dateLabel=isNaN(d)?dateStr:(d.getDate()+'/'+(d.getMonth()+1));
+      // Productivity bar: shade background based on activity
+      var shade=dayTotal>5?'rgba(192,57,43,.1)':dayTotal>0?'rgba(255,255,255,.03)':'';
+      prodHtml+='<tr style="background:'+shade+';border-bottom:1px solid var(--border)33">'
+        +'<td style="padding:6px 8px;color:var(--t2)">'+dateLabel+'</td>'
+        +'<td style="padding:6px 4px;text-align:center;color:'+(p<0?'#e74c3c':'#f39c12')+'">'+p+'</td>'
+        +'<td style="padding:6px 4px;text-align:center;color:'+(ct<0?'#e74c3c':'#AAA')+'">'+ct+'</td>'
+        +'<td style="padding:6px 4px;text-align:center;color:'+(ip<0?'#e74c3c':'#CCC')+'">'+ip+'</td>'
+        +'<td style="padding:6px 4px;text-align:center;color:'+(cv<0?'#e74c3c':'var(--green)')+'">'+cv+'</td>'
+        +'<td style="padding:6px 4px;text-align:center;font-weight:900;color:var(--accent)">'+dayTotal+'</td>'
+        +'</tr>';
+    });
+    prodHtml+='</tbody></table></div>';
+
+    // ── Totals row ──
+    var totP=0,totC=0,totI=0,totCv=0,totD=0;
+    _analyticsData.forEach(function(r){totP+=parseInt(r[1])||0;totC+=parseInt(r[2])||0;totI+=parseInt(r[3])||0;totCv+=parseInt(r[4])||0;totD+=parseInt(r[5])||0;});
+    prodHtml+='<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:10px">'
+      +[['Prospects',totP,'#f39c12'],['Contacted',totC,'#AAA'],['In Progress',totI,'#CCC'],['Converted',totCv,'var(--green)'],['Dropped',totD,'#e74c3c']].map(function(x){
+        return '<div style="background:var(--s2);border-radius:8px;padding:8px 4px;text-align:center"><div style="font-size:18px;font-weight:900;color:'+x[2]+'">'+x[1]+'</div><div style="font-size:8px;color:var(--t3);margin-top:2px">'+x[0]+'</div></div>';
+      }).join('')+'</div>';
+  } else {
+    prodHtml='<div style="font-size:11px;color:var(--t3);text-align:center;padding:16px;font-style:italic">No analytics data yet.<br>Status changes will populate this automatically.</div>';
   }
 
-  // ── Country chart ──
-  var cc={};leads.forEach(function(l){var c=(l.country||'Not set').toUpperCase().trim();cc[c]=(cc[c]||0)+1;});
-  var sortedC=Object.entries(cc).sort(function(a,b){return b[1]-a[1];});
-  var ctEl=document.getElementById('ana-country');
-  if(ctEl) ctEl.innerHTML=sortedC.map(function(x){
-    return '<div class="fn-row"><div class="fn-lbl" style="font-size:11px;font-weight:700">'+x[0]+'</div>'
-      +'<div class="fn-track"><div class="fn-bar" style="width:'+x[1]/(sortedC[0][1]||1)*100+'%;background:var(--accent)"></div></div>'
-      +'<div class="fn-n">'+x[1]+'</div></div>';
-  }).join('')||'<div style="color:var(--t3);font-size:11px">No data</div>';
+  // ── Funnel stats ──
+  var funnelHtml='<div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.5px;margin:14px 0 8px">🔽 CONVERSION FUNNEL</div>'
+    +'<div style="display:flex;flex-direction:column;gap:5px">';
+  var stages=[{l:'Prospect',n:prospect,c:'#f39c12'},{l:'Contacted',n:active,c:'#AAA'},{l:'Converted',n:conv,c:'var(--green)'},{l:'Dropped',n:drop,c:'#e74c3c'}];
+  var maxN=Math.max(prospect,active,conv,drop,1);
+  stages.forEach(function(st){
+    var pct=Math.round(st.n/maxN*100);
+    funnelHtml+='<div style="display:flex;align-items:center;gap:8px">'
+      +'<div style="width:70px;font-size:10px;color:var(--t2);text-align:right;flex-shrink:0">'+st.l+'</div>'
+      +'<div style="flex:1;background:var(--s2);border-radius:4px;height:18px;overflow:hidden">'
+      +'<div style="height:100%;width:'+pct+'%;background:'+st.c+';border-radius:4px;transition:width .3s"></div></div>'
+      +'<div style="width:25px;font-size:10px;font-weight:700;color:'+st.c+'">'+st.n+'</div>'
+      +'</div>';
+  });
+  funnelHtml+='</div>';
 
-  // ── Age chart ──
-  var ageGroups=[['<25',0,24],['25-34',25,34],['35-44',35,44],['45-54',45,54],['55+',55,120]];
-  var ageCounts=ageGroups.map(function(g){return leads.filter(function(l){var a=parseInt(l.age||0);return a>=g[1]&&a<=g[2];}).length;});
-  var mxA=Math.max.apply(null,ageCounts.concat([1]));
-  var ageEl=document.getElementById('ana-age');
-  if(ageEl) ageEl.innerHTML=ageGroups.map(function(g,i){
-    return '<div class="fn-row"><div class="fn-lbl" style="font-size:11px">'+g[0]+' yrs</div>'
-      +'<div class="fn-track"><div class="fn-bar" style="width:'+ageCounts[i]/mxA*100+'%;background:var(--accent)"></div></div>'
-      +'<div class="fn-n">'+ageCounts[i]+'</div></div>';
-  }).join('');
+  anaEl.innerHTML='<div style="padding:0 14px 100px">'
+    +summaryHtml
+    +'<div style="background:var(--s1);border-radius:10px;padding:12px 14px;margin-bottom:10px">'+prodHtml+'</div>'
+    +'<div style="background:var(--s1);border-radius:10px;padding:12px 14px">'+funnelHtml+'</div>'
+    +'</div>';
 }
 
 function openFuOverlay(){
@@ -3846,10 +3873,14 @@ function addSearchClose(){
 
 
 // ── ANALYTICS DAILY TRACKING ──
+// logAnalytics: col=2 LeadEntries,3 Prospects,4 Contacted,5 InProgress,6 Converted,7 Dropped
 function logAnalytics(col, delta){
-  // col: 2=leadEntry, 3=prospect, 4=contacted, 5=inProgress, 6=converted, 7=dropped
   if(!hasScript()) return;
-  sheetPost({action:'updateAnalytics', date:today(), col:col, delta:delta||1});
+  var todayStr=today();
+  var row=_analyticsData.find(function(r){return String(r[0]||'').trim()===todayStr;});
+  if(row){ row[col-1]=(parseInt(row[col-1])||0)+(delta||1); }
+  else { var nr=[todayStr,0,0,0,0,0,0]; nr[col-1]=(delta||1); _analyticsData.push(nr); localStorage.setItem('wm_analytics',JSON.stringify(_analyticsData)); }
+  apiFetch({action:'updateAnalytics', date:todayStr, col:col, delta:delta||1});
 }
 
 function calcStatusDurations(){
@@ -4883,172 +4914,133 @@ function closeStaleList(){var el=document.getElementById('_staleListOv');if(el)e
 function renderReminders(){
   var el=document.getElementById('dash-reminders');
   if(!el) return;
-  var todayStr=today();
-  var now=new Date();
-  var currentDay=now.getDate();
-  var currentMonth=now.getMonth()+1; // 1-12
-  var items=[];
+  var now=new Date(); var items=[];
 
-  // Helper: days until a date string (YYYY-MM-DD)
   function daysTo(dStr){
     if(!dStr||!/\d{4}-\d{2}-\d{2}/.test(dStr)) return 9999;
     return Math.round((new Date(dStr)-now)/86400000);
   }
-  // Helper: days until this year's anniversary of a date (e.g. DOB for birthday)
   function daysToAnnual(dStr){
     if(!dStr) return 9999;
-    var parts=dStr.split('-');
-    if(parts.length<3) return 9999;
-    var thisYear=new Date(now.getFullYear(),parseInt(parts[1])-1,parseInt(parts[2]));
-    var d=Math.round((thisYear-now)/86400000);
-    if(d<0) d+=365; // already passed this year, show next year
-    return d;
+    var p=dStr.split('-');if(p.length<3) return 9999;
+    var d=Math.round((new Date(now.getFullYear(),parseInt(p[1])-1,parseInt(p[2]))-now)/86400000);
+    return d<0?d+365:d;
   }
-  // Helper: days until SIP date this month (sipDate is day of month, 1-28)
   function daysToSip(sipDay){
-    if(!sipDay) return 9999;
-    var day=parseInt(sipDay);
-    if(!day||day<1||day>28) return 9999;
-    var sipDate=new Date(now.getFullYear(),now.getMonth(),day);
-    var d=Math.round((sipDate-now)/86400000);
-    if(d<0){sipDate=new Date(now.getFullYear(),now.getMonth()+1,day);d=Math.round((sipDate-now)/86400000);}
+    var day=parseInt(sipDay);if(!day||day<1||day>28) return 9999;
+    var dt=new Date(now.getFullYear(),now.getMonth(),day);
+    var d=Math.round((dt-now)/86400000);
+    if(d<0){dt=new Date(now.getFullYear(),now.getMonth()+1,day);d=Math.round((dt-now)/86400000);}
     return d;
   }
+  function waNum(c){var n=(c.mobile||'').replace(/\D/g,'');return n.length===10?'91'+n:n;}
 
-  // ── LEADS: overdue follow-ups ──
-  var overdueLeads=leads.filter(function(l){
-    if(!['PROSPECT','CONTACTED','IN PROGRESS'].includes((l.status||'').toUpperCase())) return false;
-    if(l.nextFollowUp&&/^\d{4}-\d{2}-\d{2}$/.test(l.nextFollowUp)) return daysTo(l.nextFollowUp)<=0;
-    return daysAgo(l.modifiedDate||l.createdDate)>=(parseInt(cfg_.followUpDays)||14);
-  });
-  if(overdueLeads.length){
-    items.push({type:'followup',priority:0,color:'#C0392B',bg:'rgba(192,57,43,.08)',
-      icon:'📋',title:overdueLeads.length+' Lead follow-up'+(overdueLeads.length>1?'s':'')+' overdue',
-      sub:overdueLeads.slice(0,3).map(function(l){return toTitle(l.name);}).join(', ')+(overdueLeads.length>3?'…':''),
-      action:"nav('leads',document.querySelector('.nb'))"});
+  // ── SIP due within 5 days ──
+  var sipDue=clients.filter(function(c){return c.sipDate&&daysToSip(c.sipDate)<=5&&daysToSip(c.sipDate)>=0;});
+  if(sipDue.length){
+    items.push({icon:'💰',color:'#f39c12',bg:'rgba(243,156,18,.08)',
+      title:'SIP due — '+sipDue.length+' client'+(sipDue.length>1?'s':''),
+      sub:sipDue.map(function(c){return toTitle(c.name)+' ('+c.sipDate+'th)';}).join(' · '),
+      list:sipDue, listType:'sip'});
   }
 
-  // ── CLIENTS: overdue follow-ups ──
-  var overdueClients=clients.filter(function(c){
-    return c.nextFollowUp&&/^\d{4}-\d{2}-\d{2}$/.test(c.nextFollowUp)&&daysTo(c.nextFollowUp)<=0;
-  });
-  if(overdueClients.length){
-    items.push({type:'followup',priority:0,color:'#C0392B',bg:'rgba(192,57,43,.08)',
-      icon:'👥',title:overdueClients.length+' Client follow-up'+(overdueClients.length>1?'s':'')+' overdue',
-      sub:overdueClients.slice(0,3).map(function(c){return toTitle(c.name);}).join(', ')+(overdueClients.length>3?'…':''),
-      action:''});
+  // ── Health insurance due within 30 days ──
+  var healthDue=clients.filter(function(c){var d=daysTo(c.dueDateHealth);return d>=0&&d<=30;});
+  if(healthDue.length){
+    items.push({icon:'🏥',color:'#e74c3c',bg:'rgba(231,76,60,.08)',
+      title:'Health Insurance due — '+healthDue.length+' client'+(healthDue.length>1?'s':''),
+      sub:healthDue.map(function(c){return toTitle(c.name)+' ('+fmt(c.dueDateHealth)+')';}).join(' · '),
+      list:healthDue, listType:'health'});
   }
 
-  // ── CLIENTS: SIP due in 5 days ──
-  clients.forEach(function(c){
-    if(!c.sipDate) return;
-    var d=daysToSip(c.sipDate);
-    if(d>=0&&d<=5){
-      var waNum=(c.mobile||'').replace(/\D/g,'');waNum=waNum.length===10?'91'+waNum:waNum;
-      items.push({type:'sip',priority:1,color:'#f39c12',bg:'rgba(243,156,18,.08)',
-        icon:'💰',title:'SIP due '+d+'d — '+toTitle(c.name),
-        sub:'SIP date: '+c.sipDate+'th · AUM: '+(c.aum||'—'),
-        waNum:waNum, mob:c.mobile, waqType:'sip'});
-    }
-  });
+  // ── Life insurance due within 30 days ──
+  var lifeDue=clients.filter(function(c){var d=daysTo(c.dueDateLife);return d>=0&&d<=30;});
+  if(lifeDue.length){
+    items.push({icon:'🛡️',color:'#9b59b6',bg:'rgba(155,89,182,.08)',
+      title:'Life Insurance due — '+lifeDue.length+' client'+(lifeDue.length>1?'s':''),
+      sub:lifeDue.map(function(c){return toTitle(c.name)+' ('+fmt(c.dueDateLife)+')';}).join(' · '),
+      list:lifeDue, listType:'life'});
+  }
 
-  // ── CLIENTS: Health insurance due in 30 days ──
-  clients.forEach(function(c){
-    if(!c.dueDateHealth) return;
-    var d=daysTo(c.dueDateHealth);
-    if(d>=0&&d<=30){
-      var waNum=(c.mobile||'').replace(/\D/g,'');waNum=waNum.length===10?'91'+waNum:waNum;
-      items.push({type:'health',priority:2,color:'#e74c3c',bg:'rgba(231,76,60,.08)',
-        icon:'🏥',title:'Health Ins. due in '+d+'d — '+toTitle(c.name),
-        sub:(c.healthInsurance||'Policy')+' · Due: '+fmt(c.dueDateHealth),
-        waNum:waNum, mob:c.mobile, waqType:'cas'});
-    }
-  });
+  // ── Birthdays today ──
+  var bdays=clients.filter(function(c){return daysToAnnual(c.dob)===0;});
+  var sbdays=clients.filter(function(c){return daysToAnnual(c.spouseDob)===0;});
+  var allBdays=bdays.concat(sbdays);
+  if(allBdays.length){
+    items.push({icon:'🎂',color:'#25D366',bg:'rgba(37,211,102,.08)',
+      title:'Birthday today — '+allBdays.length+' client'+(allBdays.length>1?'s':''),
+      sub:allBdays.map(function(c){return toTitle(c.name);}).join(' · '),
+      list:allBdays, listType:'bday'});
+  }
 
-  // ── CLIENTS: Life insurance due in 30 days ──
-  clients.forEach(function(c){
-    if(!c.dueDateLife) return;
-    var d=daysTo(c.dueDateLife);
-    if(d>=0&&d<=30){
-      var waNum=(c.mobile||'').replace(/\D/g,'');waNum=waNum.length===10?'91'+waNum:waNum;
-      items.push({type:'life',priority:3,color:'#9b59b6',bg:'rgba(155,89,182,.08)',
-        icon:'🛡️',title:'Life Ins. due in '+d+'d — '+toTitle(c.name),
-        sub:(c.lifeInsurance||'Policy')+' · Due: '+fmt(c.dueDateLife),
-        waNum:waNum, mob:c.mobile, waqType:'cas'});
-    }
-  });
+  // ── Anniversaries today ──
+  var anns=clients.filter(function(c){return daysToAnnual(c.anniversary)===0;});
+  if(anns.length){
+    items.push({icon:'💑',color:'#3498db',bg:'rgba(52,152,219,.08)',
+      title:'Anniversary today — '+anns.length+' client'+(anns.length>1?'s':''),
+      sub:anns.map(function(c){return toTitle(c.name);}).join(' · '),
+      list:anns, listType:'ann'});
+  }
 
-  // ── CLIENTS: Birthday (DOB) today ──
-  clients.forEach(function(c){
-    if(!c.dob) return;
-    if(daysToAnnual(c.dob)===0){
-      var waNum=(c.mobile||'').replace(/\D/g,'');waNum=waNum.length===10?'91'+waNum:waNum;
-      items.push({type:'bday',priority:4,color:'#25D366',bg:'rgba(37,211,102,.08)',
-        icon:'🎂',title:'Birthday — '+toTitle(c.name),
-        sub:'Today! Send wishes',waNum:waNum,mob:c.mobile,waqType:'bday'});
-    }
-  });
-
-  // ── CLIENTS: Spouse Birthday today ──
-  clients.forEach(function(c){
-    if(!c.spouseDob) return;
-    if(daysToAnnual(c.spouseDob)===0){
-      var waNum=(c.mobile||'').replace(/\D/g,'');waNum=waNum.length===10?'91'+waNum:waNum;
-      items.push({type:'bday',priority:4,color:'#25D366',bg:'rgba(37,211,102,.08)',
-        icon:'🎂',title:'Spouse Birthday — '+toTitle(c.name),
-        sub:'Today! Send wishes',waNum:waNum,mob:c.mobile,waqType:'bday'});
-    }
-  });
-
-  // ── CLIENTS: Anniversary today ──
-  clients.forEach(function(c){
-    if(!c.anniversary) return;
-    if(daysToAnnual(c.anniversary)===0){
-      var waNum=(c.mobile||'').replace(/\D/g,'');waNum=waNum.length===10?'91'+waNum:waNum;
-      items.push({type:'ann',priority:5,color:'#3498db',bg:'rgba(52,152,219,.08)',
-        icon:'💑',title:'Anniversary — '+toTitle(c.name),
-        sub:'Today! Send wishes',waNum:waNum,mob:c.mobile,waqType:'ann'});
-    }
-  });
-
-  // ── CLIENTS: 1st Anniversary today ──
-  clients.forEach(function(c){
-    if(!c.firstAnniversary) return;
-    if(daysToAnnual(c.firstAnniversary)===0){
-      var waNum=(c.mobile||'').replace(/\D/g,'');waNum=waNum.length===10?'91'+waNum:waNum;
-      items.push({type:'ann1',priority:5,color:'#2ecc71',bg:'rgba(46,204,113,.08)',
-        icon:'🏆',title:'1st Anniversary — '+toTitle(c.name),
-        sub:'1 year as client! Send congrats',waNum:waNum,mob:c.mobile,waqType:'cas'});
-    }
-  });
+  // ── 1st Anniversary today ──
+  var ann1s=clients.filter(function(c){return daysToAnnual(c.firstAnniversary)===0;});
+  if(ann1s.length){
+    items.push({icon:'🏆',color:'#2ecc71',bg:'rgba(46,204,113,.08)',
+      title:'1 Year Anniversary — '+ann1s.length+' client'+(ann1s.length>1?'s':''),
+      sub:ann1s.map(function(c){return toTitle(c.name);}).join(' · '),
+      list:ann1s, listType:'cas'});
+  }
 
   if(!items.length){
     el.innerHTML='<div style="font-size:11px;color:var(--t3);text-align:center;padding:10px;font-style:italic">No reminders today 🎉</div>';
     return;
   }
 
-  // Sort by priority
-  items.sort(function(a,b){return a.priority-b.priority;});
-
-  el.innerHTML=items.map(function(item){
-    var quickBtns='';
-    // WA quick send button — use data attributes to avoid quote conflicts
-    if(item.waNum){
-      quickBtns+='<button data-rwaq="'+item.waqType+'" data-rwanum="'+item.waNum+'" data-rmob="'+item.mob+'" class="rem-wa-btn" style="font-size:10px;padding:3px 8px;border-radius:5px;border:1px solid rgba(37,211,102,.3);background:rgba(37,211,102,.08);color:#25D366;cursor:pointer;margin-left:6px;flex-shrink:0">💬 WA</button>';
-      if(item.type==='health'||item.type==='life'||item.type==='ann1'){
-        quickBtns+='<button data-rwaq="cas" data-rwanum="'+item.waNum+'" data-rmob="'+item.mob+'" class="rem-wa-btn" style="font-size:10px;padding:3px 8px;border-radius:5px;border:1px solid rgba(52,152,219,.3);background:rgba(52,152,219,.08);color:#3498db;cursor:pointer;margin-left:3px;flex-shrink:0">📊 CAS</button>';
-      }
-    }
-    var clickable=item.action?'onclick="'+item.action+'"':'';
-    return '<div '+clickable+' style="display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:9px;background:'+item.bg+';border:1px solid '+item.color+'33;margin-bottom:6px;'+(item.action?'cursor:pointer':'')+'">'
+  el.innerHTML=items.map(function(item,idx){
+    return '<div onclick="showReminderList('+idx+')" style="display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:9px;background:'+item.bg+';border:1px solid '+item.color+'33;margin-bottom:6px;cursor:pointer">'
       +'<span style="font-size:20px;flex-shrink:0">'+item.icon+'</span>'
       +'<div style="flex:1;min-width:0">'
       +'<div style="font-size:12px;font-weight:700;color:var(--text)">'+item.title+'</div>'
       +'<div style="font-size:10px;color:var(--t3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+item.sub+'</div>'
       +'</div>'
-      +quickBtns
+      +'<span style="font-size:14px;color:var(--t3)">›</span>'
       +'</div>';
   }).join('');
+
+  // Store items for click handler
+  window._remItems=items;
+}
+
+// Show clickable list popup for a reminder group
+function showReminderList(idx){
+  var item=window._remItems&&window._remItems[idx];
+  if(!item||!item.list) return;
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:99999;display:flex;align-items:flex-end;justify-content:center';
+  var rows=item.list.map(function(c){
+    var wn=(c.mobile||'').replace(/\D/g,'');wn=wn.length===10?'91'+wn:wn;
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid var(--border)">'
+      +'<div class="rem-chip-open" data-cmob="'+c.mobile+'" style="cursor:pointer;flex:1">'
+      +'<div style="font-size:13px;font-weight:700;color:var(--text)">'+toTitle(c.name)+'</div>'
+      +'<div style="font-size:10px;color:var(--t3);margin-top:1px">'+c.mobile+'</div></div>'
+      +'<button data-rwaq="'+item.listType+'" data-rwanum="'+wn+'" data-rmob="'+c.mobile+'" class="rem-wa-btn" '
+      +'style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid rgba(37,211,102,.3);background:rgba(37,211,102,.08);color:#25D366;cursor:pointer;flex-shrink:0">💬 WA</button>'
+      +'</div>';
+  }).join('');
+  ov.innerHTML='<div style="background:var(--s1);border-radius:14px 14px 0 0;width:100%;max-width:420px;max-height:75vh;display:flex;flex-direction:column">'
+    +'<div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">'
+    +'<span style="font-size:14px;font-weight:800;color:var(--text)">'+item.icon+' '+item.title+'</span>'
+    +'<span id="_remListX" style="font-size:18px;color:var(--t2);cursor:pointer">✕</span></div>'
+    +'<div style="overflow-y:auto;flex:1">'+rows+'</div></div>';
+  document.body.appendChild(ov);
+  document.getElementById('_remListX').onclick=function(){ov.remove();};
+  // Click delegation on popup
+  ov.addEventListener('click',function(e){
+    var b=e.target.closest('.rem-wa-btn');
+    if(b) sendWAQuick(b.dataset.rwanum,b.dataset.rwaq,b.dataset.rmob);
+    var ch=e.target.closest('.rem-chip-open');
+    if(ch){ov.remove();openDetail(ch.dataset.cmob,'client');}
+  });
 }
 
 
