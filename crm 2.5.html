@@ -338,6 +338,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   </div>
   <div class="sec" id="dash-alert"></div>
   <div class="sec" id="goal-section-wrap"></div>
+  <div class="sec" id="dash-reminders-wrap">
+    <div class="lbl" style="color:var(--accent)">🔔 Reminders</div>
+    <div id="dash-reminders"><div style="font-size:11px;color:var(--t3);text-align:center;padding:8px">Loading...</div></div>
+  </div>
   <div class="sec"><div class="lbl" style="color:var(--accent)">⭐ North Star Matrix</div><div class="card ns-wrap"><table class="ns-table" id="ns-table"></table></div></div>
   <div class="sec"><div class="lbl">Analytics</div><div class="ana-grid" id="analytics"></div></div>
 
@@ -1355,6 +1359,10 @@ function openDetail(mob,type){
     + '<button data-waq="cas" data-wanum="'+waNum+'" class="qwa-btn qwa-blue"><span class="qwa-ico">📊</span><span class="qwa-lbl">CAMS CAS</span></button>'
     + '<button data-waq="sip" data-wanum="'+waNum+'" data-mob="'+mob+'" class="qwa-btn qwa-amber"><span class="qwa-ico">💰</span><span class="qwa-lbl">SIP Rem</span></button>'
     + '<button data-waq="chg" data-wanum="'+waNum+'" class="qwa-btn qwa-purple"><span class="qwa-ico">🔄</span><span class="qwa-lbl">Mob/Mail<br>Chng</span></button>'
+    + '</div>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px">'
+    + '<button data-waq="welcome" data-wanum="'+waNum+'" data-mob="'+mob+'" class="qwa-btn qwa-green" style="padding:8px 4px"><span class="qwa-ico">👋</span><span class="qwa-lbl">Welcome<br>Message</span></button>'
+    + '<button data-waq="cas" data-wanum="'+waNum+'" class="qwa-btn qwa-blue" style="padding:8px 4px"><span class="qwa-ico">📊</span><span class="qwa-lbl">CAMS CAS<br>Report</span></button>'
     + '</div></div>'
     + '<div style="padding:0 14px 8px"><div style="background:var(--s2);border-radius:9px;padding:10px 12px">'
     + '<div style="font-size:9px;color:var(--accent);font-weight:700;letter-spacing:.5px;margin-bottom:7px">ACTIVITY LOG</div>'
@@ -1458,6 +1466,8 @@ function openAddClient(pre){
   document.querySelectorAll('#cf-toggles .pt').forEach(function(t){t.classList.remove('on');});
   document.querySelectorAll('#cf-products .pt').forEach(function(t){t.classList.remove('on');});
   var badge=document.getElementById('cf-prod-badge');if(badge)badge.style.display='none';
+  var origEl2=document.getElementById('cf-orig');
+  if(origEl2) origEl2.value=''; // empty = new client
   document.getElementById('ov-client').classList.add('open');
   setupAutocomplete('cf-name','cf-ac-list','client');
 }
@@ -1494,6 +1504,9 @@ function editClientOpen(mob){
   var badge=document.getElementById('cf-prod-badge');
   if(badge) badge.style.display='none';
 
+  // Store original mobile in hidden field — reliable even if global state gets cleared
+  var origEl=document.getElementById('cf-orig');
+  if(origEl) origEl.value=mob;
   document.getElementById('ov-client').classList.add('open');
 }
 async function saveClient(){
@@ -1527,21 +1540,29 @@ async function saveClient(){
     products:prods, remarks:caps(gv('cf-rem'))
   };
 
-  if(editClient){
-    var idx=clients.findIndex(function(c){return c.mobile===editClient;});
-    if(idx>=0){
-      clients[idx]=Object.assign({},clients[idx],data,{modifiedDate:now()});
-      saveC();closeOv('ov-client');renderClients();
-      syncClient(clients[idx],'update'); // targeted — one row
-      toast('✅ Client updated');
-    }
-    editClient=null;
+  // Read original mobile from hidden field — more reliable than global editClient state
+  var origMob=document.getElementById('cf-orig')?document.getElementById('cf-orig').value.trim():'';
+
+  if(origMob){
+    // ── EDIT existing client ──
+    var idx=clients.findIndex(function(c){return c.mobile===origMob;});
+    if(idx<0){toast('Client not found');return;}
+    clients[idx]=Object.assign({},clients[idx],data,{modifiedDate:now()});
+    saveC();
+    var updated=clients[idx];
+    closeOv('ov-client');
+    renderClients();
+    syncClient(updated,'update'); // targeted — updates only this row in sheet
+    toast('✅ Client updated');
   } else {
+    // ── ADD new client ──
     if(clients.find(function(c){return c.mobile===mob;})){toast('Mobile already exists');return;}
     data.createdDate=today();
     data.modifiedDate=now();
     clients.unshift(data); // newest at top
-    saveC();closeOv('ov-client');renderClients();
+    saveC();
+    closeOv('ov-client');
+    renderClients();
     syncClient(data,'add'); // targeted — appends one row
     toast('✅ Client added');
   }
@@ -2021,7 +2042,9 @@ function closeOv(id){
     var fd=parseInt(cfg_.followUpDays)||14;
     if(l&&(daysAgo(l.modifiedDate||l.createdDate)>=fd||_detailModified)){l.modifiedDate=now();saveL();syncLead(l,'update');setTimeout(renderFU,600);}
   }
-  editLead=null;editClient=null;_detailOpenMobile=null;_detailOpenType=null;_detailModified=false;
+  editLead=null;
+  if(id==='ov-client') editClient=null; // only clear editClient when the client form closes
+  _detailOpenMobile=null;_detailOpenType=null;_detailModified=false;
 }
 document.querySelectorAll('.ov').forEach(function(o){o.addEventListener('click',function(e){if(e.target===o){if(o.id==='ov-fu-detail')closeFuDetail();else closeOv(o.id);}});});
 function fabAdd(){var activePage=document.querySelector('.page.active');if(activePage&&activePage.id==='pg-clients')openAddClient();else openAddLead();}
@@ -3036,6 +3059,7 @@ function renderDash(){
   var tlEl=document.getElementById('dash-total-leads');if(tlEl)tlEl.textContent=totalLeads;
   var tcEl=document.getElementById('dash-total-clients');if(tcEl)tcEl.textContent=totalClients;
   updateFUBadge();
+  renderReminders(); // build reminders section in dashboard
   // Show popup for leads/clients not physically met in 1+ year
   checkPhysicalMeetReminder();
 }
@@ -4573,6 +4597,29 @@ function sendWAQuick(waNum, type, mob){
       +'\n\nKFintech RTA- https://mfs.kfintech.com/investor/Transact/ChangeFolioEmail'
       +'\n\nRegards'
       +'\nArjun K T M';
+  } else if(type==='bday'){
+    var cName=c?toTitle(c.name):'';
+    msg='Hi '+cName+','
+      +'\n\nWishing you a very Happy Birthday! 🎂'
+      +'\n\nMay this year bring you great health, happiness and prosperity.'
+      +'\n\nWarm regards'
+      +'\nArjun K T M';
+  } else if(type==='ann'){
+    var cName2=c?toTitle(c.name):'';
+    msg='Hi '+cName2+','
+      +'\n\nWishing you both a very Happy Wedding Anniversary! 💑'
+      +'\n\nMay your bond grow stronger with each passing year.'
+      +'\n\nWarm regards'
+      +'\nArjun K T M';
+  } else if(type==='welcome'){
+    var cName3=c?toTitle(c.name):'';
+    msg='Hi '+cName3+','
+      +'\n\nI am pleased to share that I have started my own boutique wealth management and financial advisory firm, Wealth Matrix LLP, based in Ernakulam.'
+      +'\n\nWe specialize in providing comprehensive wealth management and financial advisory services to families and corporates.'
+      +'\n\nOur office is located at Alappat Building, Opp. Seematti Textiles, M.G. Road, Ernakulam. Whenever you are visiting Ernakulam, I would be delighted to welcome you to our office.'
+      +'\n\nPlease find our brochure attached for your kind perusal.'
+      +'\n\nThank you.'
+      +'\nArjun K T M';
   }
 
   if(!msg) return;
@@ -4824,6 +4871,187 @@ function showStaleAumList(){
   document.getElementById('_staleListClose').onclick=closeStaleList;
 }
 function closeStaleList(){var el=document.getElementById('_staleListOv');if(el)el.remove();}
+
+
+// ── renderReminders — builds the Reminders section in Dashboard ──
+// Timing: SIP = 5 days before, Health/Life = 30 days before, Birthday/Anniversary = on the date
+function renderReminders(){
+  var el=document.getElementById('dash-reminders');
+  if(!el) return;
+  var todayStr=today();
+  var now=new Date();
+  var currentDay=now.getDate();
+  var currentMonth=now.getMonth()+1; // 1-12
+  var items=[];
+
+  // Helper: days until a date string (YYYY-MM-DD)
+  function daysTo(dStr){
+    if(!dStr||!/\d{4}-\d{2}-\d{2}/.test(dStr)) return 9999;
+    return Math.round((new Date(dStr)-now)/86400000);
+  }
+  // Helper: days until this year's anniversary of a date (e.g. DOB for birthday)
+  function daysToAnnual(dStr){
+    if(!dStr) return 9999;
+    var parts=dStr.split('-');
+    if(parts.length<3) return 9999;
+    var thisYear=new Date(now.getFullYear(),parseInt(parts[1])-1,parseInt(parts[2]));
+    var d=Math.round((thisYear-now)/86400000);
+    if(d<0) d+=365; // already passed this year, show next year
+    return d;
+  }
+  // Helper: days until SIP date this month (sipDate is day of month, 1-28)
+  function daysToSip(sipDay){
+    if(!sipDay) return 9999;
+    var day=parseInt(sipDay);
+    if(!day||day<1||day>28) return 9999;
+    var sipDate=new Date(now.getFullYear(),now.getMonth(),day);
+    var d=Math.round((sipDate-now)/86400000);
+    if(d<0){sipDate=new Date(now.getFullYear(),now.getMonth()+1,day);d=Math.round((sipDate-now)/86400000);}
+    return d;
+  }
+
+  // ── LEADS: overdue follow-ups ──
+  var overdueLeads=leads.filter(function(l){
+    if(!['PROSPECT','CONTACTED','IN PROGRESS'].includes((l.status||'').toUpperCase())) return false;
+    if(l.nextFollowUp&&/^\d{4}-\d{2}-\d{2}$/.test(l.nextFollowUp)) return daysTo(l.nextFollowUp)<=0;
+    return daysAgo(l.modifiedDate||l.createdDate)>=(parseInt(cfg_.followUpDays)||14);
+  });
+  if(overdueLeads.length){
+    items.push({type:'followup',priority:0,color:'#C0392B',bg:'rgba(192,57,43,.08)',
+      icon:'📋',title:overdueLeads.length+' Lead follow-up'+(overdueLeads.length>1?'s':'')+' overdue',
+      sub:overdueLeads.slice(0,3).map(function(l){return toTitle(l.name);}).join(', ')+(overdueLeads.length>3?'…':''),
+      action:"nav('leads',document.querySelector('.nb'))"});
+  }
+
+  // ── CLIENTS: overdue follow-ups ──
+  var overdueClients=clients.filter(function(c){
+    return c.nextFollowUp&&/^\d{4}-\d{2}-\d{2}$/.test(c.nextFollowUp)&&daysTo(c.nextFollowUp)<=0;
+  });
+  if(overdueClients.length){
+    items.push({type:'followup',priority:0,color:'#C0392B',bg:'rgba(192,57,43,.08)',
+      icon:'👥',title:overdueClients.length+' Client follow-up'+(overdueClients.length>1?'s':'')+' overdue',
+      sub:overdueClients.slice(0,3).map(function(c){return toTitle(c.name);}).join(', ')+(overdueClients.length>3?'…':''),
+      action:''});
+  }
+
+  // ── CLIENTS: SIP due in 5 days ──
+  clients.forEach(function(c){
+    if(!c.sipDate) return;
+    var d=daysToSip(c.sipDate);
+    if(d>=0&&d<=5){
+      var waNum=(c.mobile||'').replace(/\D/g,'');waNum=waNum.length===10?'91'+waNum:waNum;
+      items.push({type:'sip',priority:1,color:'#f39c12',bg:'rgba(243,156,18,.08)',
+        icon:'💰',title:'SIP due '+d+'d — '+toTitle(c.name),
+        sub:'SIP date: '+c.sipDate+'th · AUM: '+(c.aum||'—'),
+        waNum:waNum, mob:c.mobile, waqType:'sip'});
+    }
+  });
+
+  // ── CLIENTS: Health insurance due in 30 days ──
+  clients.forEach(function(c){
+    if(!c.dueDateHealth) return;
+    var d=daysTo(c.dueDateHealth);
+    if(d>=0&&d<=30){
+      var waNum=(c.mobile||'').replace(/\D/g,'');waNum=waNum.length===10?'91'+waNum:waNum;
+      items.push({type:'health',priority:2,color:'#e74c3c',bg:'rgba(231,76,60,.08)',
+        icon:'🏥',title:'Health Ins. due in '+d+'d — '+toTitle(c.name),
+        sub:(c.healthInsurance||'Policy')+' · Due: '+fmt(c.dueDateHealth),
+        waNum:waNum, mob:c.mobile, waqType:'cas'});
+    }
+  });
+
+  // ── CLIENTS: Life insurance due in 30 days ──
+  clients.forEach(function(c){
+    if(!c.dueDateLife) return;
+    var d=daysTo(c.dueDateLife);
+    if(d>=0&&d<=30){
+      var waNum=(c.mobile||'').replace(/\D/g,'');waNum=waNum.length===10?'91'+waNum:waNum;
+      items.push({type:'life',priority:3,color:'#9b59b6',bg:'rgba(155,89,182,.08)',
+        icon:'🛡️',title:'Life Ins. due in '+d+'d — '+toTitle(c.name),
+        sub:(c.lifeInsurance||'Policy')+' · Due: '+fmt(c.dueDateLife),
+        waNum:waNum, mob:c.mobile, waqType:'cas'});
+    }
+  });
+
+  // ── CLIENTS: Birthday (DOB) today ──
+  clients.forEach(function(c){
+    if(!c.dob) return;
+    if(daysToAnnual(c.dob)===0){
+      var waNum=(c.mobile||'').replace(/\D/g,'');waNum=waNum.length===10?'91'+waNum:waNum;
+      items.push({type:'bday',priority:4,color:'#25D366',bg:'rgba(37,211,102,.08)',
+        icon:'🎂',title:'Birthday — '+toTitle(c.name),
+        sub:'Today! Send wishes',waNum:waNum,mob:c.mobile,waqType:'bday'});
+    }
+  });
+
+  // ── CLIENTS: Spouse Birthday today ──
+  clients.forEach(function(c){
+    if(!c.spouseDob) return;
+    if(daysToAnnual(c.spouseDob)===0){
+      var waNum=(c.mobile||'').replace(/\D/g,'');waNum=waNum.length===10?'91'+waNum:waNum;
+      items.push({type:'bday',priority:4,color:'#25D366',bg:'rgba(37,211,102,.08)',
+        icon:'🎂',title:'Spouse Birthday — '+toTitle(c.name),
+        sub:'Today! Send wishes',waNum:waNum,mob:c.mobile,waqType:'bday'});
+    }
+  });
+
+  // ── CLIENTS: Anniversary today ──
+  clients.forEach(function(c){
+    if(!c.anniversary) return;
+    if(daysToAnnual(c.anniversary)===0){
+      var waNum=(c.mobile||'').replace(/\D/g,'');waNum=waNum.length===10?'91'+waNum:waNum;
+      items.push({type:'ann',priority:5,color:'#3498db',bg:'rgba(52,152,219,.08)',
+        icon:'💑',title:'Anniversary — '+toTitle(c.name),
+        sub:'Today! Send wishes',waNum:waNum,mob:c.mobile,waqType:'ann'});
+    }
+  });
+
+  // ── CLIENTS: 1st Anniversary today ──
+  clients.forEach(function(c){
+    if(!c.firstAnniversary) return;
+    if(daysToAnnual(c.firstAnniversary)===0){
+      var waNum=(c.mobile||'').replace(/\D/g,'');waNum=waNum.length===10?'91'+waNum:waNum;
+      items.push({type:'ann1',priority:5,color:'#2ecc71',bg:'rgba(46,204,113,.08)',
+        icon:'🏆',title:'1st Anniversary — '+toTitle(c.name),
+        sub:'1 year as client! Send congrats',waNum:waNum,mob:c.mobile,waqType:'cas'});
+    }
+  });
+
+  if(!items.length){
+    el.innerHTML='<div style="font-size:11px;color:var(--t3);text-align:center;padding:10px;font-style:italic">No reminders today 🎉</div>';
+    return;
+  }
+
+  // Sort by priority
+  items.sort(function(a,b){return a.priority-b.priority;});
+
+  el.innerHTML=items.map(function(item){
+    var quickBtns='';
+    // WA quick send button — use data attributes to avoid quote conflicts
+    if(item.waNum){
+      quickBtns+='<button data-rwaq="'+item.waqType+'" data-rwanum="'+item.waNum+'" data-rmob="'+item.mob+'" class="rem-wa-btn" style="font-size:10px;padding:3px 8px;border-radius:5px;border:1px solid rgba(37,211,102,.3);background:rgba(37,211,102,.08);color:#25D366;cursor:pointer;margin-left:6px;flex-shrink:0">💬 WA</button>';
+      if(item.type==='health'||item.type==='life'||item.type==='ann1'){
+        quickBtns+='<button data-rwaq="cas" data-rwanum="'+item.waNum+'" data-rmob="'+item.mob+'" class="rem-wa-btn" style="font-size:10px;padding:3px 8px;border-radius:5px;border:1px solid rgba(52,152,219,.3);background:rgba(52,152,219,.08);color:#3498db;cursor:pointer;margin-left:3px;flex-shrink:0">📊 CAS</button>';
+      }
+    }
+    var clickable=item.action?'onclick="'+item.action+'"':'';
+    return '<div '+clickable+' style="display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:9px;background:'+item.bg+';border:1px solid '+item.color+'33;margin-bottom:6px;'+(item.action?'cursor:pointer':'')+'">'
+      +'<span style="font-size:20px;flex-shrink:0">'+item.icon+'</span>'
+      +'<div style="flex:1;min-width:0">'
+      +'<div style="font-size:12px;font-weight:700;color:var(--text)">'+item.title+'</div>'
+      +'<div style="font-size:10px;color:var(--t3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+item.sub+'</div>'
+      +'</div>'
+      +quickBtns
+      +'</div>';
+  }).join('');
+}
+
+
+// Reminder section click delegation
+document.getElementById('pg-dash').addEventListener('click',function(e){
+  var remBtn=e.target.closest('.rem-wa-btn');
+  if(remBtn) sendWAQuick(remBtn.dataset.rwanum,remBtn.dataset.rwaq,remBtn.dataset.rmob);
+});
 
 // Load offline queue and flush any writes that failed last session
 _loadQ();
