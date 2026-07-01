@@ -4761,6 +4761,8 @@ function clientToRow(c){
 // add → appendClient | update → updateClient | delete → deleteClient
 // Falls back to full pushClients only if the targeted action isn't supported by Apps Script
 async function syncClient(client, action){
+  // Uses apiFetch (POST text/plain) — reliable for 30-column client data
+  // GET would fail silently for large payloads; POST never has that issue
   if(!hasScript()){
     toast('⚠️ No Apps Script URL — check Settings');
     return;
@@ -4770,28 +4772,34 @@ async function syncClient(client, action){
   var ok = false;
 
   try{
+    var res;
     if(action==='add'){
-      var res = await _doWrite({action:'appendClient', row:clientToRow(client)});
-      if(res && res.success){ ok = true; }
-      else if(res && res.error && res.error.indexOf('Bad action')>=0){
-        console.warn('appendClient not supported, falling back to pushClients');
-        var res2 = await _doWrite({action:'pushClients', rows:clientsRows()});
-        ok = !!(res2 && res2.success);
-      }
-    } else if(action==='update'){
-      var res3 = await _doWrite({action:'updateClient', mobile:client.mobile, row:clientToRow(client)});
-      if(res3 && res3.success){ ok = true; }
-      else if(res3 && res3.error && res3.error.indexOf('Bad action')>=0){
-        console.warn('updateClient not supported, falling back to pushClients');
-        var res4 = await _doWrite({action:'pushClients', rows:clientsRows()});
-        ok = !!(res4 && res4.success);
-      }
-    } else if(action==='delete'){
-      var res5 = await _doWrite({action:'deleteClient', mobile:client.mobile});
-      if(res5 && res5.success){ ok = true; }
+      // Try appendClient first (adds one row), fall back to full rewrite
+      res = await apiFetch({action:'appendClient', row:clientToRow(client)});
+      if(res && res.success){ ok=true; }
       else {
-        var res6 = await _doWrite({action:'pushClients', rows:clientsRows()});
-        ok = !!(res6 && res6.success);
+        // Fall back: full clients rewrite
+        res = await apiFetch({action:'pushClients', rows:clientsRows()});
+        ok = !!(res && res.success);
+      }
+
+    } else if(action==='update'){
+      // Try updateClient first (updates one row), fall back to full rewrite
+      res = await apiFetch({action:'updateClient', mobile:client.mobile, row:clientToRow(client)});
+      if(res && res.success){ ok=true; }
+      else {
+        // Fall back: full clients rewrite — guarantees data reaches sheet
+        console.warn('updateClient failed ('+(res&&res.error)+'), falling back to pushClients');
+        res = await apiFetch({action:'pushClients', rows:clientsRows()});
+        ok = !!(res && res.success);
+      }
+
+    } else if(action==='delete'){
+      res = await apiFetch({action:'deleteClient', mobile:client.mobile});
+      if(res && res.success){ ok=true; }
+      else {
+        res = await apiFetch({action:'pushClients', rows:clientsRows()});
+        ok = !!(res && res.success);
       }
     }
   } catch(e){
@@ -4802,6 +4810,7 @@ async function syncClient(client, action){
   _writePending = false;
 
   if(!ok){
+    // Queue for retry on next session
     var payload = action==='add'
       ? {action:'appendClient', row:clientToRow(client)}
       : action==='update'
@@ -4810,7 +4819,7 @@ async function syncClient(client, action){
     _wq.push({payload:payload, ts:Date.now(), attempts:0});
     _saveQ();
     _setSyncDot('pending');
-    toast('⚠️ Saved locally — will sync when connection ready');
+    toast('⚠️ Saved locally — will retry sync automatically');
   } else {
     _setSyncDot('ok');
   }
