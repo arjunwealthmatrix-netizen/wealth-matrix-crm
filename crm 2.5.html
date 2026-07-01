@@ -372,42 +372,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   <button onclick="openAddClient()" style="position:fixed;bottom:80px;right:18px;width:54px;height:54px;border-radius:50%;background:#C0392B;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:999;box-shadow:0 4px 16px rgba(192,57,43,0.45)" aria-label="Add client">
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
   </button>
-</div></div>
-
-<!-- FOLLOW-UPS -->
-<div class="page" id="pg-fu">
-  <div class="ph"><h1>Follow-ups</h1><div class="sub" id="fu-sub"></div></div>
-  <div id="fu-list"></div>
 </div>
 
-<!-- ANALYTICS -->
-<div class="page" id="pg-analytics">
-  <div class="ph"><h1>Analytics</h1><div id="ana-sub" class="sub"></div></div>
-  <div class="sec"><div class="lbl" style="font-size:16px;font-weight:900;color:var(--text);padding:14px 14px 6px">📊 Productivity</div></div>
-  <div id="ana-contact-rate" style="padding:0 14px 6px"></div>
-  <div class="sec"><div class="lbl" style="font-size:16px;font-weight:900;color:var(--text);padding:14px 14px 4px">📈 Monthly Trend</div></div>
-  <div class="card" style="margin:0 14px 12px;padding:14px" id="ana-trend"></div>
-
-<div class="sec"><div class="lbl" style="font-size:14px;font-weight:800;padding:10px 14px 4px">🌍 Country Wise</div><div class="card" style="margin:0 14px 12px;padding:12px" id="ana-country"></div></div>
-<div class="sec"><div class="lbl" style="font-size:14px;font-weight:800;padding:10px 14px 4px">🎂 Age Groups</div><div class="card" style="margin:0 14px 12px;padding:12px" id="ana-age"></div></div>
-  <div class="sec"><div class="lbl">Mode of contact</div><div class="card" style="padding:12px" id="ana-mode"></div></div>
-  <div class="sec"><div class="lbl">Drop reasons</div><div class="card" style="padding:12px" id="ana-drop"></div></div>
-</div>
-
-  
-  <div id="client-bulk-bar" style="display:none;padding:8px 12px;background:rgba(192,57,43,.08);border-bottom:1px solid var(--border);justify-content:space-between">
-    <span id="client-sel-count" style="font-size:12px;font-weight:700;color:var(--accent)">0 selected</span>
-    <div style="display:flex;gap:6px">
-      <button class="btn btn-ghost" style="padding:5px 10px;font-size:11px" onclick="clientSelectAll()">All</button>
-      <button class="btn btn-red" style="padding:5px 10px;font-size:11px" onclick="deleteSelectedClients()">🗑 Delete</button>
-    </div>
-  </div>
-  <div id="client-list"></div>
-</div>
-
-<!-- SYNC -->
-
-
+<!-- SETTINGS -->
 <!-- SETTINGS -->
 <div class="page" id="pg-settings">
   <div class="ph"><h1>Settings</h1></div>
@@ -473,6 +440,43 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 
   <div style="text-align:center;padding:20px 0 40px;font-size:10px;color:var(--t3)">Wealth Matrix CRM v2.5</div>
 </div>
+</div>
+
+<!-- FOLLOW-UPS -->
+<div class="page" id="pg-fu">
+  <div class="ph"><h1>Follow-ups</h1><div class="sub" id="fu-sub"></div></div>
+  <div id="fu-list"></div>
+</div>
+
+<!-- ANALYTICS -->
+<div class="page" id="pg-analytics">
+  <div class="ph"><h1>Analytics</h1><div id="ana-sub" class="sub"></div></div>
+  <div class="sec"><div class="lbl" style="font-size:16px;font-weight:900;color:var(--text);padding:14px 14px 6px">📊 Productivity</div></div>
+  <div id="ana-contact-rate" style="padding:0 14px 6px"></div>
+  <div class="sec"><div class="lbl" style="font-size:16px;font-weight:900;color:var(--text);padding:14px 14px 4px">📈 Monthly Trend</div></div>
+  <div class="card" style="margin:0 14px 12px;padding:14px" id="ana-trend"></div>
+
+<div class="sec"><div class="lbl" style="font-size:14px;font-weight:800;padding:10px 14px 4px">🌍 Country Wise</div><div class="card" style="margin:0 14px 12px;padding:12px" id="ana-country"></div></div>
+<div class="sec"><div class="lbl" style="font-size:14px;font-weight:800;padding:10px 14px 4px">🎂 Age Groups</div><div class="card" style="margin:0 14px 12px;padding:12px" id="ana-age"></div></div>
+  <div class="sec"><div class="lbl">Mode of contact</div><div class="card" style="padding:12px" id="ana-mode"></div></div>
+  <div class="sec"><div class="lbl">Drop reasons</div><div class="card" style="padding:12px" id="ana-drop"></div></div>
+</div>
+
+  
+  <div id="client-bulk-bar" style="display:none;padding:8px 12px;background:rgba(192,57,43,.08);border-bottom:1px solid var(--border);justify-content:space-between">
+    <span id="client-sel-count" style="font-size:12px;font-weight:700;color:var(--accent)">0 selected</span>
+    <div style="display:flex;gap:6px">
+      <button class="btn btn-ghost" style="padding:5px 10px;font-size:11px" onclick="clientSelectAll()">All</button>
+      <button class="btn btn-red" style="padding:5px 10px;font-size:11px" onclick="deleteSelectedClients()">🗑 Delete</button>
+    </div>
+  </div>
+  <div id="client-list"></div>
+</div>
+
+<!-- SYNC -->
+
+
+
   
 </div>
 
@@ -1978,40 +1982,41 @@ async function createAnalyticsSheet(){
 }
 
 async function forcePushAll(){
+  // Force rewrite ALL leads and clients to sheet from local cache
   if(!hasScript()){toast('Add Apps Script URL first');return;}
   var prEl=document.getElementById('push-result');
-  if(prEl)prEl.textContent='Pushing leads…';
+  if(prEl)prEl.textContent='Pushing…';
+  _setSyncDot('syncing');
   try{
-    // Push leads via sheetWrite (with chunking)
+    // Push LEADS (chunked: header + first 50, then append rest)
     var lrows=leadsRows();
-    var lres;
-    if(encodeURIComponent(JSON.stringify({action:'pushLeads',rows:lrows})).length>7000){
-      lres=await pushRowsChunked('pushLeads',lrows);
-    }else{
-      lres=await sheetWrite({action:'pushLeads',rows:lrows});
+    var lhdr=lrows[0]; var ldata=lrows.slice(1);
+    var first=[lhdr].concat(ldata.slice(0,50));
+    var r1=await apiFetch({action:'pushLeads',rows:first});
+    if(ldata.length>50){
+      for(var li=50;li<ldata.length;li+=50){
+        await apiFetch({action:'appendLeads',rows:ldata.slice(li,li+50)});
+      }
     }
-    if(lres&&lres.error) throw new Error('Leads: '+lres.error);
-    if(prEl)prEl.textContent='Pushing clients…';
-    // Push clients
+    if(prEl)prEl.textContent='Leads pushed ✅  Pushing clients…';
+
+    // Push CLIENTS (chunked same way)
     var crows=clientsRows();
-    var cres;
-    if(encodeURIComponent(JSON.stringify({action:'pushClients',rows:crows})).length>7000){
-      cres=await pushRowsChunked('pushClients',crows);
-    }else{
-      cres=await sheetWrite({action:'pushClients',rows:crows});
+    var chdr=crows[0]; var cdata=crows.slice(1);
+    var cfirst=[chdr].concat(cdata.slice(0,50));
+    await apiFetch({action:'pushClients',rows:cfirst});
+    if(cdata.length>50){
+      for(var ci=50;ci<cdata.length;ci+=50){
+        await apiFetch({action:'appendClients',rows:cdata.slice(ci,ci+50)});
+      }
     }
-    if(cres&&cres.error) throw new Error('Clients: '+cres.error);
-    var msg='✅ Pushed '+leads.length+' leads, '+clients.length+' clients';
-    if(prEl)prEl.textContent=msg;
-    toast(msg,4000);
-    showSyncPush('ok');
-    cfg_.lastPull=now();saveCfg();
-  }catch(err){
-    var errMsg='❌ Push failed: '+(err.message||String(err));
-    if(prEl)prEl.textContent=errMsg;
-    toast(errMsg,5000);
-    showSyncPush('err');
-    console.error('forcePushAll:',err);
+    if(prEl)prEl.textContent='✅ All pushed — '+leads.length+' leads, '+clients.length+' clients';
+    _setSyncDot('ok');
+    toast('✅ All data pushed to sheet');
+  }catch(e){
+    if(prEl)prEl.textContent='❌ Push failed: '+e.message;
+    _setSyncDot('err');
+    toast('❌ Push failed: '+e.message);
   }
 }
 
@@ -3582,7 +3587,7 @@ async function bootSequenceV17(){
   // Load queued pushes from localStorage
   try{var q=JSON.parse(localStorage.getItem('wm_push_queue')||'[]');if(q.length){_pushQueue=q;setTimeout(drainPushQueue,5000);}}catch(e){}
 
-  renderDash(); // Show dash immediately with cached data
+  renderAll(); // Show ALL pages (leads + clients + dash) immediately from cache
   updateFUBadge();
 
   scheduleNotifications();
