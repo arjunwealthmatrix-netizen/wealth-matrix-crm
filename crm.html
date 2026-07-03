@@ -12,7 +12,7 @@
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <meta name="theme-color" content="#C0392B">
-<title>Wealth Matrix CRM v2.6</title>
+<title>Wealth Matrix CRM v2.7</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -250,6 +250,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .page:not(.active){overflow:hidden}
 .cd-btn{display:flex;flex-direction:column;align-items:center;gap:4px;padding:9px 4px;border-radius:9px;cursor:pointer}.cd-icon{font-size:18px}.cd-btn span:last-child{font-size:10px;font-weight:700}.cd-wa{background:rgba(37,211,102,.08);border:1px solid rgba(37,211,102,.3)}.cd-wa span:last-child{color:#25D366}.cd-call{background:rgba(52,152,219,.08);border:1px solid rgba(52,152,219,.3)}.cd-call span:last-child{color:#3498db}.cd-meet{background:rgba(155,89,182,.08);border:1px solid rgba(155,89,182,.3)}.cd-meet span:last-child{color:#9b59b6}.cd-mail{background:rgba(241,196,15,.08);border:1px solid rgba(241,196,15,.3)}.cd-mail span:last-child{color:#f1c40f}
 .qwa-btn{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 2px;border-radius:8px;cursor:pointer;border:1px solid;background:none}.qwa-ico{font-size:16px}.qwa-lbl{font-size:8px;font-weight:700;line-height:1.2;text-align:center}.qwa-green{border-color:rgba(37,211,102,.25);background:rgba(37,211,102,.06)}.qwa-green .qwa-lbl{color:#25D366}.qwa-blue{border-color:rgba(52,152,219,.25);background:rgba(52,152,219,.06)}.qwa-blue .qwa-lbl{color:#3498db}.qwa-amber{border-color:rgba(243,156,18,.25);background:rgba(243,156,18,.06)}.qwa-amber .qwa-lbl{color:#f39c12}.qwa-purple{border-color:rgba(155,89,182,.25);background:rgba(155,89,182,.06)}.qwa-purple .qwa-lbl{color:#9b59b6}
+@keyframes lockShake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
 </style>
 <style>
 /* ── AUTOCOMPLETE ── */
@@ -275,6 +276,42 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 </style>
 </head>
 <body>
+
+<!-- APP LOCK SCREEN — shown before the app if a PIN/biometric lock is set up -->
+<div id="lock-screen" style="display:none;position:fixed;inset:0;z-index:99999;background:#0a0a0a;flex-direction:column;align-items:center;justify-content:center;padding:24px">
+  <div style="width:72px;height:72px;background:#C0392B;border-radius:18px;display:flex;align-items:center;justify-content:center;margin-bottom:20px">
+    <span style="font-size:26px;font-weight:900;color:#fff">WM</span>
+  </div>
+  <div style="font-size:17px;font-weight:800;color:#fff;margin-bottom:4px">Wealth Matrix CRM</div>
+  <div style="font-size:12px;color:#666;margin-bottom:32px">Locked for your privacy</div>
+
+  <div id="lock-pin-dots" style="display:flex;gap:14px;margin-bottom:28px">
+    <div class="lock-dot" style="width:14px;height:14px;border-radius:50%;border:2px solid #444;background:transparent"></div>
+    <div class="lock-dot" style="width:14px;height:14px;border-radius:50%;border:2px solid #444;background:transparent"></div>
+    <div class="lock-dot" style="width:14px;height:14px;border-radius:50%;border:2px solid #444;background:transparent"></div>
+    <div class="lock-dot" style="width:14px;height:14px;border-radius:50%;border:2px solid #444;background:transparent"></div>
+    <div class="lock-dot" style="width:14px;height:14px;border-radius:50%;border:2px solid #444;background:transparent"></div>
+    <div class="lock-dot" style="width:14px;height:14px;border-radius:50%;border:2px solid #444;background:transparent"></div>
+  </div>
+
+  <div id="lock-pin-pad" style="display:grid;grid-template-columns:repeat(3,64px);gap:14px;margin-bottom:20px">
+    <button class="lock-key" data-k="1" style="width:64px;height:64px;border-radius:50%;border:1px solid #2a2a2a;background:#141414;color:#fff;font-size:22px;font-weight:600">1</button>
+    <button class="lock-key" data-k="2" style="width:64px;height:64px;border-radius:50%;border:1px solid #2a2a2a;background:#141414;color:#fff;font-size:22px;font-weight:600">2</button>
+    <button class="lock-key" data-k="3" style="width:64px;height:64px;border-radius:50%;border:1px solid #2a2a2a;background:#141414;color:#fff;font-size:22px;font-weight:600">3</button>
+    <button class="lock-key" data-k="4" style="width:64px;height:64px;border-radius:50%;border:1px solid #2a2a2a;background:#141414;color:#fff;font-size:22px;font-weight:600">4</button>
+    <button class="lock-key" data-k="5" style="width:64px;height:64px;border-radius:50%;border:1px solid #2a2a2a;background:#141414;color:#fff;font-size:22px;font-weight:600">5</button>
+    <button class="lock-key" data-k="6" style="width:64px;height:64px;border-radius:50%;border:1px solid #2a2a2a;background:#141414;color:#fff;font-size:22px;font-weight:600">6</button>
+    <button class="lock-key" data-k="7" style="width:64px;height:64px;border-radius:50%;border:1px solid #2a2a2a;background:#141414;color:#fff;font-size:22px;font-weight:600">7</button>
+    <button class="lock-key" data-k="8" style="width:64px;height:64px;border-radius:50%;border:1px solid #2a2a2a;background:#141414;color:#fff;font-size:22px;font-weight:600">8</button>
+    <button class="lock-key" data-k="9" style="width:64px;height:64px;border-radius:50%;border:1px solid #2a2a2a;background:#141414;color:#fff;font-size:22px;font-weight:600">9</button>
+    <div></div>
+    <button class="lock-key" data-k="0" style="width:64px;height:64px;border-radius:50%;border:1px solid #2a2a2a;background:#141414;color:#fff;font-size:22px;font-weight:600">0</button>
+    <button id="lock-backspace" style="width:64px;height:64px;border-radius:50%;border:none;background:none;color:#888;font-size:20px">⌫</button>
+  </div>
+
+  <button id="lock-biometric-btn" style="display:none;margin-top:8px;background:none;border:1px solid #C0392B;border-radius:10px;padding:11px 22px;color:#C0392B;font-size:13px;font-weight:700;cursor:pointer">🔓 Unlock with Face ID / Fingerprint</button>
+  <div id="lock-error" style="margin-top:14px;font-size:12px;color:#e74c3c;min-height:16px"></div>
+</div>
 
 <div id="app">
 <div id="content">
@@ -316,7 +353,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div style="display:flex;align-items:center;gap:8px">
       <button onclick="toggleDark()" style="background:none;border:none;cursor:pointer;font-size:16px" id="dark-btn">🌙</button>
       <button onclick="manualSync()" style="background:none;border:none;cursor:pointer;font-size:16px">🔄</button>
-      <span style="font-size:9px;font-weight:700;color:var(--accent);background:var(--accent2);padding:2px 7px;border-radius:999px;border:1px solid var(--accent)">v2.6</span>
+      <span style="font-size:9px;font-weight:700;color:var(--accent);background:var(--accent2);padding:2px 7px;border-radius:999px;border:1px solid var(--accent)">v2.7</span>
     </div>
   </div>
 
@@ -389,6 +426,16 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 <!-- SETTINGS -->
 <div class="page" id="pg-settings">
   <div class="ph"><h1>Settings</h1></div>
+
+  <!-- App Lock -->
+  <div style="padding:0 12px;margin-bottom:7px" class="lbl">🔒 App Lock</div>
+  <div class="sg">
+    <div class="si"><span id="lock-status-text" style="font-size:12px;font-weight:700">🔓 App lock is OFF</span></div>
+    <div class="syc"><button class="btn btn-gold btn-full" id="lock-setup-btn" onclick="promptSetupPin()">🔒 Set Up PIN Lock</button></div>
+    <div class="syc"><button class="btn btn-ghost btn-full" id="lock-setup-bio-btn" style="display:none" onclick="setupBiometric()">👆 Enable Face ID / Fingerprint</button></div>
+    <div class="syc"><button class="btn btn-red btn-full" id="lock-remove-btn" style="display:none" onclick="removeLock()">🗑️ Remove App Lock</button></div>
+    <div class="si" style="font-size:10px;color:var(--t3);font-style:italic"><span>Locks the app when reopened or resumed from background. Uses your phone's own Face ID/Fingerprint/PIN — nothing is sent anywhere.</span></div>
+  </div>
 
   <!-- Connection -->
   <div style="padding:0 12px;margin-bottom:7px" class="lbl">🔗 Connection</div>
@@ -470,7 +517,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div class="syc"><button class="btn btn-ghost btn-full" onclick="showSpecialDaysList()">📋 View Upcoming Special Days</button></div>
   </div>
 
-  <div style="text-align:center;padding:20px 0 40px;font-size:10px;color:var(--t3)">Wealth Matrix CRM v2.6</div>
+  <div style="text-align:center;padding:20px 0 40px;font-size:10px;color:var(--t3)">Wealth Matrix CRM v2.7</div>
 </div>
 </div>
 
@@ -728,6 +775,18 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div style="background:var(--s1);border-radius:10px;padding:12px 14px;margin-bottom:10px">
       <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.6px;margin-bottom:8px">REMARKS</div>
       <textarea class="fi fi-ta" id="cf-rem" placeholder="Notes about this client…" oninput="autoCaps(this)" style="min-height:70px"></textarea>
+    </div>
+
+    <!-- Documents (collapsible) -->
+    <div style="background:var(--s1);border-radius:10px;margin-bottom:10px;overflow:hidden">
+      <div onclick="toggleDocsSection()" style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;cursor:pointer">
+        <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.6px">📁 DOCUMENTS</div>
+        <span id="docs-toggle-arrow" style="font-size:12px;color:var(--t3);transition:transform .2s">▾</span>
+      </div>
+      <div id="docs-section-body" style="display:none;padding:0 14px 14px">
+        <div id="docs-hint" style="font-size:10px;color:var(--t3);margin-bottom:10px">Uploading requires the client to be saved first (add mode) so a folder can be created.</div>
+        <div id="docs-list"></div>
+      </div>
     </div>
 
     <button class="btn btn-gold btn-full" onclick="saveClient()" style="padding:14px;font-size:15px;border-radius:10px;margin-bottom:8px">Save Client</button>
@@ -1388,6 +1447,13 @@ function openDetail(mob,type){
     + '<div style="color:var(--t3)">Broadcast</div><div style="color:'+(c.broadcastAdded?'#25D366':'#e74c3c')+';text-align:right;font-weight:700">'+(c.broadcastAdded?'✓ Yes':'✗ No')+'</div>'
     + '</div></div></div>'
     + '<div style="padding:0 14px 8px">'
+    + '<div onclick="toggleChipDocs(\''+mob+'\')" style="background:var(--s2);border-radius:9px;padding:10px 12px;cursor:pointer;display:flex;justify-content:space-between;align-items:center">'
+    + '<span style="font-size:9px;color:var(--accent);font-weight:700;letter-spacing:.5px">📁 DOCUMENTS</span>'
+    + '<span id="chip-docs-arrow" style="font-size:11px;color:var(--t3)">▾</span>'
+    + '</div>'
+    + '<div id="chip-docs-body" style="display:none;padding-top:6px"></div>'
+    + '</div>'
+    + '<div style="padding:0 14px 8px">'
     + '<div style="font-size:9px;color:var(--t3);font-weight:700;letter-spacing:.5px;margin-bottom:6px">QUICK WHATSAPP</div>'
     + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px">'
     + '<button data-waq="app" data-wanum="'+waNum+'" data-mob="'+mob+'" class="qwa-btn qwa-green"><span class="qwa-ico">📲</span><span class="qwa-lbl">App Link</span></button>'
@@ -1546,6 +1612,12 @@ function editClientOpen(mob){
   if(origEl) origEl.value=mob;
   var delBtn=document.getElementById('cf-delete-btn');
   if(delBtn) delBtn.style.display='block'; // show delete — this is edit mode
+  // Reset the Documents section closed; it lazy-loads only if the user opens it
+  var docsBody=document.getElementById('docs-section-body');
+  var docsArrow=document.getElementById('docs-toggle-arrow');
+  if(docsBody) docsBody.style.display='none';
+  if(docsArrow) docsArrow.style.transform='rotate(0deg)';
+  _docsListCache=[];
   document.getElementById('ov-client').classList.add('open');
 }
 async function saveClient(){
@@ -1603,6 +1675,7 @@ async function saveClient(){
     closeOv('ov-client');
     renderClients();
     syncClient(data,'add'); // targeted — appends one row
+    createClientFolderBg(data); // create their Drive documents folder in the background
     toast('✅ Client added');
   }
 }
@@ -1655,6 +1728,7 @@ async function autoConvert(l){
   if(hasScript()){
     await syncClient(c, 'add');           // append only this new client's row
     await syncLead({mobile:l.mobile}, 'delete'); // delete only this lead's row
+    createClientFolderBg(c); // create their Drive documents folder in the background
   }
 }
 
@@ -1946,11 +2020,11 @@ async function importFromSheet(){
   try{var d=await scriptGet(tab);if(!d.rows||d.rows.length<2){showSyncMsg('No data in tab: '+tab,false);return;}var hdr=d.rows[0].map(function(h){return (h||'').toString().toLowerCase().trim();});var nameI=hdr.findIndex(function(h){return h.includes('name');});var mobI=hdr.findIndex(function(h){return h.includes('mobile')||h.includes('phone');});if(nameI<0||mobI<0){showSyncMsg('No Name/Mobile columns found',false);return;}var added=0,skipped=0;d.rows.slice(1).forEach(function(r){var mob=String(r[mobI]||'').trim();var name=caps(String(r[nameI]||''));if(!mob||!name){skipped++;return;}if(leads.find(function(l){return l.mobile===mob;})){skipped++;return;}leads.push({name:name,mobile:mob,email:'',country:'',status:'PROSPECT',source:'',referral:'',products:'',age:'',gender:'',remarks:'',notes:[],createdDate:today(),modifiedDate:today()});added++;});saveL();pushLeads();renderLeads();renderDash();showSyncMsg('Imported '+added+' leads. Skipped '+skipped+'.',true);}catch(e){showSyncMsg('Import failed: '+e.message,false);}
 }
 function showAppsScriptCode(){
-  var code='const SHEET_ID=\'1oPQMj6KB39M20RnEoix9PCvSA8RFhVhOV4BG2M4TXlQ\';\nconst LEADS_TAB=\'LEADS\',CLIENTS_TAB=\'CLIENTS\',LOG_TAB=\'ACTIVITY_LOG\',SPECIAL_TAB=\'Special Days\';\nfunction doGet(e){try{var p=e.parameter||{};if(p.action===\'pullLog\'&&p.mobile)return pullLog(p.mobile);if(p.payload)return writeData(JSON.parse(decodeURIComponent(p.payload)));return readTab(p.tab||LEADS_TAB);}catch(err){return out({error:err.message});}}\nfunction doPost(e){try{var d;if(e.postData&&e.postData.contents)d=JSON.parse(e.postData.contents);else if(e.parameter&&e.parameter.payload)d=JSON.parse(decodeURIComponent(e.parameter.payload));return writeData(d);}catch(err){return out({error:err.message});}}\nfunction readTab(t){var ss=SpreadsheetApp.openById(SHEET_ID);var sh=ss.getSheetByName(t);if(!sh)return out({rows:[],error:\'Tab not found:\'+t});var lr=sh.getLastRow(),lc=sh.getLastColumn();if(lr===0||lc===0)return out({rows:[]});var raw=sh.getRange(1,1,lr,lc).getValues();var cleaned=raw.map(function(row){return row.map(function(c){if(c===null||c===undefined||c===\'\')return\'\';if(c instanceof Date){var y=c.getFullYear();var m=String(c.getMonth()+1).padStart(2,\'0\');var d=String(c.getDate()).padStart(2,\'0\');return y+\'-\'+m+\'-\'+d;}if(typeof c===\'number\')return String(c);return String(c).trim();});});return out({rows:cleaned});}\nfunction pullLog(mobile){var ss=SpreadsheetApp.openById(SHEET_ID);var sh=ss.getSheetByName(LOG_TAB);if(!sh||sh.getLastRow()<=1)return out({rows:[]});var lr=sh.getLastRow(),lc=sh.getLastColumn();var raw=sh.getRange(2,1,lr-1,lc).getValues();var filtered=raw.filter(function(r){return String(r[2]||\'\').trim()===String(mobile).trim();});return out({rows:filtered});}\nfunction writeData(data){var ss=SpreadsheetApp.openById(SHEET_ID);\nif(data.action===\'appendLog\'){var logSh=ss.getSheetByName(LOG_TAB)||ss.insertSheet(LOG_TAB);if(logSh.getLastRow()===0){var hdr=[[\'Timestamp\',\'Name\',\'Mobile\',\'Type\',\'Activity\',\'Notes\',\'Raw ID\']];var hr=logSh.getRange(1,1,1,7);hr.setValues(hdr);hr.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');logSh.setFrozenRows(1);}logSh.appendRow(data.row||[]);var lr3=logSh.getLastRow();logSh.getRange(lr3,1).setNumberFormat(\'@\');logSh.getRange(lr3,7).setNumberFormat(\'@\');return out({success:true});}\nif(data.action===\'deleteLogById\'){var lsh=ss.getSheetByName(LOG_TAB);if(lsh&&lsh.getLastRow()>1){var rid=String(data.rowId||\'\').trim();var dmob=String(data.mobile||\'\').trim();var dts=String(data.ts||\'\').trim();var dact=String(data.activity||\'\').trim();var n=lsh.getLastRow();var rng=lsh.getRange(2,1,n-1,7).getValues();for(var rj=0;rj<rng.length;rj++){var row=rng[rj];var gId=String(row[6]||\'\').trim();var rTs=String(row[0]||\'\').trim();var rMob=String(row[2]||\'\').trim();var rAct=String(row[4]||\'\').trim();var matchById=(rid!==\'\'&&gId===rid);var matchByTs=(rid===\'\'||gId===\'\')&&dts!==\'\'&&rMob===dmob&&rTs===dts&&rAct===dact;if(matchById||matchByTs){lsh.deleteRow(rj+2);break;}}}return out({success:true,deleted:true});}if(data.action===\'deleteLog\'){var lsh2=ss.getSheetByName(LOG_TAB);if(lsh2&&lsh2.getLastRow()>1){var mob3=String(data.mobile||\'\').trim();var n2=lsh2.getLastRow();for(var rk=n2;rk>=2;rk--){if(String(lsh2.getRange(rk,3).getValue()||\'\').trim()===mob3){lsh2.deleteRow(rk);}}}return out({success:true});}\nif(data.action===\'updateAnalytics\'){var aS=ss.getSheetByName(\'ANALYTICS\')||ss.insertSheet(\'ANALYTICS\');if(aS.getLastRow()===0){aS.getRange(1,1,1,7).setValues([[\'Date\',\'Lead Entries\',\'Prospects\',\'Contacted\',\'In Progress\',\'Converted\',\'Dropped\']]).setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');aS.setFrozenRows(1);}var ad=data.date,ac=parseInt(data.col)||2,adel=parseInt(data.delta)||1,alr=aS.getLastRow(),af=false;if(alr>1){var adts=aS.getRange(2,1,alr-1,1).getValues();for(var i=0;i<adts.length;i++){if(String(adts[i][0]).trim()===ad){var acel=aS.getRange(i+2,ac);acel.setValue((parseInt(acel.getValue())||0)+adel); /* negative values allowed */ af=true; break; }}}if(!af&&adel>0){var anr=[ad,0,0,0,0,0,0];anr[ac-1]=adel;aS.appendRow(anr);}return out({success:true});}\nif(data.action===\'appendLeads\'||data.action===\'appendClients\'){var atab=data.action===\'appendLeads\'?LEADS_TAB:CLIENTS_TAB;var ash=ss.getSheetByName(atab);if(ash&&data.rows&&data.rows.length){data.rows.forEach(function(rw){ash.appendRow(rw);});var alr=ash.getLastRow();ash.getRange(2,1,alr-1,data.rows[0].length).setNumberFormat(\'@\');}return out({success:true});}if(data.action===\'appendLead\'){var aSh=ss.getSheetByName(LEADS_TAB)||ss.insertSheet(LEADS_TAB);if(aSh.getLastRow()===0){var lHdr=[[\'Name\',\'Mobile\',\'Email\',\'Age\',\'Country\',\'Status\',\'Source\',\'Referred By\',\'Estimated AUM/SIP\',\'Next Follow-up\',\'Investment Products\',\'Mode of Contact\',\'Remarks\',\'Modified Date\',\'Created Date\',\'Geo Tag\']];var lHr=aSh.getRange(1,1,1,16);lHr.setValues(lHdr);lHr.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');aSh.setFrozenRows(1);}var aRow=data.row||[];aSh.appendRow(aRow);var aLr=aSh.getLastRow();aSh.getRange(aLr,1,1,aRow.length).setNumberFormat(\'@\');return out({success:true,action:\'appendLead\'});}if(data.action===\'updateLead\'){var uSh=ss.getSheetByName(LEADS_TAB);if(uSh&&uSh.getLastRow()>1){var uMob=String(data.mobile||\'\').trim();var uRow=data.row||[];var uN=uSh.getLastRow();var uVals=uSh.getRange(2,2,uN-1,1).getValues();for(var ui=0;ui<uVals.length;ui++){if(String(uVals[ui][0]||\'\').trim()===uMob){var uRng=uSh.getRange(ui+2,1,1,uRow.length);uRng.setValues([uRow]);uRng.setNumberFormat(\'@\');break;}}}return out({success:true,action:\'updateLead\'});}if(data.action===\'deleteLead\'){var dSh=ss.getSheetByName(LEADS_TAB);if(dSh&&dSh.getLastRow()>1){var dMob=String(data.mobile||\'\').trim();var dN=dSh.getLastRow();var dVals=dSh.getRange(2,2,dN-1,1).getValues();for(var di=dN-1;di>=0;di--){if(String(dVals[di][0]||\'\').trim()===dMob){dSh.deleteRow(di+2);break;}}}return out({success:true,action:\'deleteLead\'});}\n\n  // ── Append ONE client row (new client) ──\n  if(data.action===\'appendClient\'){\n    var aShC=ss.getSheetByName(CLIENTS_TAB)||ss.insertSheet(CLIENTS_TAB);\n    if(aShC.getLastRow()===0){\n      var cHdr=[[\'Name\',\'Mobile\',\'Email\',\'Country\',\'Source\',\'Referred By\',\'Next Follow up date\',\n        \'Age\',\'Gender\',\'Remarks\',\'Created date\',\'PAN\',\'DOB\',\'Spouse DOB\',\'Anniversary\',\n        \'Converted Date\',\'Review Date\',\'1st Anniversary\',\'App Installed\',\'Broadcast Added\',\n        \'SIP date\',\'Health insurance\',\'Life insurance\',\'WILL\',\'Due date Health\',\'Due date Life\',\n        \'AUM\',\'Potential AUM\',\'Welcome Message send\',\'Products\']];\n      var cHr=aShC.getRange(1,1,1,30);\n      cHr.setValues(cHdr);cHr.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');\n      aShC.setFrozenRows(1);\n    }\n    var cRow=data.row||[];\n    aShC.appendRow(cRow);\n    var cLr=aShC.getLastRow();\n    aShC.getRange(cLr,1,1,cRow.length).setNumberFormat(\'@\');\n    return out({success:true,action:\'appendClient\'});\n  }\n\n  // ── Update ONE client row (find by mobile col B, replace in place) ──\n  if(data.action===\'updateClient\'){\n    var uShC=ss.getSheetByName(CLIENTS_TAB);\n    if(uShC&&uShC.getLastRow()>1){\n      var uMobC=String(data.mobile||\'\').trim();\n      var uRowC=data.row||[];\n      var uNC=uShC.getLastRow();\n      var uValsC=uShC.getRange(2,2,uNC-1,1).getValues();\n      for(var uic=0;uic<uValsC.length;uic++){\n        if(String(uValsC[uic][0]||\'\').trim()===uMobC){\n          var uRngC=uShC.getRange(uic+2,1,1,uRowC.length);\n          uRngC.setValues([uRowC]);\n          uRngC.setNumberFormat(\'@\');\n          break;\n        }\n      }\n    }\n    return out({success:true,action:\'updateClient\'});\n  }\n\n  // ── Delete ONE client row (find by mobile col B) ──\n  if(data.action===\'deleteClient\'){\n    var dShC=ss.getSheetByName(CLIENTS_TAB);\n    if(dShC&&dShC.getLastRow()>1){\n      var dMobC=String(data.mobile||\'\').trim();\n      var dNC=dShC.getLastRow();\n      var dValsC=dShC.getRange(2,2,dNC-1,1).getValues();\n      for(var dic=dNC-1;dic>=0;dic--){\n        if(String(dValsC[dic][0]||\'\').trim()===dMobC){dShC.deleteRow(dic+2);break;}\n      }\n    }\n    return out({success:true,action:\'deleteClient\'});\n  }\n  if(data.action===\'backupNow\'){ return manualBackupNow(); }\n  // ── Get upcoming Google Calendar events (default calendar) ──\n  if(data.action===\'getCalendarEvents\'){\n    try{\n      var TZ=\'Asia/Kolkata\'; // force IST regardless of Apps Script project timezone setting\n      // Pad the fetch window by 1 day on each side so no boundary event is ever missed,\n      // then bucket every event to its correct IST calendar day using formatDate (not\n      // getFullYear/getMonth/getDate, which use the SERVER\'s default timezone and can\n      // silently shift events onto the wrong day if the project timezone isn\'t IST).\n      var baseStart=data.start?new Date(data.start+\'T00:00:00\'):new Date();\n      var baseEnd=data.end?new Date(data.end+\'T23:59:59\'):new Date(baseStart.getTime()+8*86400000);\n      var evStart=new Date(baseStart.getTime()-86400000); // -1 day padding\n      var evEnd=new Date(baseEnd.getTime()+86400000);     // +1 day padding\n      var wantStart=data.start||Utilities.formatDate(new Date(),TZ,\'yyyy-MM-dd\');\n      var wantEnd=data.end||Utilities.formatDate(new Date(baseStart.getTime()+8*86400000),TZ,\'yyyy-MM-dd\');\n\n      var cal=CalendarApp.getDefaultCalendar();\n      var events=cal.getEvents(evStart,evEnd);\n      var evRows=events.map(function(e){\n        var st=e.getStartTime();\n        var dateStr=Utilities.formatDate(st,TZ,\'yyyy-MM-dd\');\n        var timeStr=e.isAllDayEvent()?\'All day\':Utilities.formatDate(st,TZ,\'h:mm a\');\n        return {date:dateStr,title:e.getTitle(),time:timeStr,type:\'event\'};\n      }).filter(function(r){return r.date>=wantStart&&r.date<=wantEnd;}); // trim padding back to requested range\n\n      // ── Also pull Birthdays (Google\'s auto-generated Contacts birthday calendar) ──\n      var bdayRows=[];\n      try{\n        var allCals=CalendarApp.getAllCalendars();\n        var bdayCal=null;\n        for(var bi=0;bi<allCals.length;bi++){\n          var cName=allCals[bi].getName().toLowerCase();\n          var cId=allCals[bi].getId();\n          if(cName.indexOf(\'birthday\')>=0 || cId.indexOf(\'#contacts@group.v.calendar.google.com\')>=0){\n            bdayCal=allCals[bi]; break;\n          }\n        }\n        if(bdayCal){\n          var bdayEvents=bdayCal.getEvents(evStart,evEnd);\n          bdayRows=bdayEvents.map(function(e){\n            var st=e.getStartTime();\n            var dateStr=Utilities.formatDate(st,TZ,\'yyyy-MM-dd\');\n            return {date:dateStr,title:e.getTitle(),time:\'\',type:\'birthday\'};\n          }).filter(function(r){return r.date>=wantStart&&r.date<=wantEnd;});\n        }\n      }catch(be){ /* birthday calendar not accessible — skip silently */ }\n\n      return out({events:evRows.concat(bdayRows), calendarId:cal.getId(), calendarName:cal.getName(), birthdaysFound:bdayRows.length, scriptTimeZone:Session.getScriptTimeZone(), usedTimeZone:TZ});\n    }catch(e){\n      return out({events:[],error:e.message});\n    }\n  }\n\n  // ── Diagnose calendar access — lists ALL calendars this account can see ──\n  if(data.action===\'diagnoseCalendars\'){\n    try{\n      var allCals=CalendarApp.getAllCalendars();\n      var calList=allCals.map(function(c){\n        var isBday=c.getName().toLowerCase().indexOf(\'birthday\')>=0||c.getId().indexOf(\'#contacts@group.v.calendar.google.com\')>=0;\n        return {name:c.getName(), id:c.getId(), isSelected:c.isSelected(), isOwned:c.isOwnedByMe(), isBirthdayCalendar:isBday};\n      });\n      var defCal=CalendarApp.getDefaultCalendar();\n      return out({\n        defaultCalendarId: defCal.getId(),\n        defaultCalendarName: defCal.getName(),\n        allCalendars: calList\n      });\n    }catch(e){\n      return out({error:e.message});\n    }\n  }\n\n  if(data.action===\'readSpecialDays\'){var spSh=ss.getSheetByName(SPECIAL_TAB);if(!spSh)return out({rows:[]});var spLr=spSh.getLastRow();if(spLr<2)return out({rows:[]});var spVals=spSh.getRange(2,1,spLr-1,2).getValues();var spRows=spVals.map(function(r){return[String(r[0]||\'\').trim(),String(r[1]||\'\').trim()];}).filter(function(r){return r[0]&&r[1];});return out({rows:spRows});}\n  if(data.action===\'pushSpecialDays\'){\n    var spSh3=ss.getSheetByName(SPECIAL_TAB)||ss.insertSheet(SPECIAL_TAB);\n    var spDataRows=data.rows||[];\n    var spLastRow=spSh3.getLastRow();\n    if(spLastRow===0){\n      // Sheet is empty — write header then data\n      spSh3.appendRow([\'Date (MM-DD)\',\'Remarks\']);\n      var spHdr=spSh3.getRange(1,1,1,2);\n      spHdr.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');\n      spSh3.setFrozenRows(1);\n    }\n    // Get existing date values to avoid duplicates\n    var spExisting=spLastRow>1?spSh3.getRange(2,1,spLastRow-1,1).getValues().map(function(r){return String(r[0]||\'\').trim();}):[]; \n    // Append only new rows (skip header row from data)\n    spDataRows.forEach(function(row){\n      if(row[0]===\'Date (MM-DD)\'||row[0]===\'Day\') return; // skip header rows\n      if(spExisting.indexOf(String(row[0]||\'\').trim())>=0) return; // skip duplicates\n      spSh3.appendRow([row[0],row[1]]);\n      spSh3.getRange(spSh3.getLastRow(),1,1,2).setNumberFormat(\'@\');\n    });\n    return out({success:true,action:\'pushSpecialDays\'});\n  }\n  if(data.action===\'appendSpecialDay\'){var spSh2=ss.getSheetByName(SPECIAL_TAB)||ss.insertSheet(SPECIAL_TAB);if(spSh2.getLastRow()===0){var spH=spSh2.getRange(1,1,1,2);spH.setValues([[\'Date (MM-DD)\',\'Remarks\']]);spH.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');spSh2.setFrozenRows(1);}spSh2.appendRow([data.date||\'\',data.speciality||\'\']);return out({success:true,action:\'appendSpecialDay\'});}\nvar tab=data.action===\'pushLeads\'?LEADS_TAB:data.action===\'pushClients\'?CLIENTS_TAB:null;if(!tab)return out({error:\'Bad action:\'+data.action});var rows=data.rows;if(!rows||rows.length===0)return out({error:\'No rows\'});var sh=ss.getSheetByName(tab)||ss.insertSheet(tab);sh.clearContents();var r=sh.getRange(1,1,rows.length,rows[0].length);r.setNumberFormat(\'@\');r.setValues(rows);var h=sh.getRange(1,1,1,rows[0].length);h.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');sh.setFrozenRows(1);return out({success:true,written:rows.length-1});}\nfunction out(o){return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);}\nfunction testConnection(){Logger.log(\'OK: \'+SpreadsheetApp.openById(SHEET_ID).getName());}\n\n// ═══════════════════════════════════════════\n// AUTOMATED BACKUP SYSTEM\n// ═══════════════════════════════════════════\n// Run createBackupTrigger() ONCE manually from the Apps Script editor\n// (select it in the function dropdown, click Run). This sets up a weekly\n// trigger — after that, backups happen automatically with zero further action.\n\nconst BACKUP_FOLDER_NAME=\'Wealth Matrix CRM Backups\';\nconst MAX_BACKUPS_TO_KEEP=8; // ~2 months of weekly backups\n\nfunction createBackupTrigger(){\n  // Remove any existing backup triggers first (avoid duplicates)\n  var triggers=ScriptApp.getProjectTriggers();\n  triggers.forEach(function(t){\n    if(t.getHandlerFunction()===\'runWeeklyBackup\') ScriptApp.deleteTrigger(t);\n  });\n  // Create new weekly trigger — runs every Sunday at 2 AM\n  ScriptApp.newTrigger(\'runWeeklyBackup\')\n    .timeBased()\n    .onWeekDay(ScriptApp.WeekDay.SUNDAY)\n    .atHour(2)\n    .create();\n  Logger.log(\'✅ Weekly backup trigger created. Backups will run automatically every Sunday at 2 AM.\');\n}\n\nfunction runWeeklyBackup(){\n  try{\n    var srcFile=DriveApp.getFileById(SHEET_ID);\n    var folders=DriveApp.getFoldersByName(BACKUP_FOLDER_NAME);\n    var folder=folders.hasNext()?folders.next():DriveApp.createFolder(BACKUP_FOLDER_NAME);\n\n    var dateStr=Utilities.formatDate(new Date(),Session.getScriptTimeZone(),\'yyyy-MM-dd_HH-mm\');\n    var backupName=\'CRM Backup \'+dateStr;\n    srcFile.makeCopy(backupName, folder);\n    Logger.log(\'✅ Backup created: \'+backupName);\n\n    // Clean up old backups — keep only the most recent MAX_BACKUPS_TO_KEEP\n    var files=folder.getFiles();\n    var fileList=[];\n    while(files.hasNext()){\n      var f=files.next();\n      fileList.push({file:f, date:f.getDateCreated()});\n    }\n    fileList.sort(function(a,b){return b.date-a.date;}); // newest first\n    if(fileList.length>MAX_BACKUPS_TO_KEEP){\n      for(var i=MAX_BACKUPS_TO_KEEP;i<fileList.length;i++){\n        fileList[i].file.setTrashed(true);\n      }\n      Logger.log(\'🗑️ Cleaned up \'+(fileList.length-MAX_BACKUPS_TO_KEEP)+\' old backup(s)\');\n    }\n  }catch(e){\n    Logger.log(\'❌ Backup failed: \'+e.message);\n  }\n}\n\n// Manual backup — call this anytime from the app (Settings → Backup Now)\nfunction manualBackupNow(){\n  runWeeklyBackup();\n  return out({success:true,message:\'Backup created\'});\n}\n'
+  var code='const SHEET_ID=\'1oPQMj6KB39M20RnEoix9PCvSA8RFhVhOV4BG2M4TXlQ\';\nconst LEADS_TAB=\'LEADS\',CLIENTS_TAB=\'CLIENTS\',LOG_TAB=\'ACTIVITY_LOG\',SPECIAL_TAB=\'Special Days\';\nfunction doGet(e){try{var p=e.parameter||{};if(p.action===\'pullLog\'&&p.mobile)return pullLog(p.mobile);if(p.payload)return writeData(JSON.parse(decodeURIComponent(p.payload)));return readTab(p.tab||LEADS_TAB);}catch(err){return out({error:err.message});}}\nfunction doPost(e){try{var d;if(e.postData&&e.postData.contents)d=JSON.parse(e.postData.contents);else if(e.parameter&&e.parameter.payload)d=JSON.parse(decodeURIComponent(e.parameter.payload));return writeData(d);}catch(err){return out({error:err.message});}}\nfunction readTab(t){var ss=SpreadsheetApp.openById(SHEET_ID);var sh=ss.getSheetByName(t);if(!sh)return out({rows:[],error:\'Tab not found:\'+t});var lr=sh.getLastRow(),lc=sh.getLastColumn();if(lr===0||lc===0)return out({rows:[]});var raw=sh.getRange(1,1,lr,lc).getValues();var cleaned=raw.map(function(row){return row.map(function(c){if(c===null||c===undefined||c===\'\')return\'\';if(c instanceof Date){var y=c.getFullYear();var m=String(c.getMonth()+1).padStart(2,\'0\');var d=String(c.getDate()).padStart(2,\'0\');return y+\'-\'+m+\'-\'+d;}if(typeof c===\'number\')return String(c);return String(c).trim();});});return out({rows:cleaned});}\nfunction pullLog(mobile){var ss=SpreadsheetApp.openById(SHEET_ID);var sh=ss.getSheetByName(LOG_TAB);if(!sh||sh.getLastRow()<=1)return out({rows:[]});var lr=sh.getLastRow(),lc=sh.getLastColumn();var raw=sh.getRange(2,1,lr-1,lc).getValues();var filtered=raw.filter(function(r){return String(r[2]||\'\').trim()===String(mobile).trim();});return out({rows:filtered});}\nfunction writeData(data){var ss=SpreadsheetApp.openById(SHEET_ID);\nif(data.action===\'appendLog\'){var logSh=ss.getSheetByName(LOG_TAB)||ss.insertSheet(LOG_TAB);if(logSh.getLastRow()===0){var hdr=[[\'Timestamp\',\'Name\',\'Mobile\',\'Type\',\'Activity\',\'Notes\',\'Raw ID\']];var hr=logSh.getRange(1,1,1,7);hr.setValues(hdr);hr.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');logSh.setFrozenRows(1);}logSh.appendRow(data.row||[]);var lr3=logSh.getLastRow();logSh.getRange(lr3,1).setNumberFormat(\'@\');logSh.getRange(lr3,7).setNumberFormat(\'@\');return out({success:true});}\nif(data.action===\'deleteLogById\'){var lsh=ss.getSheetByName(LOG_TAB);if(lsh&&lsh.getLastRow()>1){var rid=String(data.rowId||\'\').trim();var dmob=String(data.mobile||\'\').trim();var dts=String(data.ts||\'\').trim();var dact=String(data.activity||\'\').trim();var n=lsh.getLastRow();var rng=lsh.getRange(2,1,n-1,7).getValues();for(var rj=0;rj<rng.length;rj++){var row=rng[rj];var gId=String(row[6]||\'\').trim();var rTs=String(row[0]||\'\').trim();var rMob=String(row[2]||\'\').trim();var rAct=String(row[4]||\'\').trim();var matchById=(rid!==\'\'&&gId===rid);var matchByTs=(rid===\'\'||gId===\'\')&&dts!==\'\'&&rMob===dmob&&rTs===dts&&rAct===dact;if(matchById||matchByTs){lsh.deleteRow(rj+2);break;}}}return out({success:true,deleted:true});}if(data.action===\'deleteLog\'){var lsh2=ss.getSheetByName(LOG_TAB);if(lsh2&&lsh2.getLastRow()>1){var mob3=String(data.mobile||\'\').trim();var n2=lsh2.getLastRow();for(var rk=n2;rk>=2;rk--){if(String(lsh2.getRange(rk,3).getValue()||\'\').trim()===mob3){lsh2.deleteRow(rk);}}}return out({success:true});}\nif(data.action===\'updateAnalytics\'){var aS=ss.getSheetByName(\'ANALYTICS\')||ss.insertSheet(\'ANALYTICS\');if(aS.getLastRow()===0){aS.getRange(1,1,1,7).setValues([[\'Date\',\'Lead Entries\',\'Prospects\',\'Contacted\',\'In Progress\',\'Converted\',\'Dropped\']]).setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');aS.setFrozenRows(1);}var ad=data.date,ac=parseInt(data.col)||2,adel=parseInt(data.delta)||1,alr=aS.getLastRow(),af=false;if(alr>1){var adts=aS.getRange(2,1,alr-1,1).getValues();for(var i=0;i<adts.length;i++){if(String(adts[i][0]).trim()===ad){var acel=aS.getRange(i+2,ac);acel.setValue((parseInt(acel.getValue())||0)+adel); /* negative values allowed */ af=true; break; }}}if(!af&&adel>0){var anr=[ad,0,0,0,0,0,0];anr[ac-1]=adel;aS.appendRow(anr);}return out({success:true});}\nif(data.action===\'appendLeads\'||data.action===\'appendClients\'){var atab=data.action===\'appendLeads\'?LEADS_TAB:CLIENTS_TAB;var ash=ss.getSheetByName(atab);if(ash&&data.rows&&data.rows.length){data.rows.forEach(function(rw){ash.appendRow(rw);});var alr=ash.getLastRow();ash.getRange(2,1,alr-1,data.rows[0].length).setNumberFormat(\'@\');}return out({success:true});}if(data.action===\'appendLead\'){var aSh=ss.getSheetByName(LEADS_TAB)||ss.insertSheet(LEADS_TAB);if(aSh.getLastRow()===0){var lHdr=[[\'Name\',\'Mobile\',\'Email\',\'Age\',\'Country\',\'Status\',\'Source\',\'Referred By\',\'Estimated AUM/SIP\',\'Next Follow-up\',\'Investment Products\',\'Mode of Contact\',\'Remarks\',\'Modified Date\',\'Created Date\',\'Geo Tag\']];var lHr=aSh.getRange(1,1,1,16);lHr.setValues(lHdr);lHr.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');aSh.setFrozenRows(1);}var aRow=data.row||[];aSh.appendRow(aRow);var aLr=aSh.getLastRow();aSh.getRange(aLr,1,1,aRow.length).setNumberFormat(\'@\');return out({success:true,action:\'appendLead\'});}if(data.action===\'updateLead\'){var uSh=ss.getSheetByName(LEADS_TAB);if(uSh&&uSh.getLastRow()>1){var uMob=String(data.mobile||\'\').trim();var uRow=data.row||[];var uN=uSh.getLastRow();var uVals=uSh.getRange(2,2,uN-1,1).getValues();for(var ui=0;ui<uVals.length;ui++){if(String(uVals[ui][0]||\'\').trim()===uMob){var uRng=uSh.getRange(ui+2,1,1,uRow.length);uRng.setValues([uRow]);uRng.setNumberFormat(\'@\');break;}}}return out({success:true,action:\'updateLead\'});}if(data.action===\'deleteLead\'){var dSh=ss.getSheetByName(LEADS_TAB);if(dSh&&dSh.getLastRow()>1){var dMob=String(data.mobile||\'\').trim();var dN=dSh.getLastRow();var dVals=dSh.getRange(2,2,dN-1,1).getValues();for(var di=dN-1;di>=0;di--){if(String(dVals[di][0]||\'\').trim()===dMob){dSh.deleteRow(di+2);break;}}}return out({success:true,action:\'deleteLead\'});}\n\n  // ── Append ONE client row (new client) ──\n  if(data.action===\'appendClient\'){\n    var aShC=ss.getSheetByName(CLIENTS_TAB)||ss.insertSheet(CLIENTS_TAB);\n    if(aShC.getLastRow()===0){\n      var cHdr=[[\'Name\',\'Mobile\',\'Email\',\'Country\',\'Source\',\'Referred By\',\'Next Follow up date\',\n        \'Age\',\'Gender\',\'Remarks\',\'Created date\',\'PAN\',\'DOB\',\'Spouse DOB\',\'Anniversary\',\n        \'Converted Date\',\'Review Date\',\'1st Anniversary\',\'App Installed\',\'Broadcast Added\',\n        \'SIP date\',\'Health insurance\',\'Life insurance\',\'WILL\',\'Due date Health\',\'Due date Life\',\n        \'AUM\',\'Potential AUM\',\'Welcome Message send\',\'Products\']];\n      var cHr=aShC.getRange(1,1,1,30);\n      cHr.setValues(cHdr);cHr.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');\n      aShC.setFrozenRows(1);\n    }\n    var cRow=data.row||[];\n    aShC.appendRow(cRow);\n    var cLr=aShC.getLastRow();\n    aShC.getRange(cLr,1,1,cRow.length).setNumberFormat(\'@\');\n    return out({success:true,action:\'appendClient\'});\n  }\n\n  // ── Update ONE client row (find by mobile col B, replace in place) ──\n  if(data.action===\'updateClient\'){\n    var uShC=ss.getSheetByName(CLIENTS_TAB);\n    if(uShC&&uShC.getLastRow()>1){\n      var uMobC=String(data.mobile||\'\').trim();\n      var uRowC=data.row||[];\n      var uNC=uShC.getLastRow();\n      var uValsC=uShC.getRange(2,2,uNC-1,1).getValues();\n      for(var uic=0;uic<uValsC.length;uic++){\n        if(String(uValsC[uic][0]||\'\').trim()===uMobC){\n          var uRngC=uShC.getRange(uic+2,1,1,uRowC.length);\n          uRngC.setValues([uRowC]);\n          uRngC.setNumberFormat(\'@\');\n          break;\n        }\n      }\n    }\n    return out({success:true,action:\'updateClient\'});\n  }\n\n  // ── Delete ONE client row (find by mobile col B) ──\n  if(data.action===\'deleteClient\'){\n    var dShC=ss.getSheetByName(CLIENTS_TAB);\n    if(dShC&&dShC.getLastRow()>1){\n      var dMobC=String(data.mobile||\'\').trim();\n      var dNC=dShC.getLastRow();\n      var dValsC=dShC.getRange(2,2,dNC-1,1).getValues();\n      for(var dic=dNC-1;dic>=0;dic--){\n        if(String(dValsC[dic][0]||\'\').trim()===dMobC){dShC.deleteRow(dic+2);break;}\n      }\n    }\n    return out({success:true,action:\'deleteClient\'});\n  }\n  if(data.action===\'backupNow\'){ return manualBackupNow(); }\n  // ── Get upcoming Google Calendar events (default calendar) ──\n  if(data.action===\'getCalendarEvents\'){\n    try{\n      var TZ=\'Asia/Kolkata\'; // force IST regardless of Apps Script project timezone setting\n      // Pad the fetch window by 1 day on each side so no boundary event is ever missed,\n      // then bucket every event to its correct IST calendar day using formatDate (not\n      // getFullYear/getMonth/getDate, which use the SERVER\'s default timezone and can\n      // silently shift events onto the wrong day if the project timezone isn\'t IST).\n      var baseStart=data.start?new Date(data.start+\'T00:00:00\'):new Date();\n      var baseEnd=data.end?new Date(data.end+\'T23:59:59\'):new Date(baseStart.getTime()+8*86400000);\n      var evStart=new Date(baseStart.getTime()-86400000); // -1 day padding\n      var evEnd=new Date(baseEnd.getTime()+86400000);     // +1 day padding\n      var wantStart=data.start||Utilities.formatDate(new Date(),TZ,\'yyyy-MM-dd\');\n      var wantEnd=data.end||Utilities.formatDate(new Date(baseStart.getTime()+8*86400000),TZ,\'yyyy-MM-dd\');\n\n      var cal=CalendarApp.getDefaultCalendar();\n      var events=cal.getEvents(evStart,evEnd);\n      var evRows=events.map(function(e){\n        var st=e.getStartTime();\n        var dateStr=Utilities.formatDate(st,TZ,\'yyyy-MM-dd\');\n        var timeStr=e.isAllDayEvent()?\'All day\':Utilities.formatDate(st,TZ,\'h:mm a\');\n        return {date:dateStr,title:e.getTitle(),time:timeStr,type:\'event\'};\n      }).filter(function(r){return r.date>=wantStart&&r.date<=wantEnd;}); // trim padding back to requested range\n\n      // ── Also pull Birthdays (Google\'s auto-generated Contacts birthday calendar) ──\n      var bdayRows=[];\n      try{\n        var allCals=CalendarApp.getAllCalendars();\n        var bdayCal=null;\n        for(var bi=0;bi<allCals.length;bi++){\n          var cName=allCals[bi].getName().toLowerCase();\n          var cId=allCals[bi].getId();\n          if(cName.indexOf(\'birthday\')>=0 || cId.indexOf(\'#contacts@group.v.calendar.google.com\')>=0){\n            bdayCal=allCals[bi]; break;\n          }\n        }\n        if(bdayCal){\n          var bdayEvents=bdayCal.getEvents(evStart,evEnd);\n          bdayRows=bdayEvents.map(function(e){\n            var st=e.getStartTime();\n            var dateStr=Utilities.formatDate(st,TZ,\'yyyy-MM-dd\');\n            return {date:dateStr,title:e.getTitle(),time:\'\',type:\'birthday\'};\n          }).filter(function(r){return r.date>=wantStart&&r.date<=wantEnd;});\n        }\n      }catch(be){ /* birthday calendar not accessible — skip silently */ }\n\n      return out({events:evRows.concat(bdayRows), calendarId:cal.getId(), calendarName:cal.getName(), birthdaysFound:bdayRows.length, scriptTimeZone:Session.getScriptTimeZone(), usedTimeZone:TZ});\n    }catch(e){\n      return out({events:[],error:e.message});\n    }\n  }\n\n  // ── Diagnose calendar access — lists ALL calendars this account can see ──\n  if(data.action===\'diagnoseCalendars\'){\n    try{\n      var allCals=CalendarApp.getAllCalendars();\n      var calList=allCals.map(function(c){\n        var isBday=c.getName().toLowerCase().indexOf(\'birthday\')>=0||c.getId().indexOf(\'#contacts@group.v.calendar.google.com\')>=0;\n        return {name:c.getName(), id:c.getId(), isSelected:c.isSelected(), isOwned:c.isOwnedByMe(), isBirthdayCalendar:isBday};\n      });\n      var defCal=CalendarApp.getDefaultCalendar();\n      return out({\n        defaultCalendarId: defCal.getId(),\n        defaultCalendarName: defCal.getName(),\n        allCalendars: calList\n      });\n    }catch(e){\n      return out({error:e.message});\n    }\n  }\n\n  // ── Client Documents: get-or-create a client\'s Drive folder ──\n  // Folder name includes mobile to avoid collisions between same-named clients.\n  function getOrCreateClientFolder(clientName, mobile){\n    var parentName=\'Wealth Matrix Client Documents\';\n    var parentIter=DriveApp.getFoldersByName(parentName);\n    var parent=parentIter.hasNext()?parentIter.next():DriveApp.createFolder(parentName);\n    var folderName=(clientName||\'Unknown\')+\' - \'+(mobile||\'\');\n    var iter=parent.getFoldersByName(folderName);\n    if(iter.hasNext()) return iter.next();\n    return parent.createFolder(folderName);\n  }\n\n  // ── Create a client\'s Drive folder explicitly (called on new client add / lead conversion) ──\n  if(data.action===\'createClientFolder\'){\n    try{\n      var cFolder=getOrCreateClientFolder(data.clientName, data.mobile);\n      return out({success:true, folderId:cFolder.getId(), folderUrl:cFolder.getUrl()});\n    }catch(e){\n      return out({success:false, error:e.message});\n    }\n  }\n\n  // ── Upload a document into a client\'s folder, named after the document type ──\n  // Replaces any existing file of the same type (keeps exactly one current version per slot).\n  if(data.action===\'uploadClientDocument\'){\n    try{\n      var uFolder=getOrCreateClientFolder(data.clientName, data.mobile);\n      // Remove any existing file with this doc type name (any extension)\n      var existingFiles=uFolder.getFiles();\n      while(existingFiles.hasNext()){\n        var ef=existingFiles.next();\n        if(ef.getName().indexOf(data.docType+\'.\')===0 || ef.getName()===data.docType){\n          ef.setTrashed(true);\n        }\n      }\n      var bytes=Utilities.base64Decode(data.fileData);\n      var blob=Utilities.newBlob(bytes, data.mimeType||\'application/octet-stream\', data.docType+(data.fileExt?\'.\'+data.fileExt:\'\'));\n      var newFile=uFolder.createFile(blob);\n      return out({success:true, fileId:newFile.getId(), fileUrl:newFile.getUrl(), fileName:newFile.getName()});\n    }catch(e){\n      return out({success:false, error:e.message});\n    }\n  }\n\n  // ── List all documents currently uploaded for a client ──\n  if(data.action===\'listClientDocuments\'){\n    try{\n      var lFolder=getOrCreateClientFolder(data.clientName, data.mobile);\n      var files=lFolder.getFiles();\n      var fileList=[];\n      while(files.hasNext()){\n        var f=files.next();\n        var fname=f.getName();\n        var docType=fname.indexOf(\'.\')>=0?fname.substring(0,fname.lastIndexOf(\'.\')):fname;\n        fileList.push({docType:docType, name:fname, url:f.getUrl(), id:f.getId()});\n      }\n      return out({success:true, files:fileList, folderUrl:lFolder.getUrl()});\n    }catch(e){\n      return out({success:false, error:e.message, files:[]});\n    }\n  }\n\n  // ── Delete a single client document ──\n  if(data.action===\'deleteClientDocument\'){\n    try{\n      var dFile=DriveApp.getFileById(data.fileId);\n      dFile.setTrashed(true);\n      return out({success:true});\n    }catch(e){\n      return out({success:false, error:e.message});\n    }\n  }\n\n  if(data.action===\'readSpecialDays\'){var spSh=ss.getSheetByName(SPECIAL_TAB);if(!spSh)return out({rows:[]});var spLr=spSh.getLastRow();if(spLr<2)return out({rows:[]});var spVals=spSh.getRange(2,1,spLr-1,2).getValues();var spRows=spVals.map(function(r){return[String(r[0]||\'\').trim(),String(r[1]||\'\').trim()];}).filter(function(r){return r[0]&&r[1];});return out({rows:spRows});}\n  if(data.action===\'pushSpecialDays\'){\n    var spSh3=ss.getSheetByName(SPECIAL_TAB)||ss.insertSheet(SPECIAL_TAB);\n    var spDataRows=data.rows||[];\n    var spLastRow=spSh3.getLastRow();\n    if(spLastRow===0){\n      // Sheet is empty — write header then data\n      spSh3.appendRow([\'Date (MM-DD)\',\'Remarks\']);\n      var spHdr=spSh3.getRange(1,1,1,2);\n      spHdr.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');\n      spSh3.setFrozenRows(1);\n    }\n    // Get existing date values to avoid duplicates\n    var spExisting=spLastRow>1?spSh3.getRange(2,1,spLastRow-1,1).getValues().map(function(r){return String(r[0]||\'\').trim();}):[]; \n    // Append only new rows (skip header row from data)\n    spDataRows.forEach(function(row){\n      if(row[0]===\'Date (MM-DD)\'||row[0]===\'Day\') return; // skip header rows\n      if(spExisting.indexOf(String(row[0]||\'\').trim())>=0) return; // skip duplicates\n      spSh3.appendRow([row[0],row[1]]);\n      spSh3.getRange(spSh3.getLastRow(),1,1,2).setNumberFormat(\'@\');\n    });\n    return out({success:true,action:\'pushSpecialDays\'});\n  }\n  if(data.action===\'appendSpecialDay\'){var spSh2=ss.getSheetByName(SPECIAL_TAB)||ss.insertSheet(SPECIAL_TAB);if(spSh2.getLastRow()===0){var spH=spSh2.getRange(1,1,1,2);spH.setValues([[\'Date (MM-DD)\',\'Remarks\']]);spH.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');spSh2.setFrozenRows(1);}spSh2.appendRow([data.date||\'\',data.speciality||\'\']);return out({success:true,action:\'appendSpecialDay\'});}\nvar tab=data.action===\'pushLeads\'?LEADS_TAB:data.action===\'pushClients\'?CLIENTS_TAB:null;if(!tab)return out({error:\'Bad action:\'+data.action});var rows=data.rows;if(!rows||rows.length===0)return out({error:\'No rows\'});var sh=ss.getSheetByName(tab)||ss.insertSheet(tab);sh.clearContents();var r=sh.getRange(1,1,rows.length,rows[0].length);r.setNumberFormat(\'@\');r.setValues(rows);var h=sh.getRange(1,1,1,rows[0].length);h.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');sh.setFrozenRows(1);return out({success:true,written:rows.length-1});}\nfunction out(o){return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);}\nfunction testConnection(){Logger.log(\'OK: \'+SpreadsheetApp.openById(SHEET_ID).getName());}\n\n// ═══════════════════════════════════════════\n// AUTOMATED BACKUP SYSTEM\n// ═══════════════════════════════════════════\n// Run createBackupTrigger() ONCE manually from the Apps Script editor\n// (select it in the function dropdown, click Run). This sets up a weekly\n// trigger — after that, backups happen automatically with zero further action.\n\nconst BACKUP_FOLDER_NAME=\'Wealth Matrix CRM Backups\';\nconst MAX_BACKUPS_TO_KEEP=8; // ~2 months of weekly backups\n\nfunction createBackupTrigger(){\n  // Remove any existing backup triggers first (avoid duplicates)\n  var triggers=ScriptApp.getProjectTriggers();\n  triggers.forEach(function(t){\n    if(t.getHandlerFunction()===\'runWeeklyBackup\') ScriptApp.deleteTrigger(t);\n  });\n  // Create new weekly trigger — runs every Sunday at 2 AM\n  ScriptApp.newTrigger(\'runWeeklyBackup\')\n    .timeBased()\n    .onWeekDay(ScriptApp.WeekDay.SUNDAY)\n    .atHour(2)\n    .create();\n  Logger.log(\'✅ Weekly backup trigger created. Backups will run automatically every Sunday at 2 AM.\');\n}\n\nfunction runWeeklyBackup(){\n  try{\n    var srcFile=DriveApp.getFileById(SHEET_ID);\n    var folders=DriveApp.getFoldersByName(BACKUP_FOLDER_NAME);\n    var folder=folders.hasNext()?folders.next():DriveApp.createFolder(BACKUP_FOLDER_NAME);\n\n    var dateStr=Utilities.formatDate(new Date(),Session.getScriptTimeZone(),\'yyyy-MM-dd_HH-mm\');\n    var backupName=\'CRM Backup \'+dateStr;\n    srcFile.makeCopy(backupName, folder);\n    Logger.log(\'✅ Backup created: \'+backupName);\n\n    // Clean up old backups — keep only the most recent MAX_BACKUPS_TO_KEEP\n    var files=folder.getFiles();\n    var fileList=[];\n    while(files.hasNext()){\n      var f=files.next();\n      fileList.push({file:f, date:f.getDateCreated()});\n    }\n    fileList.sort(function(a,b){return b.date-a.date;}); // newest first\n    if(fileList.length>MAX_BACKUPS_TO_KEEP){\n      for(var i=MAX_BACKUPS_TO_KEEP;i<fileList.length;i++){\n        fileList[i].file.setTrashed(true);\n      }\n      Logger.log(\'🗑️ Cleaned up \'+(fileList.length-MAX_BACKUPS_TO_KEEP)+\' old backup(s)\');\n    }\n  }catch(e){\n    Logger.log(\'❌ Backup failed: \'+e.message);\n  }\n}\n\n// Manual backup — call this anytime from the app (Settings → Backup Now)\nfunction manualBackupNow(){\n  runWeeklyBackup();\n  return out({success:true,message:\'Backup created\'});\n}\n'
   var ov=document.createElement('div');
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:flex-end;justify-content:center;padding:10px';
   ov.innerHTML='<div style="background:var(--s1);border-radius:12px;width:100%;max-width:540px;max-height:90vh;overflow-y:auto;padding:16px">'
-    +'<div style="font-weight:800;font-size:14px;margin-bottom:6px;color:var(--accent)">Apps Script v2.6 — Copy & Deploy</div>'
+    +'<div style="font-weight:800;font-size:14px;margin-bottom:6px;color:var(--accent)">Apps Script v2.7 — Copy & Deploy</div>'
     +'<div style="font-size:11px;color:var(--t2);margin-bottom:8px;background:var(--s2);padding:8px;border-radius:6px">'
     +'1. script.google.com → Your project → Delete all → Paste → Save<br>'
     +'2. Deploy → Manage deployments → Edit → New version → Deploy<br>'
@@ -2083,6 +2157,7 @@ function nav(name,btn){
   if(name==='settings'){
     var sb5=document.getElementById('shared-search-bar'); if(sb5) sb5.style.display='none';
     loadSettings();
+    renderLockSettingsStatus();
   }
   if(name==='dash'){
     var sb3=document.getElementById('shared-search-bar'); if(sb3) sb3.style.display='none';
@@ -2398,9 +2473,9 @@ function renderLeads(){
 
 
 
-// ── v2.6 CORE ──
+// ── v2.7 CORE ──
 // ═══════════════════════════════════════════════════
-// v2.6 CORE OVERRIDES
+// v2.7 CORE OVERRIDES
 // ═══════════════════════════════════════════════════
 
 // ── ACTIVITY LOG local cache ──
@@ -2488,7 +2563,7 @@ async function pullActivityLog(){
   } catch(e){ console.warn('pullActivityLog:', e.message); }
 }
 
-// ── NEW LEADS COLUMNS (v2.6): 13 columns ──
+// ── NEW LEADS COLUMNS (v2.7): 13 columns ──
 // Name(0) Mobile(1) Email(2) Age(3) Status(4) Source(5)
 // Referred By(6) AUM/SIP(7) Next Follow-up(8) Products(9) Remarks(10)
 // Modified Date(11) Created Date(12)
@@ -2497,7 +2572,7 @@ function leadsRows(){
   return [LEAD_HDRS].concat(leads.map(leadToRow));
 }
 
-// ── PULL FROM SHEET v2.6 (header-based, new columns) ──
+// ── PULL FROM SHEET v2.7 (header-based, new columns) ──
 async function pullFromSheet(manual){
   if(!hasScript()){if(manual)showSyncMsg('Add Apps Script URL first.',false);return;}
   if(syncInProgress)return;
@@ -2623,7 +2698,7 @@ function deleteActivityEntry(rowId, mob, clickTs){
   };
 }
 
-// ── NEW CHIPS (v2.6) ──
+// ── NEW CHIPS (v2.7) ──
 var V17_CHIPS = [
   ['📞','Called follow up'],
   ['🔄','Called-will call back'],
@@ -2677,7 +2752,7 @@ async function saveFuDateV17(mob, newDate){
   setTimeout(function(){renderFU();renderLeads();},300);
 }
 
-// ── OVERRIDE renderFuDetailInner (v2.6 unified popup) ──
+// ── OVERRIDE renderFuDetailInner (v2.7 unified popup) ──
 function renderFuDetailInner(mob){
   var l=leads.find(function(x){return x.mobile===mob;});if(!l)return;
   var d=daysAgo(l.modifiedDate||l.createdDate);
@@ -2845,7 +2920,7 @@ function renderFuDetailInner(mob){
   };
 }
 
-// ── BOOTSEQUENCE v2.6 (load activity log on startup) ──
+// ── BOOTSEQUENCE v2.7 (load activity log on startup) ──
 
 
 // Version marker
@@ -2853,9 +2928,9 @@ var APP_VERSION='1.7';
 
 
 
-// ── v2.6 ADDONS ──
+// ── v2.7 ADDONS ──
 // ═══════════════════════════════════════════════════
-// v2.6 ADDONS — Loading screen, Country chart,
+// v2.7 ADDONS — Loading screen, Country chart,
 //               Reliable push, FU card date button
 // ═══════════════════════════════════════════════════
 
@@ -5606,11 +5681,360 @@ function parseClientsFromRows(rows){
   return out;
 }
 
+
+// ═══════════════════════════════════════════════
+// APP LOCK — PIN + Biometric (WebAuthn), local device gate only
+// ═══════════════════════════════════════════════
+var _lockPinBuffer='';
+var _lockUnlocked=false; // resets to false on load and on tab-hide
+
+// SHA-256 hash a PIN for storage (never store plaintext)
+async function hashPin(pin){
+  var enc=new TextEncoder().encode(pin);
+  var buf=await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(function(b){return b.toString(16).padStart(2,'0');}).join('');
+}
+
+function isLockEnabled(){ return !!localStorage.getItem('wm_lock_pin_hash'); }
+function isBiometricEnabled(){ return !!localStorage.getItem('wm_lock_biometric_id'); }
+
+// ── Set up a new PIN (called from Settings) ──
+async function setupPin(pin){
+  var hash=await hashPin(pin);
+  localStorage.setItem('wm_lock_pin_hash', hash);
+  toast('✅ PIN set — app will now lock on open');
+  renderLockSettingsStatus();
+}
+
+function removeLock(){
+  if(!confirm('Remove app lock? Anyone with your phone will be able to open the CRM.')) return;
+  localStorage.removeItem('wm_lock_pin_hash');
+  localStorage.removeItem('wm_lock_biometric_id');
+  toast('🔓 App lock removed');
+  renderLockSettingsStatus();
+}
+
+// ── Register biometric (Face ID / Fingerprint / device PIN via WebAuthn) ──
+async function setupBiometric(){
+  if(!window.PublicKeyCredential){ toast('⚠️ Biometric unlock not supported on this browser'); return; }
+  try{
+    var challenge=crypto.getRandomValues(new Uint8Array(32));
+    var userId=crypto.getRandomValues(new Uint8Array(16));
+    var cred=await navigator.credentials.create({
+      publicKey:{
+        challenge:challenge,
+        rp:{name:'Wealth Matrix CRM'},
+        user:{id:userId, name:'wm-user', displayName:'Wealth Matrix User'},
+        pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],
+        authenticatorSelection:{authenticatorAttachment:'platform', userVerification:'required'},
+        timeout:60000
+      }
+    });
+    if(cred){
+      localStorage.setItem('wm_lock_biometric_id', cred.id);
+      toast('✅ Face ID / Fingerprint unlock enabled');
+      renderLockSettingsStatus();
+    }
+  }catch(e){
+    toast('⚠️ Biometric setup failed or cancelled: '+e.message);
+  }
+}
+
+async function tryBiometricUnlock(){
+  if(!isBiometricEnabled()) return false;
+  try{
+    var challenge=crypto.getRandomValues(new Uint8Array(32));
+    var credId=localStorage.getItem('wm_lock_biometric_id');
+    // Convert stored base64url credential id back to bytes
+    var idBytes=Uint8Array.from(atob(credId.replace(/-/g,'+').replace(/_/g,'/')), function(c){return c.charCodeAt(0);});
+    var assertion=await navigator.credentials.get({
+      publicKey:{
+        challenge:challenge,
+        allowCredentials:[{type:'public-key', id:idBytes}],
+        userVerification:'required',
+        timeout:60000
+      }
+    });
+    return !!assertion; // success = the OS biometric/PIN prompt was satisfied
+  }catch(e){
+    return false; // cancelled or failed — fall back to PIN pad
+  }
+}
+
+// ── Lock screen UI ──
+function showLockScreen(){
+  var ls=document.getElementById('lock-screen');
+  if(!ls) return;
+  ls.style.display='flex';
+  _lockPinBuffer='';
+  updateLockDots();
+  var bioBtn=document.getElementById('lock-biometric-btn');
+  if(bioBtn) bioBtn.style.display=isBiometricEnabled()?'block':'none';
+  // Auto-prompt biometric immediately if enabled
+  if(isBiometricEnabled()){
+    tryBiometricUnlock().then(function(ok){ if(ok) unlockApp(); });
+  }
+}
+
+function hideLockScreen(){
+  var ls=document.getElementById('lock-screen');
+  if(ls) ls.style.display='none';
+}
+
+function unlockApp(){
+  _lockUnlocked=true;
+  hideLockScreen();
+}
+
+function updateLockDots(){
+  var dots=document.querySelectorAll('.lock-dot');
+  dots.forEach(function(d,i){
+    d.style.background = i<_lockPinBuffer.length ? '#C0392B' : 'transparent';
+    d.style.borderColor = i<_lockPinBuffer.length ? '#C0392B' : '#444';
+  });
+}
+
+async function checkLockPin(){
+  var errEl=document.getElementById('lock-error');
+  var hash=await hashPin(_lockPinBuffer);
+  if(hash===localStorage.getItem('wm_lock_pin_hash')){
+    unlockApp();
+  } else {
+    if(errEl) errEl.textContent='Incorrect PIN';
+    _lockPinBuffer='';
+    updateLockDots();
+    var pad=document.getElementById('lock-pin-pad');
+    if(pad){ pad.style.animation='none'; void pad.offsetWidth; pad.style.animation='lockShake .3s'; }
+    setTimeout(function(){ if(errEl) errEl.textContent=''; }, 1500);
+  }
+}
+
+// PIN pad click handling
+document.addEventListener('DOMContentLoaded', function(){
+  var pad=document.getElementById('lock-pin-pad');
+  if(pad){
+    pad.addEventListener('click', function(e){
+      var key=e.target.closest('.lock-key');
+      if(!key) return;
+      if(_lockPinBuffer.length>=6) return;
+      _lockPinBuffer+=key.dataset.k;
+      updateLockDots();
+      if(_lockPinBuffer.length===6) checkLockPin();
+    });
+  }
+  var bs=document.getElementById('lock-backspace');
+  if(bs) bs.onclick=function(){ _lockPinBuffer=_lockPinBuffer.slice(0,-1); updateLockDots(); };
+  var bioBtn=document.getElementById('lock-biometric-btn');
+  if(bioBtn) bioBtn.onclick=function(){ tryBiometricUnlock().then(function(ok){ if(ok) unlockApp(); }); };
+});
+
+// Re-lock when app is hidden (backgrounded) and shown again
+document.addEventListener('visibilitychange', function(){
+  if(document.visibilityState==='hidden' && isLockEnabled()){
+    _lockUnlocked=false;
+  } else if(document.visibilityState==='visible' && isLockEnabled() && !_lockUnlocked){
+    showLockScreen();
+  }
+});
+
+// Settings UI status refresh
+function renderLockSettingsStatus(){
+  var el=document.getElementById('lock-status-text');
+  if(!el) return;
+  if(isLockEnabled()){
+    el.textContent='🔒 App lock is ON'+(isBiometricEnabled()?' · Face ID/Fingerprint enabled':' · PIN only');
+    el.style.color='var(--green)';
+  } else {
+    el.textContent='🔓 App lock is OFF';
+    el.style.color='var(--t3)';
+  }
+  var setBtn=document.getElementById('lock-setup-btn');
+  var removeBtn=document.getElementById('lock-remove-btn');
+  var bioBtn2=document.getElementById('lock-setup-bio-btn');
+  if(setBtn) setBtn.textContent=isLockEnabled()?'🔁 Change PIN':'🔒 Set Up PIN Lock';
+  if(removeBtn) removeBtn.style.display=isLockEnabled()?'block':'none';
+  if(bioBtn2) bioBtn2.style.display=(isLockEnabled()&&window.PublicKeyCredential)?'block':'none';
+}
+
+function promptSetupPin(){
+  var pin=prompt('Enter a 4-6 digit PIN to lock the app:');
+  if(!pin) return;
+  if(!/^\d{4,6}$/.test(pin)){ toast('PIN must be 4-6 digits'); return; }
+  var confirm2=prompt('Re-enter the PIN to confirm:');
+  if(pin!==confirm2){ toast('PINs did not match'); return; }
+  setupPin(pin);
+}
+
+
+// ═══════════════════════════════════════════════
+// CLIENT DOCUMENTS — Drive folder per client, one file per doc type
+// ═══════════════════════════════════════════════
+var DOC_TYPES=['PAN','Aadhaar','Passport','Resident ID','CAS','Others'];
+var _docsListCache=[]; // documents currently known for the open client form
+
+async function toggleDocsSection(){
+  var body=document.getElementById('docs-section-body');
+  var arrow=document.getElementById('docs-toggle-arrow');
+  if(!body) return;
+  var isOpen=body.style.display==='block';
+  body.style.display=isOpen?'none':'block';
+  if(arrow) arrow.style.transform=isOpen?'rotate(0deg)':'rotate(180deg)';
+  if(!isOpen){
+    // Opening — fetch the CURRENT document list from Drive (on-demand only,
+    // never during boot/sync — keeps this fully isolated from app speed)
+    var mob=document.getElementById('cf-orig')?document.getElementById('cf-orig').value.trim():'';
+    if(mob){
+      var list=document.getElementById('docs-list');
+      if(list) list.innerHTML='<div style="text-align:center;padding:12px;font-size:11px;color:var(--t3)">Loading documents...</div>';
+      await loadDocsForCurrentClient();
+    }
+    renderDocsList();
+  }
+}
+
+// Render the document type rows (upload slot + current file if any) inside the form
+function renderDocsList(){
+  var el=document.getElementById('docs-list');
+  var hint=document.getElementById('docs-hint');
+  if(!el) return;
+  var mob=document.getElementById('cf-orig')?document.getElementById('cf-orig').value.trim():'';
+
+  if(!mob){
+    // Add-new-client mode — no folder can exist yet, uploads happen after first save
+    if(hint) hint.style.display='block';
+    el.innerHTML='';
+    return;
+  }
+  if(hint) hint.style.display='none';
+
+  el.innerHTML=DOC_TYPES.map(function(dt){
+    var existing=_docsListCache.find(function(f){return f.docType===dt;});
+    return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 0;border-bottom:1px solid var(--border)">'
+      +'<div style="flex:1;min-width:0">'
+      +'<div style="font-size:12px;font-weight:700;color:var(--text)">'+dt+'</div>'
+      +(existing?'<div style="font-size:10px;color:var(--green);margin-top:1px">✓ Uploaded</div>':'<div style="font-size:10px;color:var(--t3);margin-top:1px">Not uploaded</div>')
+      +'</div>'
+      +(existing?'<a href="'+existing.url+'" target="_blank" style="font-size:10px;font-weight:700;color:var(--accent);padding:5px 9px;border:1px solid var(--accent);border-radius:6px;text-decoration:none">View</a>':'')
+      +'<label style="font-size:10px;font-weight:700;color:#fff;background:var(--accent);padding:6px 10px;border-radius:6px;cursor:pointer;flex-shrink:0">'
+      +(existing?'Replace':'Upload')
+      +'<input type="file" accept="image/*,.pdf" style="display:none" data-doctype="'+dt+'" onchange="handleDocUpload(this)"></label>'
+      +'</div>';
+  }).join('');
+}
+
+// Fetch the list of already-uploaded documents for the client currently being edited
+async function loadDocsForCurrentClient(){
+  var mob=document.getElementById('cf-orig')?document.getElementById('cf-orig').value.trim():'';
+  if(!mob||!hasScript()){ _docsListCache=[]; return; }
+  var c=clients.find(function(x){return x.mobile===mob;});
+  if(!c) return;
+  try{
+    var res=await apiFetch({action:'listClientDocuments', clientName:c.name, mobile:c.mobile});
+    if(res&&res.success) _docsListCache=res.files||[];
+  }catch(e){ console.warn('loadDocsForCurrentClient failed:', e.message); }
+}
+
+// Handle a file being selected for a specific document type slot
+async function handleDocUpload(inputEl){
+  var docType=inputEl.dataset.doctype;
+  var file=inputEl.files[0];
+  if(!file) return;
+  var mob=document.getElementById('cf-orig')?document.getElementById('cf-orig').value.trim():'';
+  if(!mob){ toast('Save the client first, then upload documents'); inputEl.value=''; return; }
+  var c=clients.find(function(x){return x.mobile===mob;});
+  if(!c){ toast('Client not found'); return; }
+  if(!hasScript()){ toast('Add Apps Script URL first'); return; }
+
+  toast('⬆️ Uploading '+docType+'...');
+  try{
+    var base64=await fileToBase64(file);
+    var ext=file.name.includes('.')?file.name.split('.').pop():'';
+    var res=await apiFetch({
+      action:'uploadClientDocument',
+      clientName:c.name, mobile:c.mobile,
+      docType:docType, fileData:base64,
+      mimeType:file.type, fileExt:ext
+    });
+    if(res&&res.success){
+      toast('✅ '+docType+' uploaded');
+      await loadDocsForCurrentClient();
+      renderDocsList();
+    } else {
+      toast('❌ Upload failed: '+(res&&res.error||'unknown error'));
+    }
+  }catch(e){
+    toast('❌ Upload failed: '+e.message);
+  }
+  inputEl.value='';
+}
+
+// Convert a File object to base64 (strips the data-URL prefix)
+function fileToBase64(file){
+  return new Promise(function(resolve, reject){
+    var reader=new FileReader();
+    reader.onload=function(){
+      var result=reader.result;
+      var base64=result.split(',')[1]; // strip "data:...;base64," prefix
+      resolve(base64);
+    };
+    reader.onerror=reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// ── Create the client's Drive folder (fire-and-forget, non-blocking) ──
+// Called after a NEW client is saved, or when a lead is converted to a client.
+function createClientFolderBg(client){
+  if(!hasScript()) return;
+  apiFetch({action:'createClientFolder', clientName:client.name, mobile:client.mobile})
+    .catch(function(e){ console.warn('createClientFolderBg failed:', e.message); });
+}
+
+
+// ── Toggle + lazy-load the Documents section inside the client CHIP window (view-only) ──
+var _chipDocsOpen={}; // tracks open/closed per mobile so re-tapping doesn't refetch every time
+async function toggleChipDocs(mob){
+  var body=document.getElementById('chip-docs-body');
+  var arrow=document.getElementById('chip-docs-arrow');
+  if(!body) return;
+  var isOpen=body.style.display==='block';
+  if(isOpen){
+    body.style.display='none';
+    if(arrow) arrow.textContent='▾';
+    return;
+  }
+  body.style.display='block';
+  if(arrow) arrow.textContent='▴';
+  body.innerHTML='<div style="text-align:center;padding:10px;font-size:11px;color:var(--t3)">Loading documents...</div>';
+
+  var c=clients.find(function(x){return x.mobile===mob;});
+  if(!c||!hasScript()){ body.innerHTML='<div style="text-align:center;padding:10px;font-size:11px;color:var(--t3)">Not available</div>'; return; }
+
+  try{
+    var res=await apiFetch({action:'listClientDocuments', clientName:c.name, mobile:c.mobile});
+    if(!res||!res.success||!res.files||!res.files.length){
+      body.innerHTML='<div style="text-align:center;padding:10px;font-size:11px;color:var(--t3)">No documents uploaded yet</div>';
+      return;
+    }
+    body.innerHTML=res.files.map(function(f){
+      return '<a href="'+f.url+'" target="_blank" style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--s2);border-radius:7px;margin-bottom:5px;text-decoration:none">'
+        +'<span style="font-size:14px">📄</span>'
+        +'<span style="font-size:12px;font-weight:700;color:var(--text);flex:1">'+f.docType+'</span>'
+        +'<span style="font-size:10px;color:var(--accent)">Open ›</span>'
+        +'</a>';
+    }).join('');
+  }catch(e){
+    body.innerHTML='<div style="text-align:center;padding:10px;font-size:11px;color:#e74c3c">Failed to load documents</div>';
+  }
+}
+
 // Load offline queue and flush any writes that failed last session
 _loadQ();
 // Load cached special days
 try{var _sd=localStorage.getItem('wm_specialdays');if(_sd){var _sdo=JSON.parse(_sd);if(_sdo.length>_specialDays.length)_specialDays=_sdo;}}catch(e){}
 try{_calendarEvents=JSON.parse(localStorage.getItem('wm_calendar_events')||'[]');}catch(e){_calendarEvents=[];}
+// Show lock screen FIRST if app lock is enabled — blocks the app until unlocked
+if(isLockEnabled()){ showLockScreen(); }
 load();applyDarkMode();loadActivityLog();bootSequenceV17();
 // Load cached analytics
 try{_analyticsData=JSON.parse(localStorage.getItem('wm_analytics')||'[]');}catch(e){_analyticsData=[];}
