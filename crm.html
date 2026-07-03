@@ -832,6 +832,14 @@ function load(){
   try{cfg_=JSON.parse(localStorage.getItem('wm_cfg')||'{}');}catch(e){cfg_={};}
   if(!cfg_.followUpDays)cfg_.followUpDays=14;
   if(!cfg_.msgs)cfg_.msgs=Object.assign({},DEFMSG);
+  // Normalize legacy leads missing referral/aum — safe here since it runs AFTER
+  // leads is populated from storage, and only saves back if something changed.
+  var _normChanged=false;
+  leads.forEach(function(l){
+    if(!l.referral||!l.referral.trim()){l.referral='SELF';_normChanged=true;}
+    if(l.aum===undefined){l.aum='';_normChanged=true;}
+  });
+  if(_normChanged) saveL();
 }
 function saveL(){localStorage.setItem('wm_leads',JSON.stringify(leads));}
 function saveC(){localStorage.setItem('wm_clients',JSON.stringify(clients));}
@@ -2082,34 +2090,7 @@ function nav(name,btn){
 // ═══════════════════════════════════════════════
 // BOOT
 // ═══════════════════════════════════════════════
-async function bootSequence(){
-  renderAll();updateFUBadge();scheduleNotifications();
-  // Show leads search bar on initial load
-  var bsl=document.getElementById('bottom-search-bar');
-  if(bsl)bsl.style.display='block';
-  if(!hasScript()){setTopSync('idle','Not synced — add Apps Script URL in Sync tab');setSyncBanner('idle');return;}
-  setTopSync('syncing','Syncing in background…');
-  await new Promise(function(res){setTimeout(res,400);});
-  try{
-    syncInProgress=true;
-    // Parallel fetch: LEADS + CLIENTS simultaneously (halves network wait)
-    var _pLeads=scriptGet('LEADS');
-    var _pClients=scriptGet('CLIENTS');
-    var ld=await _pLeads;
-    if(ld&&ld.rows&&ld.rows.length>1){ld.rows.slice(1).forEach(function(r){var mob=String(r[1]||'').trim();if(!mob)return;var obj={name:caps(r[0]),mobile:mob,email:caps(r[2]),country:caps(r[3]),status:caps(r[4])||'PROSPECT',source:caps(r[5]),referral:caps(r[6]),products:caps(r[7]),age:String(r[8]||''),gender:caps(r[9]),nextFollowUp:String(r[10]||''),remarks:migrateRemarks(String(r[11]||'')),modifiedDate:String(r[12]||today()),createdDate:String(r[13]||today())};var idx=leads.findIndex(function(l){return l.mobile===mob;});if(idx>=0)leads[idx]=Object.assign({},leads[idx],obj,{notes:leads[idx].notes||[]});else leads.push(Object.assign({},obj,{notes:[]}));});saveL();}
-    var cd=await _pClients; // already fetching in parallel since boot start
-    if(cd&&cd.rows&&cd.rows.length<=1&&!cd.error){
-      // CLIENTS sheet is empty (only header or nothing) — clear local clients
-      clients=[];saveC();
-    }
-    if(cd&&cd.rows&&cd.rows.length>1){cd.rows.slice(1).forEach(function(r){var mob=String(r[1]||'').trim();if(!mob)return;var obj={name:caps(r[0]),mobile:mob,email:caps(r[2]),country:caps(r[3]),age:String(r[4]||''),gender:caps(r[5]),pan:caps(r[6]),products:caps(r[7]),remarks:caps(r[8]),convertedDate:String(r[9]||'')};var idx=clients.findIndex(function(c){return c.mobile===mob;});if(idx>=0)clients[idx]=Object.assign({},clients[idx],obj);else clients.push(obj);});saveC();}
-    cfg_.lastPull=now();saveCfg();
-    var ts=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
-    setTopSync('ok','Synced at '+ts+' · '+leads.length+' leads');setSyncBanner('ok');
-    renderAll();updateFUBadge();
-  }catch(err){setTopSync('err','Sync failed — tap 🔄 to retry');setSyncBanner('err');console.warn('Boot sync:',err.message);}
-  finally{syncInProgress=false;}
-}
+// (legacy bootSequence() removed — dead code, never called; bootSequenceV17() is the active boot function)
 
 
 // ── V1.5 PATCHES ──
@@ -2249,15 +2230,11 @@ function updateFUBadge(){
 }
 
 // ── Set Self as default for existing leads without referral ──
-(function fixExistingLeadsReferral(){
-  var changed=false;
-  leads.forEach(function(l){if(!l.referral||!l.referral.trim()){l.referral='SELF';changed=true;}if(!l.aum)l.aum='';});
-  if(changed){saveL();}
-})();
-
-
-// Fix existing leads
-(function(){leads.forEach(function(l){if(!l.referral)l.referral="SELF";if(!l.aum)l.aum="";});saveL();})();
+// NOTE: lead referral/AUM normalization moved into load() itself (see below) —
+// running it here at parse-time was destructive: it fired BEFORE load() ever
+// populated `leads` from localStorage, so it unconditionally saved an EMPTY
+// array back to storage on every single page open, wiping real data before
+// load() could read it back. (Bug present since early versions — fixed now.)
 
 
 // ── V1.6 LEAD SCORING PATCH ──
@@ -2557,12 +2534,9 @@ async function pullFromSheet(manual){
       });
       saveL();
     }
-    // Pull CLIENTS
+    // Pull CLIENTS — never destructively clear local data on an empty-looking
+    // response (matches leads' safe behavior); only update when real data arrives
     var cd=await _pClients; // already fetching in parallel since boot start
-    if(cd&&cd.rows&&cd.rows.length<=1&&!cd.error){
-      // CLIENTS sheet is empty (only header or nothing) — clear local clients
-      clients=[];saveC();
-    }
     if(cd&&cd.rows&&cd.rows.length>1){
       var chdr=cd.rows[0].map(function(h){return (h||'').toLowerCase().trim();});
       var cci=function(keys){for(var ki=0;ki<keys.length;ki++)for(var hi=0;hi<chdr.length;hi++)if(chdr[hi].includes(keys[ki]))return hi;return -1;};
@@ -3604,10 +3578,12 @@ async function bootSequenceV17(){
       leads=sheetLeads;saveL();
     }
     var cd=_fetches[1];
-    if(cd&&cd.rows&&cd.rows.length<=1&&!cd.error){
-      // CLIENTS sheet is empty (only header or nothing) — clear local clients
-      clients=[];saveC();
-    }
+    // NOTE: removed the old "clear local clients if sheet looks empty" branch —
+    // it was destructive: any transient empty/partial response (cold start,
+    // network hiccup, brief moment during redeployment) would wipe the local
+    // client list and PERSIST that emptiness to storage. Now, exactly like
+    // leads, we only ever update clients when the sheet actually returns real
+    // data — an empty-looking response just leaves local data untouched.
     if(cd&&cd.rows&&cd.rows.length>1){
       var chdr=cd.rows[0].map(function(h){return (h||'').toLowerCase().trim();});
       var cci=function(keys){for(var ki=0;ki<keys.length;ki++)for(var hi=0;hi<chdr.length;hi++)if(chdr[hi].includes(keys[ki]))return hi;return -1;};
