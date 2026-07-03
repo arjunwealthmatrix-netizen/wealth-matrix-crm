@@ -278,7 +278,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 <body>
 
 <!-- APP LOCK SCREEN — shown before the app if a PIN/biometric lock is set up -->
-<div id="lock-screen" style="display:none;position:fixed;inset:0;z-index:99999;background:#0a0a0a;flex-direction:column;align-items:center;justify-content:center;padding:24px">
+<div id="lock-screen" style="display:none;position:fixed;inset:0;z-index:2147483647;background:#0a0a0a;flex-direction:column;align-items:center;justify-content:center;padding:24px">
   <div style="width:72px;height:72px;background:#C0392B;border-radius:18px;display:flex;align-items:center;justify-content:center;margin-bottom:20px">
     <span style="font-size:26px;font-weight:900;color:#fff">WM</span>
   </div>
@@ -1675,8 +1675,8 @@ async function saveClient(){
     closeOv('ov-client');
     renderClients();
     syncClient(data,'add'); // targeted — appends one row
-    createClientFolderBg(data); // create their Drive documents folder in the background
     toast('✅ Client added');
+    promptUploadDocsAfterSave(data); // ask if they want to upload documents now
   }
 }
 
@@ -1728,7 +1728,7 @@ async function autoConvert(l){
   if(hasScript()){
     await syncClient(c, 'add');           // append only this new client's row
     await syncLead({mobile:l.mobile}, 'delete'); // delete only this lead's row
-    createClientFolderBg(c); // create their Drive documents folder in the background
+    promptUploadDocsAfterSave(c); // ask if they want to upload documents now
   }
 }
 
@@ -5985,9 +5985,21 @@ function fileToBase64(file){
 // ── Create the client's Drive folder (fire-and-forget, non-blocking) ──
 // Called after a NEW client is saved, or when a lead is converted to a client.
 function createClientFolderBg(client){
-  if(!hasScript()) return;
-  apiFetch({action:'createClientFolder', clientName:client.name, mobile:client.mobile})
-    .catch(function(e){ console.warn('createClientFolderBg failed:', e.message); });
+  if(!hasScript()) return Promise.resolve(false);
+  return apiFetch({action:'createClientFolder', clientName:client.name, mobile:client.mobile})
+    .then(function(res){
+      if(!res||!res.success){
+        console.warn('createClientFolderBg: server returned failure', res);
+        toast('⚠️ Could not create Drive folder — check Apps Script is redeployed');
+        return false;
+      }
+      return true;
+    })
+    .catch(function(e){
+      console.warn('createClientFolderBg failed:', e.message);
+      toast('⚠️ Drive folder creation failed: '+e.message);
+      return false;
+    });
 }
 
 
@@ -6026,6 +6038,104 @@ async function toggleChipDocs(mob){
   }catch(e){
     body.innerHTML='<div style="text-align:center;padding:10px;font-size:11px;color:#e74c3c">Failed to load documents</div>';
   }
+}
+
+
+// ── After adding a new client: ask if they want to upload documents now ──
+async function promptUploadDocsAfterSave(client){
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:99999;display:flex;align-items:center;justify-content:center;padding:24px';
+  ov.innerHTML='<div style="background:var(--s1);border-radius:14px;width:100%;max-width:340px;overflow:hidden;border:1px solid var(--accent)">'
+    +'<div style="padding:20px 18px 16px;text-align:center">'
+    +'<div style="font-size:32px;margin-bottom:10px">📁</div>'
+    +'<div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:6px">Upload documents for '+toTitle(client.name)+'?</div>'
+    +'<div style="font-size:12px;color:var(--t2);line-height:1.5">PAN, Aadhaar, Passport, Resident ID, CAS, and others — you can upload them now or later from the client\'s page.</div>'
+    +'</div>'
+    +'<div style="display:flex;border-top:1px solid var(--border)">'
+    +'<button id="_udNo" style="flex:1;padding:14px;border:none;background:none;color:var(--t2);cursor:pointer;border-right:1px solid var(--border);font-size:13px;font-weight:700">Later</button>'
+    +'<button id="_udYes" style="flex:1;padding:14px;border:none;background:var(--accent);color:#fff;font-weight:700;cursor:pointer;font-size:13px">Yes, Upload Now</button>'
+    +'</div></div>';
+  document.body.appendChild(ov);
+  document.getElementById('_udNo').onclick=function(){ ov.remove(); };
+  document.getElementById('_udYes').onclick=function(){ ov.remove(); openUploadDocsScreen(client); };
+}
+
+// ── Dedicated document-upload screen, opened right after a new client is saved ──
+async function openUploadDocsScreen(client){
+  var ov=document.createElement('div');
+  ov.id='upload-docs-ov';
+  ov.style.cssText='position:fixed;inset:0;z-index:9500;background:var(--bg);overflow-y:auto;display:flex;flex-direction:column';
+  ov.innerHTML='<div style="display:flex;align-items:center;padding:14px;border-bottom:1px solid var(--border);background:var(--s1);position:sticky;top:0">'
+    +'<div style="flex:1"><div style="font-size:16px;font-weight:800">Upload Documents</div><div style="font-size:11px;color:var(--t3);margin-top:2px">'+toTitle(client.name)+'</div></div>'
+    +'<button id="_udDone" style="background:var(--accent);border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;color:#fff;cursor:pointer">Done</button>'
+    +'</div>'
+    +'<div id="upload-docs-status" style="padding:10px 14px;font-size:11px;color:var(--t3);text-align:center">Setting up client folder...</div>'
+    +'<div id="upload-docs-list" style="padding:0 14px"></div>';
+  document.body.appendChild(ov);
+  document.getElementById('_udDone').onclick=function(){ ov.remove(); };
+
+  // Ensure the Drive folder exists BEFORE allowing any uploads
+  var statusEl=document.getElementById('upload-docs-status');
+  var folderReady=await createClientFolderBg(client);
+  if(folderReady){
+    if(statusEl) statusEl.innerHTML='<span style="color:var(--green)">✅ Folder ready — tap any document type below to upload</span>';
+  } else {
+    if(statusEl) statusEl.innerHTML='<span style="color:#e74c3c">⚠️ Folder creation had an issue — uploads may still work, or try again from the client\'s page later</span>';
+  }
+
+  renderUploadDocsList(client);
+}
+
+function renderUploadDocsList(client){
+  var el=document.getElementById('upload-docs-list');
+  if(!el) return;
+  el.innerHTML=DOC_TYPES.map(function(dt){
+    var safeId=dt.replace(/\s+/g,'_');
+    return '<div id="uds-row-'+safeId+'" style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 0;border-bottom:1px solid var(--border)">'
+      +'<div style="flex:1;min-width:0">'
+      +'<div style="font-size:13px;font-weight:700;color:var(--text)">'+dt+'</div>'
+      +'<div id="uds-status-'+safeId+'" style="font-size:10px;color:var(--t3);margin-top:1px">Not uploaded</div>'
+      +'</div>'
+      +'<label style="font-size:11px;font-weight:700;color:#fff;background:var(--accent);padding:8px 12px;border-radius:7px;cursor:pointer;flex-shrink:0">'
+      +'Upload'
+      +'<input type="file" accept="image/*,.pdf" style="display:none" data-doctype="'+dt+'" data-mobile="'+client.mobile+'" data-clientname="'+client.name+'" onchange="handleStreamingDocUpload(this)"></label>'
+      +'</div>';
+  }).join('');
+}
+
+// Upload with visible per-row progress (used by the post-save "Upload Now" screen)
+async function handleStreamingDocUpload(inputEl){
+  var docType=inputEl.dataset.doctype;
+  var mobile=inputEl.dataset.mobile;
+  var clientName=inputEl.dataset.clientname;
+  var file=inputEl.files[0];
+  if(!file) return;
+  var safeId=docType.replace(/\s+/g,'_');
+  var statusEl=document.getElementById('uds-status-'+safeId);
+
+  if(statusEl){ statusEl.textContent='⬆️ Uploading...'; statusEl.style.color='var(--accent)'; }
+
+  try{
+    var base64=await fileToBase64(file);
+    var ext=file.name.includes('.')?file.name.split('.').pop():'';
+    var res=await apiFetch({
+      action:'uploadClientDocument',
+      clientName:clientName, mobile:mobile,
+      docType:docType, fileData:base64,
+      mimeType:file.type, fileExt:ext
+    });
+    if(res&&res.success){
+      if(statusEl){ statusEl.textContent='✅ Uploaded'; statusEl.style.color='var(--green)'; }
+      toast(docType+' uploaded ✅');
+    } else {
+      if(statusEl){ statusEl.textContent='❌ Upload failed'; statusEl.style.color='#e74c3c'; }
+      toast('❌ '+docType+' upload failed: '+(res&&res.error||'unknown error'));
+    }
+  }catch(e){
+    if(statusEl){ statusEl.textContent='❌ Upload failed'; statusEl.style.color='#e74c3c'; }
+    toast('❌ Upload failed: '+e.message);
+  }
+  inputEl.value='';
 }
 
 // Load offline queue and flush any writes that failed last session
