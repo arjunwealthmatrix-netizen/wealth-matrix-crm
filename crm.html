@@ -3648,9 +3648,9 @@ async function bootSequenceV17(){
     }
     // Activity log fetched in background — not needed for initial render
     pullActivityLog();
-    // Analytics + Special Days fetched in background, refresh views when done
-    Promise.all([pullAnalytics(),pullSpecialDays()]).then(function(){
-      renderDash();
+    // Analytics + Special Days + Calendar fetched in background, refresh views when done
+    Promise.all([pullAnalytics(),pullSpecialDays(),pullCalendarEvents()]).then(function(){
+      renderDash(); // also refreshes the week calendar squares (renderDash calls renderWeekCalendar internally)
       var anaPg=document.getElementById('pg-analytics');
       if(anaPg&&anaPg.classList.contains('active')) renderAnalytics();
     }).catch(function(e){console.warn('BG fetch:',e.message);});
