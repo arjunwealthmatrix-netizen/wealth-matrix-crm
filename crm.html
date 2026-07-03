@@ -298,7 +298,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 
   <div class="chips" id="status-chips"></div>
   <div id="product-chips" style="display:flex;gap:6px;padding:4px 12px 8px;overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch"></div>
-  <div id="geo-chips" style="display:flex;gap:6px;padding:4px 12px 8px;overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch"></div>
+  <div id="geo-filter-wrap" style="padding:4px 12px 8px"><select id="geo-dropdown" onchange="setFG(this.value)" style="width:100%;padding:9px 10px;font-size:12px;font-weight:600;color:var(--text);background:var(--s2);border:1px solid var(--border);border-radius:8px;-webkit-appearance:none;cursor:pointer"></select></div>
   <div id="lead-list"></div>
   <!-- FAB: Add Lead -->
   <button onclick="openAddLead()" style="position:fixed;bottom:80px;right:18px;width:54px;height:54px;border-radius:50%;background:#C0392B;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:999;box-shadow:0 4px 16px rgba(192,57,43,0.45)" aria-label="Add lead">
@@ -729,6 +729,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     </div>
 
     <button class="btn btn-gold btn-full" onclick="saveClient()" style="padding:14px;font-size:15px;border-radius:10px;margin-bottom:8px">Save Client</button>
+    <button id="cf-delete-btn" onclick="deleteClientFromForm()" style="display:none;width:100%;padding:12px;font-size:13px;font-weight:700;border-radius:10px;border:1px solid #e74c3c;background:none;color:#e74c3c;cursor:pointer;margin-bottom:8px">🗑️ Delete Client</button>
   </div>
 </div></div>
 
@@ -1500,6 +1501,8 @@ function openAddClient(pre){
   var badge=document.getElementById('cf-prod-badge');if(badge)badge.style.display='none';
   var origEl2=document.getElementById('cf-orig');
   if(origEl2) origEl2.value=''; // empty = new client
+  var delBtn2=document.getElementById('cf-delete-btn');
+  if(delBtn2) delBtn2.style.display='none'; // hide delete — this is add-new mode
   document.getElementById('ov-client').classList.add('open');
   setupAutocomplete('cf-name','cf-ac-list','client');
 }
@@ -1539,6 +1542,8 @@ function editClientOpen(mob){
   // Store original mobile in hidden field — reliable even if global state gets cleared
   var origEl=document.getElementById('cf-orig');
   if(origEl) origEl.value=mob;
+  var delBtn=document.getElementById('cf-delete-btn');
+  if(delBtn) delBtn.style.display='block'; // show delete — this is edit mode
   document.getElementById('ov-client').classList.add('open');
 }
 async function saveClient(){
@@ -1939,7 +1944,7 @@ async function importFromSheet(){
   try{var d=await scriptGet(tab);if(!d.rows||d.rows.length<2){showSyncMsg('No data in tab: '+tab,false);return;}var hdr=d.rows[0].map(function(h){return (h||'').toString().toLowerCase().trim();});var nameI=hdr.findIndex(function(h){return h.includes('name');});var mobI=hdr.findIndex(function(h){return h.includes('mobile')||h.includes('phone');});if(nameI<0||mobI<0){showSyncMsg('No Name/Mobile columns found',false);return;}var added=0,skipped=0;d.rows.slice(1).forEach(function(r){var mob=String(r[mobI]||'').trim();var name=caps(String(r[nameI]||''));if(!mob||!name){skipped++;return;}if(leads.find(function(l){return l.mobile===mob;})){skipped++;return;}leads.push({name:name,mobile:mob,email:'',country:'',status:'PROSPECT',source:'',referral:'',products:'',age:'',gender:'',remarks:'',notes:[],createdDate:today(),modifiedDate:today()});added++;});saveL();pushLeads();renderLeads();renderDash();showSyncMsg('Imported '+added+' leads. Skipped '+skipped+'.',true);}catch(e){showSyncMsg('Import failed: '+e.message,false);}
 }
 function showAppsScriptCode(){
-  var code='const SHEET_ID=\'1oPQMj6KB39M20RnEoix9PCvSA8RFhVhOV4BG2M4TXlQ\';\nconst LEADS_TAB=\'LEADS\',CLIENTS_TAB=\'CLIENTS\',LOG_TAB=\'ACTIVITY_LOG\',SPECIAL_TAB=\'Special Days\';\nfunction doGet(e){try{var p=e.parameter||{};if(p.action===\'pullLog\'&&p.mobile)return pullLog(p.mobile);if(p.payload)return writeData(JSON.parse(decodeURIComponent(p.payload)));return readTab(p.tab||LEADS_TAB);}catch(err){return out({error:err.message});}}\nfunction doPost(e){try{var d;if(e.postData&&e.postData.contents)d=JSON.parse(e.postData.contents);else if(e.parameter&&e.parameter.payload)d=JSON.parse(decodeURIComponent(e.parameter.payload));return writeData(d);}catch(err){return out({error:err.message});}}\nfunction readTab(t){var ss=SpreadsheetApp.openById(SHEET_ID);var sh=ss.getSheetByName(t);if(!sh)return out({rows:[],error:\'Tab not found:\'+t});var lr=sh.getLastRow(),lc=sh.getLastColumn();if(lr===0||lc===0)return out({rows:[]});var raw=sh.getRange(1,1,lr,lc).getValues();var cleaned=raw.map(function(row){return row.map(function(c){if(c===null||c===undefined||c===\'\')return\'\';if(c instanceof Date){var y=c.getFullYear();var m=String(c.getMonth()+1).padStart(2,\'0\');var d=String(c.getDate()).padStart(2,\'0\');return y+\'-\'+m+\'-\'+d;}if(typeof c===\'number\')return String(c);return String(c).trim();});});return out({rows:cleaned});}\nfunction pullLog(mobile){var ss=SpreadsheetApp.openById(SHEET_ID);var sh=ss.getSheetByName(LOG_TAB);if(!sh||sh.getLastRow()<=1)return out({rows:[]});var lr=sh.getLastRow(),lc=sh.getLastColumn();var raw=sh.getRange(2,1,lr-1,lc).getValues();var filtered=raw.filter(function(r){return String(r[2]||\'\').trim()===String(mobile).trim();});return out({rows:filtered});}\nfunction writeData(data){var ss=SpreadsheetApp.openById(SHEET_ID);\nif(data.action===\'appendLog\'){var logSh=ss.getSheetByName(LOG_TAB)||ss.insertSheet(LOG_TAB);if(logSh.getLastRow()===0){var hdr=[[\'Timestamp\',\'Name\',\'Mobile\',\'Type\',\'Activity\',\'Notes\',\'Raw ID\']];var hr=logSh.getRange(1,1,1,7);hr.setValues(hdr);hr.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');logSh.setFrozenRows(1);}logSh.appendRow(data.row||[]);var lr3=logSh.getLastRow();logSh.getRange(lr3,1).setNumberFormat(\'@\');logSh.getRange(lr3,7).setNumberFormat(\'@\');return out({success:true});}\nif(data.action===\'deleteLogById\'){var lsh=ss.getSheetByName(LOG_TAB);if(lsh&&lsh.getLastRow()>1){var rid=String(data.rowId||\'\').trim();var dmob=String(data.mobile||\'\').trim();var dts=String(data.ts||\'\').trim();var dact=String(data.activity||\'\').trim();var n=lsh.getLastRow();var rng=lsh.getRange(2,1,n-1,7).getValues();for(var rj=0;rj<rng.length;rj++){var row=rng[rj];var gId=String(row[6]||\'\').trim();var rTs=String(row[0]||\'\').trim();var rMob=String(row[2]||\'\').trim();var rAct=String(row[4]||\'\').trim();var matchById=(rid!==\'\'&&gId===rid);var matchByTs=(rid===\'\'||gId===\'\')&&dts!==\'\'&&rMob===dmob&&rTs===dts&&rAct===dact;if(matchById||matchByTs){lsh.deleteRow(rj+2);break;}}}return out({success:true,deleted:true});}if(data.action===\'deleteLog\'){var lsh2=ss.getSheetByName(LOG_TAB);if(lsh2&&lsh2.getLastRow()>1){var mob3=String(data.mobile||\'\').trim();var n2=lsh2.getLastRow();for(var rk=n2;rk>=2;rk--){if(String(lsh2.getRange(rk,3).getValue()||\'\').trim()===mob3){lsh2.deleteRow(rk);}}}return out({success:true});}\nif(data.action===\'updateAnalytics\'){var aS=ss.getSheetByName(\'ANALYTICS\')||ss.insertSheet(\'ANALYTICS\');if(aS.getLastRow()===0){aS.getRange(1,1,1,7).setValues([[\'Date\',\'Lead Entries\',\'Prospects\',\'Contacted\',\'In Progress\',\'Converted\',\'Dropped\']]).setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');aS.setFrozenRows(1);}var ad=data.date,ac=parseInt(data.col)||2,adel=parseInt(data.delta)||1,alr=aS.getLastRow(),af=false;if(alr>1){var adts=aS.getRange(2,1,alr-1,1).getValues();for(var i=0;i<adts.length;i++){if(String(adts[i][0]).trim()===ad){var acel=aS.getRange(i+2,ac);acel.setValue((parseInt(acel.getValue())||0)+adel); /* negative values allowed */ af=true; break; }}}if(!af&&adel>0){var anr=[ad,0,0,0,0,0,0];anr[ac-1]=adel;aS.appendRow(anr);}return out({success:true});}\nif(data.action===\'appendLeads\'||data.action===\'appendClients\'){var atab=data.action===\'appendLeads\'?LEADS_TAB:CLIENTS_TAB;var ash=ss.getSheetByName(atab);if(ash&&data.rows&&data.rows.length){data.rows.forEach(function(rw){ash.appendRow(rw);});var alr=ash.getLastRow();ash.getRange(2,1,alr-1,data.rows[0].length).setNumberFormat(\'@\');}return out({success:true});}if(data.action===\'appendLead\'){var aSh=ss.getSheetByName(LEADS_TAB)||ss.insertSheet(LEADS_TAB);if(aSh.getLastRow()===0){var lHdr=[[\'Name\',\'Mobile\',\'Email\',\'Age\',\'Country\',\'Status\',\'Source\',\'Referred By\',\'Estimated AUM/SIP\',\'Next Follow-up\',\'Investment Products\',\'Mode of Contact\',\'Remarks\',\'Modified Date\',\'Created Date\',\'Geo Tag\']];var lHr=aSh.getRange(1,1,1,16);lHr.setValues(lHdr);lHr.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');aSh.setFrozenRows(1);}var aRow=data.row||[];aSh.appendRow(aRow);var aLr=aSh.getLastRow();aSh.getRange(aLr,1,1,aRow.length).setNumberFormat(\'@\');return out({success:true,action:\'appendLead\'});}if(data.action===\'updateLead\'){var uSh=ss.getSheetByName(LEADS_TAB);if(uSh&&uSh.getLastRow()>1){var uMob=String(data.mobile||\'\').trim();var uRow=data.row||[];var uN=uSh.getLastRow();var uVals=uSh.getRange(2,2,uN-1,1).getValues();for(var ui=0;ui<uVals.length;ui++){if(String(uVals[ui][0]||\'\').trim()===uMob){var uRng=uSh.getRange(ui+2,1,1,uRow.length);uRng.setValues([uRow]);uRng.setNumberFormat(\'@\');break;}}}return out({success:true,action:\'updateLead\'});}if(data.action===\'deleteLead\'){var dSh=ss.getSheetByName(LEADS_TAB);if(dSh&&dSh.getLastRow()>1){var dMob=String(data.mobile||\'\').trim();var dN=dSh.getLastRow();var dVals=dSh.getRange(2,2,dN-1,1).getValues();for(var di=dN-1;di>=0;di--){if(String(dVals[di][0]||\'\').trim()===dMob){dSh.deleteRow(di+2);break;}}}return out({success:true,action:\'deleteLead\'});}\n\n  // ── Append ONE client row (new client) ──\n  if(data.action===\'appendClient\'){\n    var aShC=ss.getSheetByName(CLIENTS_TAB)||ss.insertSheet(CLIENTS_TAB);\n    if(aShC.getLastRow()===0){\n      var cHdr=[[\'Name\',\'Mobile\',\'Email\',\'Country\',\'Source\',\'Referred By\',\'Next Follow up date\',\n        \'Age\',\'Gender\',\'Remarks\',\'Created date\',\'PAN\',\'DOB\',\'Spouse DOB\',\'Anniversary\',\n        \'Converted Date\',\'Review Date\',\'1st Anniversary\',\'App Installed\',\'Broadcast Added\',\n        \'SIP date\',\'Health insurance\',\'Life insurance\',\'WILL\',\'Due date Health\',\'Due date Life\',\n        \'AUM\',\'Potential AUM\',\'Welcome Message send\',\'Products\']];\n      var cHr=aShC.getRange(1,1,1,30);\n      cHr.setValues(cHdr);cHr.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');\n      aShC.setFrozenRows(1);\n    }\n    var cRow=data.row||[];\n    aShC.appendRow(cRow);\n    var cLr=aShC.getLastRow();\n    aShC.getRange(cLr,1,1,cRow.length).setNumberFormat(\'@\');\n    return out({success:true,action:\'appendClient\'});\n  }\n\n  // ── Update ONE client row (find by mobile col B, replace in place) ──\n  if(data.action===\'updateClient\'){\n    var uShC=ss.getSheetByName(CLIENTS_TAB);\n    if(uShC&&uShC.getLastRow()>1){\n      var uMobC=String(data.mobile||\'\').trim();\n      var uRowC=data.row||[];\n      var uNC=uShC.getLastRow();\n      var uValsC=uShC.getRange(2,2,uNC-1,1).getValues();\n      for(var uic=0;uic<uValsC.length;uic++){\n        if(String(uValsC[uic][0]||\'\').trim()===uMobC){\n          var uRngC=uShC.getRange(uic+2,1,1,uRowC.length);\n          uRngC.setValues([uRowC]);\n          uRngC.setNumberFormat(\'@\');\n          break;\n        }\n      }\n    }\n    return out({success:true,action:\'updateClient\'});\n  }\n\n  // ── Delete ONE client row (find by mobile col B) ──\n  if(data.action===\'deleteClient\'){\n    var dShC=ss.getSheetByName(CLIENTS_TAB);\n    if(dShC&&dShC.getLastRow()>1){\n      var dMobC=String(data.mobile||\'\').trim();\n      var dNC=dShC.getLastRow();\n      var dValsC=dShC.getRange(2,2,dNC-1,1).getValues();\n      for(var dic=dNC-1;dic>=0;dic--){\n        if(String(dValsC[dic][0]||\'\').trim()===dMobC){dShC.deleteRow(dic+2);break;}\n      }\n    }\n    return out({success:true,action:\'deleteClient\'});\n  }\n  if(data.action===\'backupNow\'){ return manualBackupNow(); }\n  if(data.action===\'readSpecialDays\'){var spSh=ss.getSheetByName(SPECIAL_TAB);if(!spSh)return out({rows:[]});var spLr=spSh.getLastRow();if(spLr<2)return out({rows:[]});var spVals=spSh.getRange(2,1,spLr-1,2).getValues();var spRows=spVals.map(function(r){return[String(r[0]||\'\').trim(),String(r[1]||\'\').trim()];}).filter(function(r){return r[0]&&r[1];});return out({rows:spRows});}\n  if(data.action===\'pushSpecialDays\'){\n    var spSh3=ss.getSheetByName(SPECIAL_TAB)||ss.insertSheet(SPECIAL_TAB);\n    var spDataRows=data.rows||[];\n    var spLastRow=spSh3.getLastRow();\n    if(spLastRow===0){\n      // Sheet is empty — write header then data\n      spSh3.appendRow([\'Date (MM-DD)\',\'Remarks\']);\n      var spHdr=spSh3.getRange(1,1,1,2);\n      spHdr.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');\n      spSh3.setFrozenRows(1);\n    }\n    // Get existing date values to avoid duplicates\n    var spExisting=spLastRow>1?spSh3.getRange(2,1,spLastRow-1,1).getValues().map(function(r){return String(r[0]||\'\').trim();}):[]; \n    // Append only new rows (skip header row from data)\n    spDataRows.forEach(function(row){\n      if(row[0]===\'Date (MM-DD)\'||row[0]===\'Day\') return; // skip header rows\n      if(spExisting.indexOf(String(row[0]||\'\').trim())>=0) return; // skip duplicates\n      spSh3.appendRow([row[0],row[1]]);\n      spSh3.getRange(spSh3.getLastRow(),1,1,2).setNumberFormat(\'@\');\n    });\n    return out({success:true,action:\'pushSpecialDays\'});\n  }\n  if(data.action===\'appendSpecialDay\'){var spSh2=ss.getSheetByName(SPECIAL_TAB)||ss.insertSheet(SPECIAL_TAB);if(spSh2.getLastRow()===0){var spH=spSh2.getRange(1,1,1,2);spH.setValues([[\'Date (MM-DD)\',\'Remarks\']]);spH.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');spSh2.setFrozenRows(1);}spSh2.appendRow([data.date||\'\',data.speciality||\'\']);return out({success:true,action:\'appendSpecialDay\'});}\nvar tab=data.action===\'pushLeads\'?LEADS_TAB:data.action===\'pushClients\'?CLIENTS_TAB:null;if(!tab)return out({error:\'Bad action:\'+data.action});var rows=data.rows;if(!rows||rows.length===0)return out({error:\'No rows\'});var sh=ss.getSheetByName(tab)||ss.insertSheet(tab);sh.clearContents();var r=sh.getRange(1,1,rows.length,rows[0].length);r.setNumberFormat(\'@\');r.setValues(rows);var h=sh.getRange(1,1,1,rows[0].length);h.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');sh.setFrozenRows(1);return out({success:true,written:rows.length-1});}\nfunction out(o){return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);}\nfunction testConnection(){Logger.log(\'OK: \'+SpreadsheetApp.openById(SHEET_ID).getName());}\n\n// ═══════════════════════════════════════════\n// AUTOMATED BACKUP SYSTEM\n// ═══════════════════════════════════════════\n// Run createBackupTrigger() ONCE manually from the Apps Script editor\n// (select it in the function dropdown, click Run). This sets up a weekly\n// trigger — after that, backups happen automatically with zero further action.\n\nconst BACKUP_FOLDER_NAME=\'Wealth Matrix CRM Backups\';\nconst MAX_BACKUPS_TO_KEEP=8; // ~2 months of weekly backups\n\nfunction createBackupTrigger(){\n  // Remove any existing backup triggers first (avoid duplicates)\n  var triggers=ScriptApp.getProjectTriggers();\n  triggers.forEach(function(t){\n    if(t.getHandlerFunction()===\'runWeeklyBackup\') ScriptApp.deleteTrigger(t);\n  });\n  // Create new weekly trigger — runs every Sunday at 2 AM\n  ScriptApp.newTrigger(\'runWeeklyBackup\')\n    .timeBased()\n    .onWeekDay(ScriptApp.WeekDay.SUNDAY)\n    .atHour(2)\n    .create();\n  Logger.log(\'✅ Weekly backup trigger created. Backups will run automatically every Sunday at 2 AM.\');\n}\n\nfunction runWeeklyBackup(){\n  try{\n    var srcFile=DriveApp.getFileById(SHEET_ID);\n    var folders=DriveApp.getFoldersByName(BACKUP_FOLDER_NAME);\n    var folder=folders.hasNext()?folders.next():DriveApp.createFolder(BACKUP_FOLDER_NAME);\n\n    var dateStr=Utilities.formatDate(new Date(),Session.getScriptTimeZone(),\'yyyy-MM-dd_HH-mm\');\n    var backupName=\'CRM Backup \'+dateStr;\n    srcFile.makeCopy(backupName, folder);\n    Logger.log(\'✅ Backup created: \'+backupName);\n\n    // Clean up old backups — keep only the most recent MAX_BACKUPS_TO_KEEP\n    var files=folder.getFiles();\n    var fileList=[];\n    while(files.hasNext()){\n      var f=files.next();\n      fileList.push({file:f, date:f.getDateCreated()});\n    }\n    fileList.sort(function(a,b){return b.date-a.date;}); // newest first\n    if(fileList.length>MAX_BACKUPS_TO_KEEP){\n      for(var i=MAX_BACKUPS_TO_KEEP;i<fileList.length;i++){\n        fileList[i].file.setTrashed(true);\n      }\n      Logger.log(\'🗑️ Cleaned up \'+(fileList.length-MAX_BACKUPS_TO_KEEP)+\' old backup(s)\');\n    }\n  }catch(e){\n    Logger.log(\'❌ Backup failed: \'+e.message);\n  }\n}\n\n// Manual backup — call this anytime from the app (Settings → Backup Now)\nfunction manualBackupNow(){\n  runWeeklyBackup();\n  return out({success:true,message:\'Backup created\'});\n}\n'
+  var code='const SHEET_ID=\'1oPQMj6KB39M20RnEoix9PCvSA8RFhVhOV4BG2M4TXlQ\';\nconst LEADS_TAB=\'LEADS\',CLIENTS_TAB=\'CLIENTS\',LOG_TAB=\'ACTIVITY_LOG\',SPECIAL_TAB=\'Special Days\';\nfunction doGet(e){try{var p=e.parameter||{};if(p.action===\'pullLog\'&&p.mobile)return pullLog(p.mobile);if(p.payload)return writeData(JSON.parse(decodeURIComponent(p.payload)));return readTab(p.tab||LEADS_TAB);}catch(err){return out({error:err.message});}}\nfunction doPost(e){try{var d;if(e.postData&&e.postData.contents)d=JSON.parse(e.postData.contents);else if(e.parameter&&e.parameter.payload)d=JSON.parse(decodeURIComponent(e.parameter.payload));return writeData(d);}catch(err){return out({error:err.message});}}\nfunction readTab(t){var ss=SpreadsheetApp.openById(SHEET_ID);var sh=ss.getSheetByName(t);if(!sh)return out({rows:[],error:\'Tab not found:\'+t});var lr=sh.getLastRow(),lc=sh.getLastColumn();if(lr===0||lc===0)return out({rows:[]});var raw=sh.getRange(1,1,lr,lc).getValues();var cleaned=raw.map(function(row){return row.map(function(c){if(c===null||c===undefined||c===\'\')return\'\';if(c instanceof Date){var y=c.getFullYear();var m=String(c.getMonth()+1).padStart(2,\'0\');var d=String(c.getDate()).padStart(2,\'0\');return y+\'-\'+m+\'-\'+d;}if(typeof c===\'number\')return String(c);return String(c).trim();});});return out({rows:cleaned});}\nfunction pullLog(mobile){var ss=SpreadsheetApp.openById(SHEET_ID);var sh=ss.getSheetByName(LOG_TAB);if(!sh||sh.getLastRow()<=1)return out({rows:[]});var lr=sh.getLastRow(),lc=sh.getLastColumn();var raw=sh.getRange(2,1,lr-1,lc).getValues();var filtered=raw.filter(function(r){return String(r[2]||\'\').trim()===String(mobile).trim();});return out({rows:filtered});}\nfunction writeData(data){var ss=SpreadsheetApp.openById(SHEET_ID);\nif(data.action===\'appendLog\'){var logSh=ss.getSheetByName(LOG_TAB)||ss.insertSheet(LOG_TAB);if(logSh.getLastRow()===0){var hdr=[[\'Timestamp\',\'Name\',\'Mobile\',\'Type\',\'Activity\',\'Notes\',\'Raw ID\']];var hr=logSh.getRange(1,1,1,7);hr.setValues(hdr);hr.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');logSh.setFrozenRows(1);}logSh.appendRow(data.row||[]);var lr3=logSh.getLastRow();logSh.getRange(lr3,1).setNumberFormat(\'@\');logSh.getRange(lr3,7).setNumberFormat(\'@\');return out({success:true});}\nif(data.action===\'deleteLogById\'){var lsh=ss.getSheetByName(LOG_TAB);if(lsh&&lsh.getLastRow()>1){var rid=String(data.rowId||\'\').trim();var dmob=String(data.mobile||\'\').trim();var dts=String(data.ts||\'\').trim();var dact=String(data.activity||\'\').trim();var n=lsh.getLastRow();var rng=lsh.getRange(2,1,n-1,7).getValues();for(var rj=0;rj<rng.length;rj++){var row=rng[rj];var gId=String(row[6]||\'\').trim();var rTs=String(row[0]||\'\').trim();var rMob=String(row[2]||\'\').trim();var rAct=String(row[4]||\'\').trim();var matchById=(rid!==\'\'&&gId===rid);var matchByTs=(rid===\'\'||gId===\'\')&&dts!==\'\'&&rMob===dmob&&rTs===dts&&rAct===dact;if(matchById||matchByTs){lsh.deleteRow(rj+2);break;}}}return out({success:true,deleted:true});}if(data.action===\'deleteLog\'){var lsh2=ss.getSheetByName(LOG_TAB);if(lsh2&&lsh2.getLastRow()>1){var mob3=String(data.mobile||\'\').trim();var n2=lsh2.getLastRow();for(var rk=n2;rk>=2;rk--){if(String(lsh2.getRange(rk,3).getValue()||\'\').trim()===mob3){lsh2.deleteRow(rk);}}}return out({success:true});}\nif(data.action===\'updateAnalytics\'){var aS=ss.getSheetByName(\'ANALYTICS\')||ss.insertSheet(\'ANALYTICS\');if(aS.getLastRow()===0){aS.getRange(1,1,1,7).setValues([[\'Date\',\'Lead Entries\',\'Prospects\',\'Contacted\',\'In Progress\',\'Converted\',\'Dropped\']]).setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');aS.setFrozenRows(1);}var ad=data.date,ac=parseInt(data.col)||2,adel=parseInt(data.delta)||1,alr=aS.getLastRow(),af=false;if(alr>1){var adts=aS.getRange(2,1,alr-1,1).getValues();for(var i=0;i<adts.length;i++){if(String(adts[i][0]).trim()===ad){var acel=aS.getRange(i+2,ac);acel.setValue((parseInt(acel.getValue())||0)+adel); /* negative values allowed */ af=true; break; }}}if(!af&&adel>0){var anr=[ad,0,0,0,0,0,0];anr[ac-1]=adel;aS.appendRow(anr);}return out({success:true});}\nif(data.action===\'appendLeads\'||data.action===\'appendClients\'){var atab=data.action===\'appendLeads\'?LEADS_TAB:CLIENTS_TAB;var ash=ss.getSheetByName(atab);if(ash&&data.rows&&data.rows.length){data.rows.forEach(function(rw){ash.appendRow(rw);});var alr=ash.getLastRow();ash.getRange(2,1,alr-1,data.rows[0].length).setNumberFormat(\'@\');}return out({success:true});}if(data.action===\'appendLead\'){var aSh=ss.getSheetByName(LEADS_TAB)||ss.insertSheet(LEADS_TAB);if(aSh.getLastRow()===0){var lHdr=[[\'Name\',\'Mobile\',\'Email\',\'Age\',\'Country\',\'Status\',\'Source\',\'Referred By\',\'Estimated AUM/SIP\',\'Next Follow-up\',\'Investment Products\',\'Mode of Contact\',\'Remarks\',\'Modified Date\',\'Created Date\',\'Geo Tag\']];var lHr=aSh.getRange(1,1,1,16);lHr.setValues(lHdr);lHr.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');aSh.setFrozenRows(1);}var aRow=data.row||[];aSh.appendRow(aRow);var aLr=aSh.getLastRow();aSh.getRange(aLr,1,1,aRow.length).setNumberFormat(\'@\');return out({success:true,action:\'appendLead\'});}if(data.action===\'updateLead\'){var uSh=ss.getSheetByName(LEADS_TAB);if(uSh&&uSh.getLastRow()>1){var uMob=String(data.mobile||\'\').trim();var uRow=data.row||[];var uN=uSh.getLastRow();var uVals=uSh.getRange(2,2,uN-1,1).getValues();for(var ui=0;ui<uVals.length;ui++){if(String(uVals[ui][0]||\'\').trim()===uMob){var uRng=uSh.getRange(ui+2,1,1,uRow.length);uRng.setValues([uRow]);uRng.setNumberFormat(\'@\');break;}}}return out({success:true,action:\'updateLead\'});}if(data.action===\'deleteLead\'){var dSh=ss.getSheetByName(LEADS_TAB);if(dSh&&dSh.getLastRow()>1){var dMob=String(data.mobile||\'\').trim();var dN=dSh.getLastRow();var dVals=dSh.getRange(2,2,dN-1,1).getValues();for(var di=dN-1;di>=0;di--){if(String(dVals[di][0]||\'\').trim()===dMob){dSh.deleteRow(di+2);break;}}}return out({success:true,action:\'deleteLead\'});}\n\n  // ── Append ONE client row (new client) ──\n  if(data.action===\'appendClient\'){\n    var aShC=ss.getSheetByName(CLIENTS_TAB)||ss.insertSheet(CLIENTS_TAB);\n    if(aShC.getLastRow()===0){\n      var cHdr=[[\'Name\',\'Mobile\',\'Email\',\'Country\',\'Source\',\'Referred By\',\'Next Follow up date\',\n        \'Age\',\'Gender\',\'Remarks\',\'Created date\',\'PAN\',\'DOB\',\'Spouse DOB\',\'Anniversary\',\n        \'Converted Date\',\'Review Date\',\'1st Anniversary\',\'App Installed\',\'Broadcast Added\',\n        \'SIP date\',\'Health insurance\',\'Life insurance\',\'WILL\',\'Due date Health\',\'Due date Life\',\n        \'AUM\',\'Potential AUM\',\'Welcome Message send\',\'Products\']];\n      var cHr=aShC.getRange(1,1,1,30);\n      cHr.setValues(cHdr);cHr.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');\n      aShC.setFrozenRows(1);\n    }\n    var cRow=data.row||[];\n    aShC.appendRow(cRow);\n    var cLr=aShC.getLastRow();\n    aShC.getRange(cLr,1,1,cRow.length).setNumberFormat(\'@\');\n    return out({success:true,action:\'appendClient\'});\n  }\n\n  // ── Update ONE client row (find by mobile col B, replace in place) ──\n  if(data.action===\'updateClient\'){\n    var uShC=ss.getSheetByName(CLIENTS_TAB);\n    if(uShC&&uShC.getLastRow()>1){\n      var uMobC=String(data.mobile||\'\').trim();\n      var uRowC=data.row||[];\n      var uNC=uShC.getLastRow();\n      var uValsC=uShC.getRange(2,2,uNC-1,1).getValues();\n      for(var uic=0;uic<uValsC.length;uic++){\n        if(String(uValsC[uic][0]||\'\').trim()===uMobC){\n          var uRngC=uShC.getRange(uic+2,1,1,uRowC.length);\n          uRngC.setValues([uRowC]);\n          uRngC.setNumberFormat(\'@\');\n          break;\n        }\n      }\n    }\n    return out({success:true,action:\'updateClient\'});\n  }\n\n  // ── Delete ONE client row (find by mobile col B) ──\n  if(data.action===\'deleteClient\'){\n    var dShC=ss.getSheetByName(CLIENTS_TAB);\n    if(dShC&&dShC.getLastRow()>1){\n      var dMobC=String(data.mobile||\'\').trim();\n      var dNC=dShC.getLastRow();\n      var dValsC=dShC.getRange(2,2,dNC-1,1).getValues();\n      for(var dic=dNC-1;dic>=0;dic--){\n        if(String(dValsC[dic][0]||\'\').trim()===dMobC){dShC.deleteRow(dic+2);break;}\n      }\n    }\n    return out({success:true,action:\'deleteClient\'});\n  }\n  if(data.action===\'backupNow\'){ return manualBackupNow(); }\n  // ── Get upcoming Google Calendar events (default calendar) ──\n  if(data.action===\'getCalendarEvents\'){\n    try{\n      var evStart=data.start?new Date(data.start+\'T00:00:00\'):new Date();\n      var evEnd=data.end?new Date(data.end+\'T23:59:59\'):new Date(evStart.getTime()+8*86400000);\n      var cal=CalendarApp.getDefaultCalendar();\n      var events=cal.getEvents(evStart,evEnd);\n      var evRows=events.map(function(e){\n        var st=e.getStartTime();\n        var yy=st.getFullYear(),mm=String(st.getMonth()+1).padStart(2,\'0\'),dd=String(st.getDate()).padStart(2,\'0\');\n        var timeStr=e.isAllDayEvent()?\'All day\':Utilities.formatDate(st,Session.getScriptTimeZone(),\'h:mm a\');\n        return {date:yy+\'-\'+mm+\'-\'+dd,title:e.getTitle(),time:timeStr};\n      });\n      return out({events:evRows});\n    }catch(e){\n      return out({events:[],error:e.message});\n    }\n  }\n\n  if(data.action===\'readSpecialDays\'){var spSh=ss.getSheetByName(SPECIAL_TAB);if(!spSh)return out({rows:[]});var spLr=spSh.getLastRow();if(spLr<2)return out({rows:[]});var spVals=spSh.getRange(2,1,spLr-1,2).getValues();var spRows=spVals.map(function(r){return[String(r[0]||\'\').trim(),String(r[1]||\'\').trim()];}).filter(function(r){return r[0]&&r[1];});return out({rows:spRows});}\n  if(data.action===\'pushSpecialDays\'){\n    var spSh3=ss.getSheetByName(SPECIAL_TAB)||ss.insertSheet(SPECIAL_TAB);\n    var spDataRows=data.rows||[];\n    var spLastRow=spSh3.getLastRow();\n    if(spLastRow===0){\n      // Sheet is empty — write header then data\n      spSh3.appendRow([\'Date (MM-DD)\',\'Remarks\']);\n      var spHdr=spSh3.getRange(1,1,1,2);\n      spHdr.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');\n      spSh3.setFrozenRows(1);\n    }\n    // Get existing date values to avoid duplicates\n    var spExisting=spLastRow>1?spSh3.getRange(2,1,spLastRow-1,1).getValues().map(function(r){return String(r[0]||\'\').trim();}):[]; \n    // Append only new rows (skip header row from data)\n    spDataRows.forEach(function(row){\n      if(row[0]===\'Date (MM-DD)\'||row[0]===\'Day\') return; // skip header rows\n      if(spExisting.indexOf(String(row[0]||\'\').trim())>=0) return; // skip duplicates\n      spSh3.appendRow([row[0],row[1]]);\n      spSh3.getRange(spSh3.getLastRow(),1,1,2).setNumberFormat(\'@\');\n    });\n    return out({success:true,action:\'pushSpecialDays\'});\n  }\n  if(data.action===\'appendSpecialDay\'){var spSh2=ss.getSheetByName(SPECIAL_TAB)||ss.insertSheet(SPECIAL_TAB);if(spSh2.getLastRow()===0){var spH=spSh2.getRange(1,1,1,2);spH.setValues([[\'Date (MM-DD)\',\'Remarks\']]);spH.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');spSh2.setFrozenRows(1);}spSh2.appendRow([data.date||\'\',data.speciality||\'\']);return out({success:true,action:\'appendSpecialDay\'});}\nvar tab=data.action===\'pushLeads\'?LEADS_TAB:data.action===\'pushClients\'?CLIENTS_TAB:null;if(!tab)return out({error:\'Bad action:\'+data.action});var rows=data.rows;if(!rows||rows.length===0)return out({error:\'No rows\'});var sh=ss.getSheetByName(tab)||ss.insertSheet(tab);sh.clearContents();var r=sh.getRange(1,1,rows.length,rows[0].length);r.setNumberFormat(\'@\');r.setValues(rows);var h=sh.getRange(1,1,1,rows[0].length);h.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');sh.setFrozenRows(1);return out({success:true,written:rows.length-1});}\nfunction out(o){return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);}\nfunction testConnection(){Logger.log(\'OK: \'+SpreadsheetApp.openById(SHEET_ID).getName());}\n\n// ═══════════════════════════════════════════\n// AUTOMATED BACKUP SYSTEM\n// ═══════════════════════════════════════════\n// Run createBackupTrigger() ONCE manually from the Apps Script editor\n// (select it in the function dropdown, click Run). This sets up a weekly\n// trigger — after that, backups happen automatically with zero further action.\n\nconst BACKUP_FOLDER_NAME=\'Wealth Matrix CRM Backups\';\nconst MAX_BACKUPS_TO_KEEP=8; // ~2 months of weekly backups\n\nfunction createBackupTrigger(){\n  // Remove any existing backup triggers first (avoid duplicates)\n  var triggers=ScriptApp.getProjectTriggers();\n  triggers.forEach(function(t){\n    if(t.getHandlerFunction()===\'runWeeklyBackup\') ScriptApp.deleteTrigger(t);\n  });\n  // Create new weekly trigger — runs every Sunday at 2 AM\n  ScriptApp.newTrigger(\'runWeeklyBackup\')\n    .timeBased()\n    .onWeekDay(ScriptApp.WeekDay.SUNDAY)\n    .atHour(2)\n    .create();\n  Logger.log(\'✅ Weekly backup trigger created. Backups will run automatically every Sunday at 2 AM.\');\n}\n\nfunction runWeeklyBackup(){\n  try{\n    var srcFile=DriveApp.getFileById(SHEET_ID);\n    var folders=DriveApp.getFoldersByName(BACKUP_FOLDER_NAME);\n    var folder=folders.hasNext()?folders.next():DriveApp.createFolder(BACKUP_FOLDER_NAME);\n\n    var dateStr=Utilities.formatDate(new Date(),Session.getScriptTimeZone(),\'yyyy-MM-dd_HH-mm\');\n    var backupName=\'CRM Backup \'+dateStr;\n    srcFile.makeCopy(backupName, folder);\n    Logger.log(\'✅ Backup created: \'+backupName);\n\n    // Clean up old backups — keep only the most recent MAX_BACKUPS_TO_KEEP\n    var files=folder.getFiles();\n    var fileList=[];\n    while(files.hasNext()){\n      var f=files.next();\n      fileList.push({file:f, date:f.getDateCreated()});\n    }\n    fileList.sort(function(a,b){return b.date-a.date;}); // newest first\n    if(fileList.length>MAX_BACKUPS_TO_KEEP){\n      for(var i=MAX_BACKUPS_TO_KEEP;i<fileList.length;i++){\n        fileList[i].file.setTrashed(true);\n      }\n      Logger.log(\'🗑️ Cleaned up \'+(fileList.length-MAX_BACKUPS_TO_KEEP)+\' old backup(s)\');\n    }\n  }catch(e){\n    Logger.log(\'❌ Backup failed: \'+e.message);\n  }\n}\n\n// Manual backup — call this anytime from the app (Settings → Backup Now)\nfunction manualBackupNow(){\n  runWeeklyBackup();\n  return out({success:true,message:\'Backup created\'});\n}\n'
   var ov=document.createElement('div');
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:flex-end;justify-content:center;padding:10px';
   ov.innerHTML='<div style="background:var(--s1);border-radius:12px;width:100%;max-width:540px;max-height:90vh;overflow-y:auto;padding:16px">'
@@ -2329,16 +2334,18 @@ function renderLeads(){
     return '<div class="chip'+(filterProduct===p?' active':'')+'" onclick="setFP(\''+p+'\')">'+p+' ('+n+')</div>';
   }).join('');
 
-  // Geo Tag filter chips — dynamically built from unique locations in leads data
+  // Geo Tag filter — dynamically built dropdown from unique locations in leads data
   var geoTags=['All'].concat(Array.from(new Set(leads.map(function(l){return (l.geoTag||'').trim();}).filter(Boolean))).sort());
-  var gChipsEl=document.getElementById('geo-chips');
-  if(gChipsEl){
+  var geoWrap=document.getElementById('geo-filter-wrap');
+  var gDropdown=document.getElementById('geo-dropdown');
+  if(gDropdown){
     if(geoTags.length<=1){
-      gChipsEl.innerHTML=''; // no geo tags entered yet — hide row
+      if(geoWrap) geoWrap.style.display='none'; // no geo tags entered yet — hide row
     } else {
-      gChipsEl.innerHTML=geoTags.map(function(g){
+      if(geoWrap) geoWrap.style.display='block';
+      gDropdown.innerHTML=geoTags.map(function(g){
         var n=g==='All'?leads.length:leads.filter(function(l){return (l.geoTag||'').trim()===g;}).length;
-        return '<div class="chip'+(filterGeo===g?' active':'')+'" onclick="setFG(\''+g+'\')">📍 '+g+' ('+n+')</div>';
+        return '<option value="'+g+'"'+(filterGeo===g?' selected':'')+'>'+(g==='All'?'📍 All locations':g)+' ('+n+')</option>';
       }).join('');
     }
   }
@@ -2555,7 +2562,7 @@ async function pullFromSheet(manual){
     }
     // Pull Activity Log
     // Parallel: analytics + special days together
-    await Promise.all([pullAnalytics(), pullSpecialDays()]);
+    await Promise.all([pullAnalytics(), pullSpecialDays(), pullCalendarEvents()]);
     // If sheet has no special days yet, push all built-in data to it
     try{
       var spRes=await apiFetch({action:'readSpecialDays'});
@@ -2739,6 +2746,7 @@ function renderFuDetailInner(mob){
   var infoChips=[];
   if(l.age) infoChips.push(['🎂',l.age+' yrs']);
   if(l.country) infoChips.push(['🌍',l.country]);
+  if(l.geoTag) infoChips.push(['📍',l.geoTag]);
   if(l.aum) infoChips.push(['💰',l.aum]);
   infoChips.push(['📅',fuInfo]);
   if(l.contactMode&&l.contactMode!=='Not contacted') infoChips.push(['📞',l.contactMode]);
@@ -3749,10 +3757,28 @@ function openFuOverlay(){
   var ov=document.createElement('div');
   ov.id='fu-overlay';
   ov.style.cssText='position:fixed;inset:0;z-index:8000;background:var(--bg);overflow-y:auto;display:flex;flex-direction:column';
+
+  // Today's calendar events, shown at the top alongside follow-ups
+  var now=new Date();
+  var todayStr=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+  var todayEvents=calendarEventsOn(todayStr);
+  var eventsHtml='';
+  if(todayEvents.length){
+    eventsHtml='<div style="padding:10px 14px;background:rgba(79,195,247,.06);border-bottom:1px solid var(--border)">'
+      +'<div style="font-size:9px;color:#4FC3F7;font-weight:700;letter-spacing:.5px;margin-bottom:6px">📅 TODAY\'S CALENDAR EVENTS</div>'
+      +todayEvents.map(function(ev){
+        return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0">'
+          +'<span style="font-size:14px">📅</span>'
+          +'<div style="font-size:12px;color:var(--text)"><b>'+ev.title+'</b> · '+ev.time+'</div></div>';
+      }).join('')
+      +'</div>';
+  }
+
   ov.innerHTML='<div style="display:flex;align-items:center;padding:14px 14px;border-bottom:1px solid var(--border);background:var(--s1);position:sticky;top:0;z-index:1">'
     +'<div style="flex:1"><div style="font-size:16px;font-weight:800">Follow-ups Due</div><div id="ov-fu-sub" style="font-size:11px;color:var(--t3);margin-top:2px"></div></div>'
     +'<button onclick="document.getElementById(\'fu-overlay\').remove()" style="background:none;border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:13px;color:var(--text);cursor:pointer">✕ Close</button>'
     +'</div>'
+    +eventsHtml
     +'<div id="fu-overlay-list" style="flex:1"></div>';
   document.body.appendChild(ov);
   // Render FU list inside overlay
@@ -5251,30 +5277,37 @@ function renderWeekCalendar(){
     var dateStr=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
     var dayName=DAYS_OF_WEEK[d.getDay()].substring(0,3);
     var dayNum=d.getDate();
-    // Count leads with nextFollowUp on this exact date
     var leadCount=leads.filter(function(l){return l.nextFollowUp===dateStr;}).length;
     var clientCount=clients.filter(function(c){return c.nextFollowUp===dateStr;}).length;
-    days.push({dateStr:dateStr, dayName:dayName, dayNum:dayNum, count:leadCount+clientCount, isToday:false});
+    var fuCount=leadCount+clientCount;
+    var evCount=calendarEventsOn(dateStr).length;
+    days.push({dateStr:dateStr, dayName:dayName, dayNum:dayNum, fuCount:fuCount, evCount:evCount, total:fuCount+evCount});
   }
 
-  var maxCount=Math.max.apply(null,days.map(function(d){return d.count;}).concat([1]));
+  var maxTotal=Math.max.apply(null,days.map(function(d){return d.total;}).concat([1]));
 
-  var html='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px">';
-  days.forEach(function(d,idx){
-    var intensity=d.count/maxCount;
-    var bg=d.count===0?'var(--s2)':'rgba(192,57,43,'+(0.12+intensity*0.28)+')';
-    var border=d.count===0?'var(--border)':'var(--accent)';
-    var textColor=d.count===0?'var(--t3)':'var(--accent)';
-    html+='<div class="wk-day" data-wkdate="'+d.dateStr+'" style="background:'+bg+';border:1px solid '+border+';border-radius:8px;padding:8px 2px;text-align:center;cursor:pointer">'
-      +'<div style="font-size:9px;color:var(--t3);font-weight:700">'+d.dayName+'</div>'
-      +'<div style="font-size:13px;font-weight:700;color:var(--text);margin:2px 0">'+d.dayNum+'</div>'
-      +'<div style="font-size:15px;font-weight:900;color:'+textColor+'">'+(d.count||'—')+'</div>'
+  // Larger squares, 7 across, combining follow-up count (📋) and calendar event count (📅)
+  var html='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px">';
+  days.forEach(function(d){
+    var intensity=d.total/maxTotal;
+    var bg=d.total===0?'var(--s2)':'rgba(192,57,43,'+(0.12+intensity*0.28)+')';
+    var border=d.total===0?'var(--border)':'var(--accent)';
+    html+='<div class="wk-day" data-wkdate="'+d.dateStr+'" style="background:'+bg+';border:1.5px solid '+border+';border-radius:12px;padding:10px 3px;text-align:center;cursor:pointer;min-height:78px;display:flex;flex-direction:column;justify-content:space-between">'
+      +'<div>'
+      +'<div style="font-size:10px;color:var(--t3);font-weight:700">'+d.dayName+'</div>'
+      +'<div style="font-size:16px;font-weight:800;color:var(--text);margin:2px 0 4px">'+d.dayNum+'</div>'
+      +'</div>'
+      +'<div style="display:flex;flex-direction:column;gap:2px">'
+      +(d.fuCount>0?'<div style="font-size:11px;font-weight:800;color:var(--accent)">📋 '+d.fuCount+'</div>':'')
+      +(d.evCount>0?'<div style="font-size:11px;font-weight:800;color:#4FC3F7">📅 '+d.evCount+'</div>':'')
+      +(d.total===0?'<div style="font-size:12px;color:var(--t3)">—</div>':'')
+      +'</div>'
       +'</div>';
   });
   html+='</div>';
   el.innerHTML=html;
 
-  // Click delegation — show that day's follow-ups
+  // Click delegation — show that day's follow-ups AND calendar events
   el.onclick=function(e){
     var dayEl=e.target.closest('.wk-day');
     if(dayEl) showWeekDayList(dayEl.dataset.wkdate);
@@ -5285,10 +5318,19 @@ function renderWeekCalendar(){
 function showWeekDayList(dateStr){
   var dayLeads=leads.filter(function(l){return l.nextFollowUp===dateStr;});
   var dayClients=clients.filter(function(c){return c.nextFollowUp===dateStr;});
+  var dayEvents=calendarEventsOn(dateStr);
   var d=new Date(dateStr);
   var dateLabel=DAYS_OF_WEEK[d.getDay()]+', '+d.getDate()+' '+MONTHS[d.getMonth()];
 
+  // Calendar events shown first, distinct styling (not tappable to a lead/client)
   var rows='';
+  dayEvents.forEach(function(ev){
+    rows+='<div style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--border);background:rgba(79,195,247,.06)">'
+      +'<span style="font-size:16px">📅</span>'
+      +'<div><div style="font-size:13px;font-weight:700;color:var(--text)">'+ev.title+'</div>'
+      +'<div style="font-size:10px;color:#4FC3F7;margin-top:2px">Calendar Event · '+ev.time+'</div></div>'
+      +'</div>';
+  });
   dayLeads.forEach(function(l){
     rows+='<div class="wk-row" data-wkmob="'+l.mobile+'" data-wktype="lead" style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid var(--border);cursor:pointer">'
       +'<div><div style="font-size:13px;font-weight:700;color:var(--text)">'+toTitle(l.name)+'</div>'
@@ -5306,9 +5348,9 @@ function showWeekDayList(dateStr){
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:99999;display:flex;align-items:flex-end;justify-content:center';
   ov.innerHTML='<div style="background:var(--s1);border-radius:14px 14px 0 0;width:100%;max-width:420px;max-height:75vh;display:flex;flex-direction:column">'
     +'<div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">'
-    +'<span style="font-size:14px;font-weight:800;color:var(--text)">📆 '+dateLabel+' ('+(dayLeads.length+dayClients.length)+')</span>'
+    +'<span style="font-size:14px;font-weight:800;color:var(--text)">📆 '+dateLabel+' ('+(dayLeads.length+dayClients.length+dayEvents.length)+')</span>'
     +'<span id="_wkListX" style="font-size:20px;color:var(--t2);cursor:pointer">✕</span></div>'
-    +'<div style="overflow-y:auto;flex:1">'+(rows||'<div style="padding:24px;text-align:center;color:var(--t3);font-size:12px">No follow-ups scheduled</div>')+'</div></div>';
+    +'<div style="overflow-y:auto;flex:1">'+(rows||'<div style="padding:24px;text-align:center;color:var(--t3);font-size:12px">No follow-ups or events scheduled</div>')+'</div></div>';
   document.body.appendChild(ov);
   document.getElementById('_wkListX').onclick=function(){ov.remove();};
   ov.addEventListener('click',function(e){
@@ -5433,10 +5475,93 @@ async function diagClientsSheet(){
   }
 }
 
+
+// ── Revert a client back to an IN PROGRESS lead ──
+// Deletes the row from CLIENTS sheet, recreates it as a lead (status = IN PROGRESS)
+// in the LEADS sheet. Mirrors autoConvert() in reverse.
+async function revertClientToLead(mob){
+  var c=clients.find(function(x){return x.mobile===mob;});
+  if(!c){toast('Client not found');return;}
+  if(!confirm('Move '+toTitle(c.name)+' back to In Progress? This removes them from Clients and adds them back to Leads.')) return;
+
+  // Build a lead object from the client's data
+  var newLead={
+    name:c.name||'', mobile:c.mobile||'', email:c.email||'',
+    age:c.age||'', country:c.country||'', gender:c.gender||'',
+    status:'IN PROGRESS',
+    source:c.source||'', referral:c.referral||'',
+    aum:c.aum||'', nextFollowUp:c.nextFollowUp||'',
+    products:c.products||'', contactMode:'Not contacted',
+    remarks:appendRemark(migrateRemarks(c.remarks||''), 'Reverted from Client to In Progress lead'),
+    modifiedDate:now(), createdDate:c.createdDate||today(),
+    geoTag:''
+  };
+
+  // Update local state
+  leads.unshift(newLead);
+  clients=clients.filter(function(x){return x.mobile!==mob;});
+  saveL(); saveC();
+
+  // Close chip window, refresh UI
+  closeOv('ov-detail');
+  renderLeads(); renderClients(); renderDash();
+
+  // Sync: add to LEADS sheet, delete from CLIENTS sheet (targeted, one row each)
+  await syncLead(newLead, 'add');
+  await syncClient(c, 'delete');
+
+  // Track in Analytics: +1 In Progress column
+  logAnalytics(4, 1); // 4 = In Progress
+
+  toast('✅ '+toTitle(c.name)+' moved back to In Progress');
+}
+
+
+// ── Delete client directly from the modify form ──
+async function deleteClientFromForm(){
+  var origMob=document.getElementById('cf-orig')?document.getElementById('cf-orig').value.trim():'';
+  if(!origMob){toast('No client selected');return;}
+  var c=clients.find(function(x){return x.mobile===origMob;});
+  if(!c){toast('Client not found');return;}
+  if(!confirm('Delete '+toTitle(c.name)+'? This cannot be undone.')) return;
+
+  clients=clients.filter(function(x){return x.mobile!==origMob;});
+  saveC();
+  closeOv('ov-client');
+  renderClients();
+  toast('Client deleted');
+  await syncClient(c,'delete'); // targeted — deletes only this row
+}
+
+
+// ── Google Calendar events — cached, pulled during boot ──
+var _calendarEvents = []; // [{date:'YYYY-MM-DD', title, time}, ...]
+
+async function pullCalendarEvents(){
+  if(!hasScript()) return;
+  try{
+    var now=new Date();
+    var start=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+    var endD=new Date(now.getTime()+8*86400000);
+    var end=endD.getFullYear()+'-'+String(endD.getMonth()+1).padStart(2,'0')+'-'+String(endD.getDate()).padStart(2,'0');
+    var res=await apiFetch({action:'getCalendarEvents', start:start, end:end});
+    if(res && res.events){
+      _calendarEvents=res.events;
+      localStorage.setItem('wm_calendar_events', JSON.stringify(_calendarEvents));
+    }
+  }catch(e){ console.warn('pullCalendarEvents failed:', e.message); }
+}
+
+// Get calendar events for one specific date (YYYY-MM-DD)
+function calendarEventsOn(dateStr){
+  return _calendarEvents.filter(function(e){return e.date===dateStr;});
+}
+
 // Load offline queue and flush any writes that failed last session
 _loadQ();
 // Load cached special days
 try{var _sd=localStorage.getItem('wm_specialdays');if(_sd){var _sdo=JSON.parse(_sd);if(_sdo.length>_specialDays.length)_specialDays=_sdo;}}catch(e){}
+try{_calendarEvents=JSON.parse(localStorage.getItem('wm_calendar_events')||'[]');}catch(e){_calendarEvents=[];}
 load();applyDarkMode();loadActivityLog();bootSequenceV17();
 // Load cached analytics
 try{_analyticsData=JSON.parse(localStorage.getItem('wm_analytics')||'[]');}catch(e){_analyticsData=[];}
