@@ -2504,62 +2504,25 @@ async function pullFromSheet(manual){
   syncInProgress=true; setSyncBanner('syncing'); setTopSync('syncing','Syncing...');
   if(manual)toast('Syncing...',3000);
   try{
-    // Pull LEADS
+    // Pull LEADS + CLIENTS using the SAME shared parsers as boot — guarantees this
+    // manual sync button can never drift out of sync with the boot-time logic again.
     var ld=await scriptGet('LEADS');
-    if(ld&&ld.rows&&ld.rows.length>1){
-      var hdr=ld.rows[0].map(function(h){return (h||'').toLowerCase().trim();});
-      var ci=function(keys){
-        for(var ki=0;ki<keys.length;ki++)
-          for(var hi=0;hi<hdr.length;hi++)
-            if(hdr[hi].includes(keys[ki])) return hi;
-        return -1;
-      };
-      var C={
-        name:ci(['name']), mob:ci(['mobile','phone']), email:ci(['email']),
-        age:ci(['age']), status:ci(['status']), source:ci(['source']),
-        ref:ci(['referred','referral']), aum:ci(['aum','sip','estimated']),
-        fu:ci(['follow']), prod:ci(['product','investment']),
-        rem:ci(['remark','note']), mod:ci(['modified']), created:ci(['created'])
-      };
-      function g(r,k,fb){var i=C[k]>=0?C[k]:fb;return i>=0&&i<r.length?String(r[i]||''):'';}
-      ld.rows.slice(1).forEach(function(r){
-        var mob=g(r,'mob',1).trim(); if(!mob)return;
-        var fu=g(r,'fu',8);
-        if(fu&&!/^\d{4}-\d{2}-\d{2}$/.test(fu)) fu='';
-        var obj={
-          name:caps(g(r,'name',0)), mobile:mob,
-          email:g(r,'email',2), age:g(r,'age',3),
-          status:caps(g(r,'status',4))||'PROSPECT',
-          source:caps(g(r,'source',5)),
-          referral:g(r,'ref',6),
-          aum:g(r,'aum',7),
-          nextFollowUp:fu,
-          products:caps(g(r,'prod',9)),
-          remarks:g(r,'rem',10),
-          modifiedDate:g(r,'mod',11)||today(),
-          createdDate:g(r,'created',12)||today()
-        };
-        var idx=leads.findIndex(function(l){return l.mobile===mob;});
-        if(idx>=0) leads[idx]=Object.assign({},leads[idx],obj);
-        else leads.push(Object.assign({notes:[]},obj));
+    var sheetLeads=parseLeadsFromRows(ld&&ld.rows);
+    if(sheetLeads){
+      // REPLACE (not merge) — sheet is source of truth, correctly handles deletions
+      sheetLeads.forEach(function(obj){
+        var existing=leads.find(function(l){return l.mobile===obj.mobile;});
+        if(existing&&existing.notes) obj.notes=existing.notes; else obj.notes=[];
       });
-      saveL();
+      leads=sheetLeads; saveL();
     }
+
     // Pull CLIENTS — never destructively clear local data on an empty-looking
     // response (matches leads' safe behavior); only update when real data arrives
     var cd=await _pClients; // already fetching in parallel since boot start
-    if(cd&&cd.rows&&cd.rows.length>1){
-      var chdr=cd.rows[0].map(function(h){return (h||'').toLowerCase().trim();});
-      var cci=function(keys){for(var ki=0;ki<keys.length;ki++)for(var hi=0;hi<chdr.length;hi++)if(chdr[hi].includes(keys[ki]))return hi;return -1;};
-      var CC={name:cci(['name']),mob:cci(['mobile']),email:cci(['email']),country:cci(['country']),age:cci(['age']),gender:cci(['gender']),pan:cci(['pan']),prod:cci(['product']),rem:cci(['remark']),conv:cci(['converted'])};
-      function gc(r,k,fb){var i=CC[k]>=0?CC[k]:fb;return i>=0&&i<r.length?String(r[i]||''):'';}
-      var freshClients=[];
-      cd.rows.slice(1).forEach(function(r){
-        var mob=gc(r,'mob',1).trim();if(!mob)return;
-        var obj={name:caps(gc(r,'name',0)),mobile:mob,email:gc(r,'email',2),country:caps(gc(r,'country',3)),age:gc(r,'age',4),gender:caps(gc(r,'gender',5)),pan:caps(gc(r,'pan',6)),products:caps(gc(r,'prod',7)),remarks:gc(r,'rem',8),convertedDate:gc(r,'conv',9)};
-        freshClients.push(obj);
-      });
-      clients=freshClients; // replace (handles deletions from sheet)
+    var sheetClients=parseClientsFromRows(cd&&cd.rows);
+    if(sheetClients){
+      clients=sheetClients; // replace (handles deletions from sheet)
       saveC();
     }
     // Pull Activity Log
@@ -3569,102 +3532,50 @@ async function bootSequenceV17(){
     syncInProgress=true;
     // PARALLEL fetch: LEADS + CLIENTS simultaneously (60% faster boot)
     var _fetches=await Promise.all([scriptGet('LEADS'),scriptGet('CLIENTS')]);
-    var ld=_fetches[0];
-    if(ld&&ld.rows&&ld.rows.length>1){
-      var hdr=ld.rows[0].map(function(h){return (h||'').toLowerCase().trim();});
-      var ci=function(keys){for(var ki=0;ki<keys.length;ki++)for(var hi=0;hi<hdr.length;hi++)if(hdr[hi].includes(keys[ki]))return hi;return -1;};
-      var C={name:ci(['name']),mob:ci(['mobile','phone']),email:ci(['email']),age:ci(['age']),country:ci(['country']),contactMode:ci(['mode','contact']),status:ci(['status']),source:ci(['source']),ref:ci(['referred','referral']),aum:ci(['aum','sip','estimated']),fu:ci(['follow']),prod:ci(['product','investment']),rem:ci(['remark','note']),mod:ci(['modified']),created:ci(['created']),geo:ci(['geo'])};
-      function g(r,k,fb){var i=C[k]>=0?C[k]:fb;return i>=0&&i<r.length?String(r[i]||''):'';}
-      var sheetLeads=[];
-      ld.rows.slice(1).forEach(function(r){
-        var mob=g(r,'mob',1).trim();if(!mob)return;
-        var fu=g(r,'fu',9);if(fu&&!/^\d{4}-\d{2}-\d{2}$/.test(fu))fu='';
-        var cm=C.contactMode>=0?String(r[C.contactMode]||'').trim():'';
-        var obj={name:caps(g(r,'name',0)),mobile:mob,email:g(r,'email',2),age:g(r,'age',3),country:caps(g(r,'country',4)),contactMode:cm,status:caps(g(r,'status',5))||'PROSPECT',source:caps(g(r,'source',6)),referral:g(r,'ref',7),aum:g(r,'aum',8),nextFollowUp:fu,products:caps(g(r,'prod',10)),remarks:g(r,'rem',11),modifiedDate:g(r,'mod',12)||today(),createdDate:g(r,'created',13)||today(),geoTag:caps(g(r,'geo',15))};
-        // Preserve local notes array if exists
-        var existing=leads.find(function(l){return l.mobile===mob;});
-        if(existing&&existing.notes)obj.notes=existing.notes;else obj.notes=[];
-        sheetLeads.push(obj);
+
+    // Parse using the SAME shared functions pullFromSheet (manual sync) uses —
+    // guarantees boot and manual sync can never drift apart again.
+    var sheetLeads=parseLeadsFromRows(_fetches[0]&&_fetches[0].rows);
+    if(sheetLeads){
+      sheetLeads.forEach(function(obj){
+        var existing=leads.find(function(l){return l.mobile===obj.mobile;});
+        if(existing&&existing.notes) obj.notes=existing.notes; else obj.notes=[];
       });
       // REPLACE local leads with sheet (sheet is source of truth — handles deletions)
-      leads=sheetLeads;saveL();
+      leads=sheetLeads; saveL();
     }
-    var cd=_fetches[1];
-    // NOTE: removed the old "clear local clients if sheet looks empty" branch —
-    // it was destructive: any transient empty/partial response (cold start,
-    // network hiccup, brief moment during redeployment) would wipe the local
-    // client list and PERSIST that emptiness to storage. Now, exactly like
-    // leads, we only ever update clients when the sheet actually returns real
-    // data — an empty-looking response just leaves local data untouched.
-    if(cd&&cd.rows&&cd.rows.length>1){
-      var chdr=cd.rows[0].map(function(h){return (h||'').toLowerCase().trim();});
-      var cci=function(keys){for(var ki=0;ki<keys.length;ki++)for(var hi=0;hi<chdr.length;hi++)if(chdr[hi].includes(keys[ki]))return hi;return -1;};
-      // Map all 30 CLIENTS sheet columns by header name
-      var CC2={
-        name:cci(['name']),       mob:cci(['mobile']),
-        email:cci(['email']),     country:cci(['country']),
-        source:cci(['source']),   referral:cci(['referred']),
-        nextFU:cci(['next follow']),age:cci(['age']),
-        gender:cci(['gender']),   remarks:cci(['remark']),
-        created:cci(['created']), pan:cci(['pan']),
-        dob:cci(['dob']),         spouseDob:cci(['spouse']),
-        anniversary:cci(['anniversary']), conv:cci(['converted date']),
-        reviewDate:cci(['review date']),  firstAnn:cci(['1st anniv']),
-        appInstalled:cci(['app installed']),broadcastAdded:cci(['broadcast']),
-        sipDate:cci(['sip date']),healthIns:cci(['health ins']),
-        lifeIns:cci(['life ins']), willDone:cci(['will']),
-        dueDateH:cci(['due date health']),dueDateL:cci(['due date life']),
-        aum:cci(['aum']),          potAum:cci(['potential']),
-        welcome:cci(['welcome']),  products:cci(['product'])
-      };
-      function gcc(r,k){var i=CC2[k];return(i>=0&&i<r.length)?String(r[i]||''):'';}
-      var sheetClients=[];
-      cd.rows.slice(1).forEach(function(r){
-        var mob=gcc(r,'mob').trim();if(!mob)return;
-        sheetClients.push({
-          name:caps(gcc(r,'name')),  mobile:mob,
-          email:gcc(r,'email'),      country:caps(gcc(r,'country')),
-          source:gcc(r,'source'),    referral:gcc(r,'referral'),
-          nextFollowUp:gcc(r,'nextFU'), age:gcc(r,'age'),
-          gender:gcc(r,'gender'),    remarks:gcc(r,'remarks'),
-          createdDate:gcc(r,'created')||today(),
-          pan:gcc(r,'pan'),          dob:gcc(r,'dob'),
-          spouseDob:gcc(r,'spouseDob'), anniversary:gcc(r,'anniversary'),
-          convertedDate:gcc(r,'conv'),
-          reviewDate:gcc(r,'reviewDate'), firstAnniversary:gcc(r,'firstAnn'),
-          appInstalled:gcc(r,'appInstalled').toUpperCase()==='YES',
-          broadcastAdded:gcc(r,'broadcastAdded').toUpperCase()==='YES',
-          sipDate:gcc(r,'sipDate'),
-          healthInsurance:gcc(r,'healthIns'),
-          lifeInsurance:gcc(r,'lifeIns'),
-          willDone:gcc(r,'willDone').toUpperCase()==='YES',
-          dueDateHealth:gcc(r,'dueDateH'), dueDateLife:gcc(r,'dueDateL'),
-          aum:gcc(r,'aum'),          potentialAum:gcc(r,'potAum'),
-          welcomeSent:gcc(r,'welcome').toUpperCase()==='YES',
-          products:caps(gcc(r,'products'))
-        });
-      });
-      clients=sheetClients;saveC();
+
+    // NOTE: never destructively clear local clients on an empty-looking response —
+    // any transient empty/partial reply (cold start, network hiccup, brief moment
+    // during redeployment) would otherwise wipe the local client list permanently.
+    var sheetClients=parseClientsFromRows(_fetches[1]&&_fetches[1].rows);
+    if(sheetClients){
+      clients=sheetClients; saveC();
     }
+
     // Activity log fetched in background — not needed for initial render
     pullActivityLog();
-    // Analytics + Special Days + Calendar fetched in background, refresh views when done
-    Promise.all([pullAnalytics(),pullSpecialDays(),pullCalendarEvents()]).then(function(){
-      renderDash(); // also refreshes the week calendar squares (renderDash calls renderWeekCalendar internally)
-      var anaPg=document.getElementById('pg-analytics');
-      if(anaPg&&anaPg.classList.contains('active')) renderAnalytics();
-    }).catch(function(e){console.warn('BG fetch:',e.message);});
-    // Seed Special Days sheet if empty (one-time, background)
+
+    // Analytics + Special Days + Calendar — AWAITED (not fire-and-forget) so the
+    // dashboard's first real render is guaranteed to already include calendar
+    // events and analytics data, instead of racing a background update in later.
+    await Promise.all([pullAnalytics(),pullSpecialDays(),pullCalendarEvents()]);
+
+    // Seed Special Days sheet if empty (one-time, background — genuinely OK to
+    // leave un-awaited since it never affects what's displayed on this render)
     apiFetch({action:'readSpecialDays'}).then(function(spRes){
       if(spRes&&spRes.rows&&spRes.rows.length===0){
         var spAllRows=_specialDays.map(function(d){return[d.date,d.speciality];});
         return apiFetch({action:'pushSpecialDays',rows:spAllRows});
       }
     }).catch(function(e){console.warn('SD seed:',e.message);});
+
     cfg_.lastPull=now();saveCfg();
     var ts=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
     setTopSync('ok','Synced '+ts+' — '+leads.length+' leads');setSyncBanner('ok');
     renderAll();updateFUBadge();
+    var anaPg=document.getElementById('pg-analytics');
+    if(anaPg&&anaPg.classList.contains('active')) renderAnalytics();
   }catch(err){
     setTopSync('err','Sync failed — tap 🔄');setSyncBanner('err');
     console.warn('Boot sync:',err.message);
@@ -5615,6 +5526,84 @@ async function diagCalendar(){
   }catch(e){
     log('❌ Fetch failed: '+e.message);
   }
+}
+
+
+// ── Shared LEADS row-parser — single source of truth, used by BOTH boot and manual sync ──
+// Prevents the two call sites from drifting out of sync with each other or with the sheet schema.
+function parseLeadsFromRows(rows){
+  if(!rows||rows.length<2) return null;
+  var hdr=rows[0].map(function(h){return (h||'').toLowerCase().trim();});
+  var ci=function(keys){for(var ki=0;ki<keys.length;ki++)for(var hi=0;hi<hdr.length;hi++)if(hdr[hi].includes(keys[ki]))return hi;return -1;};
+  var C={name:ci(['name']),mob:ci(['mobile','phone']),email:ci(['email']),age:ci(['age']),country:ci(['country']),contactMode:ci(['mode','contact']),status:ci(['status']),source:ci(['source']),ref:ci(['referred','referral']),aum:ci(['aum','sip','estimated']),fu:ci(['follow']),prod:ci(['product','investment']),rem:ci(['remark','note']),mod:ci(['modified']),created:ci(['created']),geo:ci(['geo'])};
+  function g(r,k,fb){var i=C[k]>=0?C[k]:fb;return i>=0&&i<r.length?String(r[i]||''):'';}
+  var out=[];
+  rows.slice(1).forEach(function(r){
+    var mob=g(r,'mob',1).trim();if(!mob)return;
+    var fu=g(r,'fu',9);if(fu&&!/^\d{4}-\d{2}-\d{2}$/.test(fu))fu='';
+    var cm=C.contactMode>=0?String(r[C.contactMode]||'').trim():'';
+    out.push({
+      name:caps(g(r,'name',0)),mobile:mob,email:g(r,'email',2),age:g(r,'age',3),
+      country:caps(g(r,'country',4)),contactMode:cm,status:caps(g(r,'status',5))||'PROSPECT',
+      source:caps(g(r,'source',6)),referral:g(r,'ref',7),aum:g(r,'aum',8),nextFollowUp:fu,
+      products:caps(g(r,'prod',10)),remarks:g(r,'rem',11),
+      modifiedDate:g(r,'mod',12)||today(),createdDate:g(r,'created',13)||today(),
+      geoTag:caps(g(r,'geo',15))
+    });
+  });
+  return out;
+}
+
+// ── Shared CLIENTS row-parser — single source of truth, all 30 columns ──
+function parseClientsFromRows(rows){
+  if(!rows||rows.length<2) return null;
+  var chdr=rows[0].map(function(h){return (h||'').toLowerCase().trim();});
+  var cci=function(keys){for(var ki=0;ki<keys.length;ki++)for(var hi=0;hi<chdr.length;hi++)if(chdr[hi].includes(keys[ki]))return hi;return -1;};
+  var CC2={
+    name:cci(['name']),       mob:cci(['mobile']),
+    email:cci(['email']),     country:cci(['country']),
+    source:cci(['source']),   referral:cci(['referred']),
+    nextFU:cci(['next follow']),age:cci(['age']),
+    gender:cci(['gender']),   remarks:cci(['remark']),
+    created:cci(['created']), pan:cci(['pan']),
+    dob:cci(['dob']),         spouseDob:cci(['spouse']),
+    anniversary:cci(['anniversary']), conv:cci(['converted date']),
+    reviewDate:cci(['review date']),  firstAnn:cci(['1st anniv']),
+    appInstalled:cci(['app installed']),broadcastAdded:cci(['broadcast']),
+    sipDate:cci(['sip date']),healthIns:cci(['health ins']),
+    lifeIns:cci(['life ins']), willDone:cci(['will']),
+    dueDateH:cci(['due date health']),dueDateL:cci(['due date life']),
+    aum:cci(['aum']),          potAum:cci(['potential']),
+    welcome:cci(['welcome']),  products:cci(['product'])
+  };
+  function gcc(r,k){var i=CC2[k];return(i>=0&&i<r.length)?String(r[i]||''):'';}
+  var out=[];
+  rows.slice(1).forEach(function(r){
+    var mob=gcc(r,'mob').trim();if(!mob)return;
+    out.push({
+      name:caps(gcc(r,'name')),  mobile:mob,
+      email:gcc(r,'email'),      country:caps(gcc(r,'country')),
+      source:gcc(r,'source'),    referral:gcc(r,'referral'),
+      nextFollowUp:gcc(r,'nextFU'), age:gcc(r,'age'),
+      gender:gcc(r,'gender'),    remarks:gcc(r,'remarks'),
+      createdDate:gcc(r,'created')||today(),
+      pan:gcc(r,'pan'),          dob:gcc(r,'dob'),
+      spouseDob:gcc(r,'spouseDob'), anniversary:gcc(r,'anniversary'),
+      convertedDate:gcc(r,'conv'),
+      reviewDate:gcc(r,'reviewDate'), firstAnniversary:gcc(r,'firstAnn'),
+      appInstalled:gcc(r,'appInstalled').toUpperCase()==='YES',
+      broadcastAdded:gcc(r,'broadcastAdded').toUpperCase()==='YES',
+      sipDate:gcc(r,'sipDate'),
+      healthInsurance:gcc(r,'healthIns'),
+      lifeInsurance:gcc(r,'lifeIns'),
+      willDone:gcc(r,'willDone').toUpperCase()==='YES',
+      dueDateHealth:gcc(r,'dueDateH'), dueDateLife:gcc(r,'dueDateL'),
+      aum:gcc(r,'aum'),          potentialAum:gcc(r,'potAum'),
+      welcomeSent:gcc(r,'welcome').toUpperCase()==='YES',
+      products:caps(gcc(r,'products'))
+    });
+  });
+  return out;
 }
 
 // Load offline queue and flush any writes that failed last session
