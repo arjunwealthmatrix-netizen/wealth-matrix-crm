@@ -448,6 +448,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div id="diag-del-result" style="font-size:10px;color:var(--text);white-space:pre-wrap;font-family:monospace;line-height:1.4;background:var(--bg);border-radius:6px;padding:8px;max-height:250px;overflow-y:auto;margin-bottom:6px"></div>
     <div class="syc"><button class="btn btn-ghost btn-full" style="font-size:10px" onclick="diagActivityDelete()">🔍 Show log Raw IDs</button></div>
     <div class="syc"><button class="btn btn-ghost btn-full" style="font-size:10px" onclick="diagLeadActivity()">🔬 Diagnose lead activity</button></div>
+    <div class="syc"><button class="btn btn-gold btn-full" style="font-size:11px;font-weight:700" onclick="diagClientsSheet()">🔬 Diagnose Clients Sheet</button></div>
+    <div class="syc"><pre id="diag-clients-result" style="font-size:10px;background:var(--s2);border-radius:8px;padding:10px;white-space:pre-wrap;max-height:300px;overflow-y:auto;margin:0"></pre></div>
     <div class="syc"><button class="btn btn-ghost btn-full" style="font-size:10px" onclick="testLeadPush()">🧪 Test lead write</button></div>
   </div>
 
@@ -5356,6 +5358,79 @@ function makeFuClientItem(c){
     +'</div>'
     +'</div>'
     +'</div>';
+}
+
+
+// ── Diagnose CLIENTS sheet fetch — shows exactly what the sheet returns ──
+async function diagClientsSheet(){
+  var el=document.getElementById('diag-clients-result');
+  function log(m){ if(el) el.textContent+=m+'\n'; }
+  if(el) el.textContent='';
+  if(!hasScript()){ log('❌ No Apps Script URL configured in Settings.'); return; }
+
+  log('Fetching CLIENTS tab from your sheet...');
+  log('URL: '+cfg_.scriptUrl.substring(0,60)+'...');
+  log('');
+
+  try{
+    var resp=await fetch(cfg_.scriptUrl+'?tab=CLIENTS&t='+Date.now());
+    var data=await resp.json();
+
+    if(data.error){
+      log('❌ ERROR FROM SHEET: '+data.error);
+      log('');
+      log('This usually means the tab name in your Google Sheet');
+      log('does not match "CLIENTS" exactly (check spelling/case).');
+      return;
+    }
+
+    if(!data.rows){
+      log('❌ No "rows" field in response. Raw response:');
+      log(JSON.stringify(data).substring(0,300));
+      return;
+    }
+
+    log('✅ Tab found. Total rows returned: '+data.rows.length);
+    log('(Row 1 = header, remaining rows = data)');
+    log('');
+
+    if(data.rows.length===0){
+      log('⚠️ Sheet appears completely empty — no header row even.');
+      return;
+    }
+
+    log('HEADER ROW (row 1):');
+    log(JSON.stringify(data.rows[0]));
+    log('');
+
+    if(data.rows.length===1){
+      log('⚠️ Only the header row exists — no client data rows found.');
+      log('This means your CLIENTS tab currently has 0 client records in it.');
+      return;
+    }
+
+    log('FIRST DATA ROW (row 2):');
+    log(JSON.stringify(data.rows[1]));
+    log('');
+    log('Total client records found: '+(data.rows.length-1));
+    log('');
+
+    // Check if mobile number would be detected correctly
+    var hdr=data.rows[0].map(function(h){return (h||'').toLowerCase().trim();});
+    var mobIdx=hdr.findIndex(function(h){return h.includes('mobile');});
+    log('Mobile column detected at index: '+mobIdx+' (header: "'+(hdr[mobIdx]||'NOT FOUND')+'")');
+    if(mobIdx<0){
+      log('❌ PROBLEM: No column header contains "mobile" — this is why');
+      log('   client rows are being skipped (app cannot find mobile numbers).');
+    } else {
+      log('✅ Mobile column found correctly — rows should parse.');
+    }
+
+  }catch(e){
+    log('❌ Fetch failed: '+e.message);
+    log('This could mean the Apps Script URL is wrong, not deployed,');
+    log('or there is a network/CORS issue.');
+  }
 }
 
 // Load offline queue and flush any writes that failed last session
