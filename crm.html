@@ -5794,19 +5794,22 @@ function updateLockDots(){
   });
 }
 
-async function checkLockPin(){
+async function checkLockPin(isFinalAttempt){
   var errEl=document.getElementById('lock-error');
   var hash=await hashPin(_lockPinBuffer);
   if(hash===localStorage.getItem('wm_lock_pin_hash')){
     unlockApp();
-  } else {
-    if(errEl) errEl.textContent='Incorrect PIN';
-    _lockPinBuffer='';
-    updateLockDots();
-    var pad=document.getElementById('lock-pin-pad');
-    if(pad){ pad.style.animation='none'; void pad.offsetWidth; pad.style.animation='lockShake .3s'; }
-    setTimeout(function(){ if(errEl) errEl.textContent=''; }, 1500);
+    return;
   }
+  // Not a match yet — if the buffer hasn't reached max length, this might just
+  // be a shorter PIN (4 or 5 digits) still being typed, so stay silent and wait.
+  if(!isFinalAttempt) return;
+  if(errEl) errEl.textContent='Incorrect PIN';
+  _lockPinBuffer='';
+  updateLockDots();
+  var pad=document.getElementById('lock-pin-pad');
+  if(pad){ pad.style.animation='none'; void pad.offsetWidth; pad.style.animation='lockShake .3s'; }
+  setTimeout(function(){ if(errEl) errEl.textContent=''; }, 1500);
 }
 
 // PIN pad click handling
@@ -5819,7 +5822,10 @@ document.addEventListener('DOMContentLoaded', function(){
       if(_lockPinBuffer.length>=6) return;
       _lockPinBuffer+=key.dataset.k;
       updateLockDots();
-      if(_lockPinBuffer.length===6) checkLockPin();
+      // Works for any PIN length 4-6 — tries validating as soon as it's long
+      // enough to possibly be correct, so a 4-digit PIN unlocks after 4 digits
+      // instead of forcing the pad to wait for 6 that will never come.
+      if(_lockPinBuffer.length>=4) checkLockPin(_lockPinBuffer.length===6);
     });
   }
   var bs=document.getElementById('lock-backspace');
