@@ -3785,15 +3785,30 @@ function renderFuInElement(container, subEl){
   if(!container)return;
   var fd=parseInt(cfg_.followUpDays)||14;
   var active=leads.filter(function(l){return ['PROSPECT','CONTACTED','IN PROGRESS'].includes((l.status||'').toUpperCase());});
-  var due=active.filter(function(l){
+  var dueLeads=active.filter(function(l){
     if(l.nextFollowUp&&/^\d{4}-\d{2}-\d{2}$/.test(l.nextFollowUp)) return daysUntil(l.nextFollowUp)<=0;
     return daysAgo(l.modifiedDate||l.createdDate)>=fd;
   });
-  due.sort(function(a,b){var d=aumScore(a)-aumScore(b);return d!==0?d:leadScore(b)-leadScore(a);});
-  if(subEl) subEl.textContent=due.length+' lead'+(due.length!==1?'s':'')+' due';
-  if(!due.length){container.innerHTML='<div class="empty"><div class="empty-ico">🎉</div><div class="empty-t">All caught up!</div></div>';return;}
-  container.innerHTML=due.map(function(l){return makeFuItem(l,'overdue');}).join('');
+  dueLeads.sort(function(a,b){var d=aumScore(a)-aumScore(b);return d!==0?d:leadScore(b)-leadScore(a);});
+
+  // Overdue CLIENTS — same criteria used for the dashboard banner count
+  var dueClients=clients.filter(function(c){
+    return c.nextFollowUp && /^\d{4}-\d{2}-\d{2}$/.test(c.nextFollowUp) && daysUntil(c.nextFollowUp)<=0;
+  });
+
+  var totalDue=dueLeads.length+dueClients.length;
+  if(subEl) subEl.textContent=totalDue+' due'+(dueLeads.length&&dueClients.length?' ('+dueLeads.length+' leads, '+dueClients.length+' clients)':dueLeads.length?' lead'+(dueLeads.length!==1?'s':''):dueClients.length?' client'+(dueClients.length!==1?'s':''):'');
+  if(!totalDue){container.innerHTML='<div class="empty"><div class="empty-ico">🎉</div><div class="empty-t">All caught up!</div></div>';return;}
+
+  // Leads first (sorted by value), then clients
+  container.innerHTML=dueLeads.map(function(l){return makeFuItem(l,'overdue');}).join('')
+    + dueClients.map(function(c){return makeFuClientItem(c);}).join('');
+
   container.onclick=function(e){
+    // Client card click
+    var cbtn=e.target.closest('[data-caction]');
+    if(cbtn){ if(cbtn.dataset.caction==='fu-client-open') openDetail(cbtn.dataset.cmob,'client'); return; }
+
     var btn=e.target.closest('[data-action]');if(!btn)return;
     var mob=btn.dataset.mob;var action=btn.dataset.action;
     if(action==='fu-open') openFuDetail(mob);
@@ -5326,6 +5341,45 @@ function showWeekDayList(dateStr){
       if(type==='client') openDetail(mob,'client'); else openFuDetail(mob);
     }
   });
+}
+
+
+// ── Follow-up card for an overdue CLIENT (companion to makeFuItem for leads) ──
+function makeFuClientItem(c){
+  var d=daysAgo(c.modifiedDate||c.createdDate);
+  var digits=(c.mobile||'').replace(/\D/g,'');
+  var waNum=digits.length===10?'91'+digits:digits;
+  var mob=c.mobile;
+  var lastRem='';
+  var entries=getActivity(mob);
+  if(entries.length){var last=entries[entries.length-1];lastRem=(last.activity||'').substring(0,45);}
+  var curDate=c.nextFollowUp&&/^\d{4}-\d{2}-\d{2}$/.test(c.nextFollowUp)?c.nextFollowUp:'';
+  var fuDue=curDate&&daysUntil(curDate)<=0;
+  var fuColor=!curDate?'var(--t3)':fuDue?'var(--accent)':daysUntil(curDate)<=3?'#FFB300':'#888';
+  var aumTag=c.aum?'<span style="font-size:9px;color:#4FC3F7;font-weight:700;background:rgba(79,195,247,.1);border:1px solid rgba(79,195,247,.3);border-radius:999px;padding:1px 5px">'+c.aum+'</span>':'';
+
+  return '<div class="fu-item" style="border-left:3px solid #4FC3F7;">'
+    +'<div class="fu-row" data-caction="fu-client-open" data-cmob="'+mob+'">'
+    +'<div class="av" style="width:36px;height:36px;min-width:36px;font-size:12px">'+ini(c.name)+'</div>'
+    +'<div style="flex:1;min-width:0">'
+    +'<div style="font-weight:700;font-size:13px">'+toTitle(c.name)+'</div>'
+    +'<div style="display:flex;gap:4px;align-items:center;margin-top:2px;flex-wrap:wrap"><span style="font-size:10px;font-weight:700;color:#4FC3F7">👥 CLIENT</span>'+aumTag+'</div>'
+    +(lastRem?'<div style="font-size:10px;color:var(--t3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+lastRem+'</div>':'')
+    +'</div>'
+    +'<div style="font-size:11px;color:#4FC3F7;font-weight:700;flex-shrink:0">'+d+'d</div>'
+    +'</div>'
+    +'<div class="fu-actions">'
+    +'<a href="https://wa.me/'+waNum+'" target="_blank" class="fu-icon-btn wa">'+waIcon()+'</a>'
+    +'<a href="tel:'+mob+'" class="fu-icon-btn call"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg></a>'
+    +'<div style="display:flex;flex-direction:column;align-items:center;gap:2px">'
+    +'<input type="date" id="fucard-cdate-'+mob+'" value="'+curDate+'" '
+    +'style="width:90px;font-size:10px;font-weight:700;color:'+fuColor+';background:transparent;border:1.5px solid '+fuColor+';border-radius:6px;padding:4px 5px;cursor:pointer;-webkit-appearance:none" '
+    +'onchange="updateClientField(\''+mob+'\',\'nextFollowUp\',this.value)" '
+    +'title="Tap to change follow-up date">'
+    +(curDate?'<span style="font-size:9px;color:'+fuColor+'">'+(fuDue?'Overdue':fmt(curDate).split(' ').slice(0,2).join(' '))+'</span>':'<span style="font-size:9px;color:var(--t3)">Set date</span>')
+    +'</div>'
+    +'</div>'
+    +'</div>';
 }
 
 // Load offline queue and flush any writes that failed last session
