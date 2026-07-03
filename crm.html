@@ -379,10 +379,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     </div>
   </div>
 
-  <!-- Follow-ups -->
+  <!-- Today's Activity — follow-ups, events, SIP/review/anniversary due, all clubbed -->
   <div class="sec">
-    <div class="lbl" style="color:var(--accent)">📋 Follow-ups</div>
-    <div id="dash-alert"></div>
+    <div class="lbl" style="color:var(--accent)">📋 Today's Activity</div>
+    <div id="dash-alert" style="display:none"></div>
+    <div id="dash-todays-activity"></div>
   </div>
 
   <!-- Week Follow-up Planner -->
@@ -1667,6 +1668,11 @@ async function saveClient(){
     renderClients();
     syncClient(updated,'update'); // targeted — updates only this row in sheet
     toast('✅ Client updated');
+    // Only prompt to create a folder if one doesn't already exist — checked by
+    // PAN first (unique), so modifying a client never creates a duplicate folder.
+    checkClientFolderExists(updated).then(function(exists){
+      if(!exists) promptUploadDocsAfterSave(updated);
+    });
   } else {
     // ── ADD new client ──
     if(clients.find(function(c){return c.mobile===mob;})){toast('Mobile already exists');return;}
@@ -2022,7 +2028,7 @@ async function importFromSheet(){
   try{var d=await scriptGet(tab);if(!d.rows||d.rows.length<2){showSyncMsg('No data in tab: '+tab,false);return;}var hdr=d.rows[0].map(function(h){return (h||'').toString().toLowerCase().trim();});var nameI=hdr.findIndex(function(h){return h.includes('name');});var mobI=hdr.findIndex(function(h){return h.includes('mobile')||h.includes('phone');});if(nameI<0||mobI<0){showSyncMsg('No Name/Mobile columns found',false);return;}var added=0,skipped=0;d.rows.slice(1).forEach(function(r){var mob=String(r[mobI]||'').trim();var name=caps(String(r[nameI]||''));if(!mob||!name){skipped++;return;}if(leads.find(function(l){return l.mobile===mob;})){skipped++;return;}leads.push({name:name,mobile:mob,email:'',country:'',status:'PROSPECT',source:'',referral:'',products:'',age:'',gender:'',remarks:'',notes:[],createdDate:today(),modifiedDate:today()});added++;});saveL();pushLeads();renderLeads();renderDash();showSyncMsg('Imported '+added+' leads. Skipped '+skipped+'.',true);}catch(e){showSyncMsg('Import failed: '+e.message,false);}
 }
 function showAppsScriptCode(){
-  var code='const SHEET_ID=\'1oPQMj6KB39M20RnEoix9PCvSA8RFhVhOV4BG2M4TXlQ\';\nconst LEADS_TAB=\'LEADS\',CLIENTS_TAB=\'CLIENTS\',LOG_TAB=\'ACTIVITY_LOG\',SPECIAL_TAB=\'Special Days\';\nfunction doGet(e){try{var p=e.parameter||{};if(p.action===\'pullLog\'&&p.mobile)return pullLog(p.mobile);if(p.payload)return writeData(JSON.parse(decodeURIComponent(p.payload)));return readTab(p.tab||LEADS_TAB);}catch(err){return out({error:err.message});}}\nfunction doPost(e){try{var d;if(e.postData&&e.postData.contents)d=JSON.parse(e.postData.contents);else if(e.parameter&&e.parameter.payload)d=JSON.parse(decodeURIComponent(e.parameter.payload));return writeData(d);}catch(err){return out({error:err.message});}}\nfunction readTab(t){var ss=SpreadsheetApp.openById(SHEET_ID);var sh=ss.getSheetByName(t);if(!sh)return out({rows:[],error:\'Tab not found:\'+t});var lr=sh.getLastRow(),lc=sh.getLastColumn();if(lr===0||lc===0)return out({rows:[]});var raw=sh.getRange(1,1,lr,lc).getValues();var cleaned=raw.map(function(row){return row.map(function(c){if(c===null||c===undefined||c===\'\')return\'\';if(c instanceof Date){var y=c.getFullYear();var m=String(c.getMonth()+1).padStart(2,\'0\');var d=String(c.getDate()).padStart(2,\'0\');return y+\'-\'+m+\'-\'+d;}if(typeof c===\'number\')return String(c);return String(c).trim();});});return out({rows:cleaned});}\nfunction pullLog(mobile){var ss=SpreadsheetApp.openById(SHEET_ID);var sh=ss.getSheetByName(LOG_TAB);if(!sh||sh.getLastRow()<=1)return out({rows:[]});var lr=sh.getLastRow(),lc=sh.getLastColumn();var raw=sh.getRange(2,1,lr-1,lc).getValues();var filtered=raw.filter(function(r){return String(r[2]||\'\').trim()===String(mobile).trim();});return out({rows:filtered});}\nfunction writeData(data){var ss=SpreadsheetApp.openById(SHEET_ID);\nif(data.action===\'appendLog\'){var logSh=ss.getSheetByName(LOG_TAB)||ss.insertSheet(LOG_TAB);if(logSh.getLastRow()===0){var hdr=[[\'Timestamp\',\'Name\',\'Mobile\',\'Type\',\'Activity\',\'Notes\',\'Raw ID\']];var hr=logSh.getRange(1,1,1,7);hr.setValues(hdr);hr.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');logSh.setFrozenRows(1);}logSh.appendRow(data.row||[]);var lr3=logSh.getLastRow();logSh.getRange(lr3,1).setNumberFormat(\'@\');logSh.getRange(lr3,7).setNumberFormat(\'@\');return out({success:true});}\nif(data.action===\'deleteLogById\'){var lsh=ss.getSheetByName(LOG_TAB);if(lsh&&lsh.getLastRow()>1){var rid=String(data.rowId||\'\').trim();var dmob=String(data.mobile||\'\').trim();var dts=String(data.ts||\'\').trim();var dact=String(data.activity||\'\').trim();var n=lsh.getLastRow();var rng=lsh.getRange(2,1,n-1,7).getValues();for(var rj=0;rj<rng.length;rj++){var row=rng[rj];var gId=String(row[6]||\'\').trim();var rTs=String(row[0]||\'\').trim();var rMob=String(row[2]||\'\').trim();var rAct=String(row[4]||\'\').trim();var matchById=(rid!==\'\'&&gId===rid);var matchByTs=(rid===\'\'||gId===\'\')&&dts!==\'\'&&rMob===dmob&&rTs===dts&&rAct===dact;if(matchById||matchByTs){lsh.deleteRow(rj+2);break;}}}return out({success:true,deleted:true});}if(data.action===\'deleteLog\'){var lsh2=ss.getSheetByName(LOG_TAB);if(lsh2&&lsh2.getLastRow()>1){var mob3=String(data.mobile||\'\').trim();var n2=lsh2.getLastRow();for(var rk=n2;rk>=2;rk--){if(String(lsh2.getRange(rk,3).getValue()||\'\').trim()===mob3){lsh2.deleteRow(rk);}}}return out({success:true});}\nif(data.action===\'updateAnalytics\'){var aS=ss.getSheetByName(\'ANALYTICS\')||ss.insertSheet(\'ANALYTICS\');if(aS.getLastRow()===0){aS.getRange(1,1,1,7).setValues([[\'Date\',\'Lead Entries\',\'Prospects\',\'Contacted\',\'In Progress\',\'Converted\',\'Dropped\']]).setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');aS.setFrozenRows(1);}var ad=data.date,ac=parseInt(data.col)||2,adel=parseInt(data.delta)||1,alr=aS.getLastRow(),af=false;if(alr>1){var adts=aS.getRange(2,1,alr-1,1).getValues();for(var i=0;i<adts.length;i++){if(String(adts[i][0]).trim()===ad){var acel=aS.getRange(i+2,ac);acel.setValue((parseInt(acel.getValue())||0)+adel); /* negative values allowed */ af=true; break; }}}if(!af&&adel>0){var anr=[ad,0,0,0,0,0,0];anr[ac-1]=adel;aS.appendRow(anr);}return out({success:true});}\nif(data.action===\'appendLeads\'||data.action===\'appendClients\'){var atab=data.action===\'appendLeads\'?LEADS_TAB:CLIENTS_TAB;var ash=ss.getSheetByName(atab);if(ash&&data.rows&&data.rows.length){data.rows.forEach(function(rw){ash.appendRow(rw);});var alr=ash.getLastRow();ash.getRange(2,1,alr-1,data.rows[0].length).setNumberFormat(\'@\');}return out({success:true});}if(data.action===\'appendLead\'){var aSh=ss.getSheetByName(LEADS_TAB)||ss.insertSheet(LEADS_TAB);if(aSh.getLastRow()===0){var lHdr=[[\'Name\',\'Mobile\',\'Email\',\'Age\',\'Country\',\'Status\',\'Source\',\'Referred By\',\'Estimated AUM/SIP\',\'Next Follow-up\',\'Investment Products\',\'Mode of Contact\',\'Remarks\',\'Modified Date\',\'Created Date\',\'Geo Tag\']];var lHr=aSh.getRange(1,1,1,16);lHr.setValues(lHdr);lHr.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');aSh.setFrozenRows(1);}var aRow=data.row||[];aSh.appendRow(aRow);var aLr=aSh.getLastRow();aSh.getRange(aLr,1,1,aRow.length).setNumberFormat(\'@\');return out({success:true,action:\'appendLead\'});}if(data.action===\'updateLead\'){var uSh=ss.getSheetByName(LEADS_TAB);if(uSh&&uSh.getLastRow()>1){var uMob=String(data.mobile||\'\').trim();var uRow=data.row||[];var uN=uSh.getLastRow();var uVals=uSh.getRange(2,2,uN-1,1).getValues();for(var ui=0;ui<uVals.length;ui++){if(String(uVals[ui][0]||\'\').trim()===uMob){var uRng=uSh.getRange(ui+2,1,1,uRow.length);uRng.setValues([uRow]);uRng.setNumberFormat(\'@\');break;}}}return out({success:true,action:\'updateLead\'});}if(data.action===\'deleteLead\'){var dSh=ss.getSheetByName(LEADS_TAB);if(dSh&&dSh.getLastRow()>1){var dMob=String(data.mobile||\'\').trim();var dN=dSh.getLastRow();var dVals=dSh.getRange(2,2,dN-1,1).getValues();for(var di=dN-1;di>=0;di--){if(String(dVals[di][0]||\'\').trim()===dMob){dSh.deleteRow(di+2);break;}}}return out({success:true,action:\'deleteLead\'});}\n\n  // ── Append ONE client row (new client) ──\n  if(data.action===\'appendClient\'){\n    var aShC=ss.getSheetByName(CLIENTS_TAB)||ss.insertSheet(CLIENTS_TAB);\n    if(aShC.getLastRow()===0){\n      var cHdr=[[\'Name\',\'Mobile\',\'Email\',\'Country\',\'Source\',\'Referred By\',\'Next Follow up date\',\n        \'Age\',\'Gender\',\'Remarks\',\'Created date\',\'PAN\',\'DOB\',\'Spouse DOB\',\'Anniversary\',\n        \'Converted Date\',\'Review Date\',\'1st Anniversary\',\'App Installed\',\'Broadcast Added\',\n        \'SIP date\',\'Health insurance\',\'Life insurance\',\'WILL\',\'Due date Health\',\'Due date Life\',\n        \'AUM\',\'Potential AUM\',\'Welcome Message send\',\'Products\']];\n      var cHr=aShC.getRange(1,1,1,30);\n      cHr.setValues(cHdr);cHr.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');\n      aShC.setFrozenRows(1);\n    }\n    var cRow=data.row||[];\n    aShC.appendRow(cRow);\n    var cLr=aShC.getLastRow();\n    aShC.getRange(cLr,1,1,cRow.length).setNumberFormat(\'@\');\n    return out({success:true,action:\'appendClient\'});\n  }\n\n  // ── Update ONE client row (find by mobile col B, replace in place) ──\n  if(data.action===\'updateClient\'){\n    var uShC=ss.getSheetByName(CLIENTS_TAB);\n    if(uShC&&uShC.getLastRow()>1){\n      var uMobC=String(data.mobile||\'\').trim();\n      var uRowC=data.row||[];\n      var uNC=uShC.getLastRow();\n      var uValsC=uShC.getRange(2,2,uNC-1,1).getValues();\n      for(var uic=0;uic<uValsC.length;uic++){\n        if(String(uValsC[uic][0]||\'\').trim()===uMobC){\n          var uRngC=uShC.getRange(uic+2,1,1,uRowC.length);\n          uRngC.setValues([uRowC]);\n          uRngC.setNumberFormat(\'@\');\n          break;\n        }\n      }\n    }\n    return out({success:true,action:\'updateClient\'});\n  }\n\n  // ── Delete ONE client row (find by mobile col B) ──\n  if(data.action===\'deleteClient\'){\n    var dShC=ss.getSheetByName(CLIENTS_TAB);\n    if(dShC&&dShC.getLastRow()>1){\n      var dMobC=String(data.mobile||\'\').trim();\n      var dNC=dShC.getLastRow();\n      var dValsC=dShC.getRange(2,2,dNC-1,1).getValues();\n      for(var dic=dNC-1;dic>=0;dic--){\n        if(String(dValsC[dic][0]||\'\').trim()===dMobC){dShC.deleteRow(dic+2);break;}\n      }\n    }\n    return out({success:true,action:\'deleteClient\'});\n  }\n  if(data.action===\'backupNow\'){ return manualBackupNow(); }\n  // ── Get upcoming Google Calendar events (default calendar) ──\n  if(data.action===\'getCalendarEvents\'){\n    try{\n      var TZ=\'Asia/Kolkata\'; // force IST regardless of Apps Script project timezone setting\n      // Pad the fetch window by 1 day on each side so no boundary event is ever missed,\n      // then bucket every event to its correct IST calendar day using formatDate (not\n      // getFullYear/getMonth/getDate, which use the SERVER\'s default timezone and can\n      // silently shift events onto the wrong day if the project timezone isn\'t IST).\n      var baseStart=data.start?new Date(data.start+\'T00:00:00\'):new Date();\n      var baseEnd=data.end?new Date(data.end+\'T23:59:59\'):new Date(baseStart.getTime()+8*86400000);\n      var evStart=new Date(baseStart.getTime()-86400000); // -1 day padding\n      var evEnd=new Date(baseEnd.getTime()+86400000);     // +1 day padding\n      var wantStart=data.start||Utilities.formatDate(new Date(),TZ,\'yyyy-MM-dd\');\n      var wantEnd=data.end||Utilities.formatDate(new Date(baseStart.getTime()+8*86400000),TZ,\'yyyy-MM-dd\');\n\n      var cal=CalendarApp.getDefaultCalendar();\n      var events=cal.getEvents(evStart,evEnd);\n      var evRows=events.map(function(e){\n        var st=e.getStartTime();\n        var dateStr=Utilities.formatDate(st,TZ,\'yyyy-MM-dd\');\n        var timeStr=e.isAllDayEvent()?\'All day\':Utilities.formatDate(st,TZ,\'h:mm a\');\n        return {date:dateStr,title:e.getTitle(),time:timeStr,type:\'event\'};\n      }).filter(function(r){return r.date>=wantStart&&r.date<=wantEnd;}); // trim padding back to requested range\n\n      // ── Also pull Birthdays (Google\'s auto-generated Contacts birthday calendar) ──\n      var bdayRows=[];\n      try{\n        var allCals=CalendarApp.getAllCalendars();\n        var bdayCal=null;\n        for(var bi=0;bi<allCals.length;bi++){\n          var cName=allCals[bi].getName().toLowerCase();\n          var cId=allCals[bi].getId();\n          if(cName.indexOf(\'birthday\')>=0 || cId.indexOf(\'#contacts@group.v.calendar.google.com\')>=0){\n            bdayCal=allCals[bi]; break;\n          }\n        }\n        if(bdayCal){\n          var bdayEvents=bdayCal.getEvents(evStart,evEnd);\n          bdayRows=bdayEvents.map(function(e){\n            var st=e.getStartTime();\n            var dateStr=Utilities.formatDate(st,TZ,\'yyyy-MM-dd\');\n            return {date:dateStr,title:e.getTitle(),time:\'\',type:\'birthday\'};\n          }).filter(function(r){return r.date>=wantStart&&r.date<=wantEnd;});\n        }\n      }catch(be){ /* birthday calendar not accessible — skip silently */ }\n\n      return out({events:evRows.concat(bdayRows), calendarId:cal.getId(), calendarName:cal.getName(), birthdaysFound:bdayRows.length, scriptTimeZone:Session.getScriptTimeZone(), usedTimeZone:TZ});\n    }catch(e){\n      return out({events:[],error:e.message});\n    }\n  }\n\n  // ── Diagnose calendar access — lists ALL calendars this account can see ──\n  if(data.action===\'diagnoseCalendars\'){\n    try{\n      var allCals=CalendarApp.getAllCalendars();\n      var calList=allCals.map(function(c){\n        var isBday=c.getName().toLowerCase().indexOf(\'birthday\')>=0||c.getId().indexOf(\'#contacts@group.v.calendar.google.com\')>=0;\n        return {name:c.getName(), id:c.getId(), isSelected:c.isSelected(), isOwned:c.isOwnedByMe(), isBirthdayCalendar:isBday};\n      });\n      var defCal=CalendarApp.getDefaultCalendar();\n      return out({\n        defaultCalendarId: defCal.getId(),\n        defaultCalendarName: defCal.getName(),\n        allCalendars: calList\n      });\n    }catch(e){\n      return out({error:e.message});\n    }\n  }\n\n  // ── Client Documents: get-or-create a client\'s Drive folder ──\n  // Folder name includes mobile to avoid collisions between same-named clients.\n  function getOrCreateClientFolder(clientName, mobile){\n    var parentName=\'Wealth Matrix Client Documents\';\n    var parentIter=DriveApp.getFoldersByName(parentName);\n    var parent=parentIter.hasNext()?parentIter.next():DriveApp.createFolder(parentName);\n    var folderName=(clientName||\'Unknown\')+\' - \'+(mobile||\'\');\n    var iter=parent.getFoldersByName(folderName);\n    if(iter.hasNext()) return iter.next();\n    return parent.createFolder(folderName);\n  }\n\n  // ── Create a client\'s Drive folder explicitly (called on new client add / lead conversion) ──\n  if(data.action===\'createClientFolder\'){\n    try{\n      var cFolder=getOrCreateClientFolder(data.clientName, data.mobile);\n      return out({success:true, folderId:cFolder.getId(), folderUrl:cFolder.getUrl()});\n    }catch(e){\n      return out({success:false, error:e.message});\n    }\n  }\n\n  // ── Upload a document into a client\'s folder, named after the document type ──\n  // Replaces any existing file of the same type (keeps exactly one current version per slot).\n  if(data.action===\'uploadClientDocument\'){\n    try{\n      var uFolder=getOrCreateClientFolder(data.clientName, data.mobile);\n      // Remove any existing file with this doc type name (any extension)\n      var existingFiles=uFolder.getFiles();\n      while(existingFiles.hasNext()){\n        var ef=existingFiles.next();\n        if(ef.getName().indexOf(data.docType+\'.\')===0 || ef.getName()===data.docType){\n          ef.setTrashed(true);\n        }\n      }\n      var bytes=Utilities.base64Decode(data.fileData);\n      var blob=Utilities.newBlob(bytes, data.mimeType||\'application/octet-stream\', data.docType+(data.fileExt?\'.\'+data.fileExt:\'\'));\n      var newFile=uFolder.createFile(blob);\n      return out({success:true, fileId:newFile.getId(), fileUrl:newFile.getUrl(), fileName:newFile.getName()});\n    }catch(e){\n      return out({success:false, error:e.message});\n    }\n  }\n\n  // ── List all documents currently uploaded for a client ──\n  if(data.action===\'listClientDocuments\'){\n    try{\n      var lFolder=getOrCreateClientFolder(data.clientName, data.mobile);\n      var files=lFolder.getFiles();\n      var fileList=[];\n      while(files.hasNext()){\n        var f=files.next();\n        var fname=f.getName();\n        var docType=fname.indexOf(\'.\')>=0?fname.substring(0,fname.lastIndexOf(\'.\')):fname;\n        fileList.push({docType:docType, name:fname, url:f.getUrl(), id:f.getId()});\n      }\n      return out({success:true, files:fileList, folderUrl:lFolder.getUrl()});\n    }catch(e){\n      return out({success:false, error:e.message, files:[]});\n    }\n  }\n\n  // ── Delete a single client document ──\n  if(data.action===\'deleteClientDocument\'){\n    try{\n      var dFile=DriveApp.getFileById(data.fileId);\n      dFile.setTrashed(true);\n      return out({success:true});\n    }catch(e){\n      return out({success:false, error:e.message});\n    }\n  }\n\n  if(data.action===\'readSpecialDays\'){var spSh=ss.getSheetByName(SPECIAL_TAB);if(!spSh)return out({rows:[]});var spLr=spSh.getLastRow();if(spLr<2)return out({rows:[]});var spVals=spSh.getRange(2,1,spLr-1,2).getValues();var spRows=spVals.map(function(r){return[String(r[0]||\'\').trim(),String(r[1]||\'\').trim()];}).filter(function(r){return r[0]&&r[1];});return out({rows:spRows});}\n  if(data.action===\'pushSpecialDays\'){\n    var spSh3=ss.getSheetByName(SPECIAL_TAB)||ss.insertSheet(SPECIAL_TAB);\n    var spDataRows=data.rows||[];\n    var spLastRow=spSh3.getLastRow();\n    if(spLastRow===0){\n      // Sheet is empty — write header then data\n      spSh3.appendRow([\'Date (MM-DD)\',\'Remarks\']);\n      var spHdr=spSh3.getRange(1,1,1,2);\n      spHdr.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');\n      spSh3.setFrozenRows(1);\n    }\n    // Get existing date values to avoid duplicates\n    var spExisting=spLastRow>1?spSh3.getRange(2,1,spLastRow-1,1).getValues().map(function(r){return String(r[0]||\'\').trim();}):[]; \n    // Append only new rows (skip header row from data)\n    spDataRows.forEach(function(row){\n      if(row[0]===\'Date (MM-DD)\'||row[0]===\'Day\') return; // skip header rows\n      if(spExisting.indexOf(String(row[0]||\'\').trim())>=0) return; // skip duplicates\n      spSh3.appendRow([row[0],row[1]]);\n      spSh3.getRange(spSh3.getLastRow(),1,1,2).setNumberFormat(\'@\');\n    });\n    return out({success:true,action:\'pushSpecialDays\'});\n  }\n  if(data.action===\'appendSpecialDay\'){var spSh2=ss.getSheetByName(SPECIAL_TAB)||ss.insertSheet(SPECIAL_TAB);if(spSh2.getLastRow()===0){var spH=spSh2.getRange(1,1,1,2);spH.setValues([[\'Date (MM-DD)\',\'Remarks\']]);spH.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');spSh2.setFrozenRows(1);}spSh2.appendRow([data.date||\'\',data.speciality||\'\']);return out({success:true,action:\'appendSpecialDay\'});}\nvar tab=data.action===\'pushLeads\'?LEADS_TAB:data.action===\'pushClients\'?CLIENTS_TAB:null;if(!tab)return out({error:\'Bad action:\'+data.action});var rows=data.rows;if(!rows||rows.length===0)return out({error:\'No rows\'});var sh=ss.getSheetByName(tab)||ss.insertSheet(tab);sh.clearContents();var r=sh.getRange(1,1,rows.length,rows[0].length);r.setNumberFormat(\'@\');r.setValues(rows);var h=sh.getRange(1,1,1,rows[0].length);h.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');sh.setFrozenRows(1);return out({success:true,written:rows.length-1});}\nfunction out(o){return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);}\nfunction testConnection(){Logger.log(\'OK: \'+SpreadsheetApp.openById(SHEET_ID).getName());}\n\n// ═══════════════════════════════════════════\n// AUTOMATED BACKUP SYSTEM\n// ═══════════════════════════════════════════\n// Run createBackupTrigger() ONCE manually from the Apps Script editor\n// (select it in the function dropdown, click Run). This sets up a weekly\n// trigger — after that, backups happen automatically with zero further action.\n\nconst BACKUP_FOLDER_NAME=\'Wealth Matrix CRM Backups\';\nconst MAX_BACKUPS_TO_KEEP=8; // ~2 months of weekly backups\n\nfunction createBackupTrigger(){\n  // Remove any existing backup triggers first (avoid duplicates)\n  var triggers=ScriptApp.getProjectTriggers();\n  triggers.forEach(function(t){\n    if(t.getHandlerFunction()===\'runWeeklyBackup\') ScriptApp.deleteTrigger(t);\n  });\n  // Create new weekly trigger — runs every Sunday at 2 AM\n  ScriptApp.newTrigger(\'runWeeklyBackup\')\n    .timeBased()\n    .onWeekDay(ScriptApp.WeekDay.SUNDAY)\n    .atHour(2)\n    .create();\n  Logger.log(\'✅ Weekly backup trigger created. Backups will run automatically every Sunday at 2 AM.\');\n}\n\nfunction runWeeklyBackup(){\n  try{\n    var srcFile=DriveApp.getFileById(SHEET_ID);\n    var folders=DriveApp.getFoldersByName(BACKUP_FOLDER_NAME);\n    var folder=folders.hasNext()?folders.next():DriveApp.createFolder(BACKUP_FOLDER_NAME);\n\n    var dateStr=Utilities.formatDate(new Date(),Session.getScriptTimeZone(),\'yyyy-MM-dd_HH-mm\');\n    var backupName=\'CRM Backup \'+dateStr;\n    srcFile.makeCopy(backupName, folder);\n    Logger.log(\'✅ Backup created: \'+backupName);\n\n    // Clean up old backups — keep only the most recent MAX_BACKUPS_TO_KEEP\n    var files=folder.getFiles();\n    var fileList=[];\n    while(files.hasNext()){\n      var f=files.next();\n      fileList.push({file:f, date:f.getDateCreated()});\n    }\n    fileList.sort(function(a,b){return b.date-a.date;}); // newest first\n    if(fileList.length>MAX_BACKUPS_TO_KEEP){\n      for(var i=MAX_BACKUPS_TO_KEEP;i<fileList.length;i++){\n        fileList[i].file.setTrashed(true);\n      }\n      Logger.log(\'🗑️ Cleaned up \'+(fileList.length-MAX_BACKUPS_TO_KEEP)+\' old backup(s)\');\n    }\n  }catch(e){\n    Logger.log(\'❌ Backup failed: \'+e.message);\n  }\n}\n\n// Manual backup — call this anytime from the app (Settings → Backup Now)\nfunction manualBackupNow(){\n  runWeeklyBackup();\n  return out({success:true,message:\'Backup created\'});\n}\n'
+  var code='const SHEET_ID=\'1oPQMj6KB39M20RnEoix9PCvSA8RFhVhOV4BG2M4TXlQ\';\nconst LEADS_TAB=\'LEADS\',CLIENTS_TAB=\'CLIENTS\',LOG_TAB=\'ACTIVITY_LOG\',SPECIAL_TAB=\'Special Days\';\nfunction doGet(e){try{var p=e.parameter||{};if(p.action===\'pullLog\'&&p.mobile)return pullLog(p.mobile);if(p.payload)return writeData(JSON.parse(decodeURIComponent(p.payload)));return readTab(p.tab||LEADS_TAB);}catch(err){return out({error:err.message});}}\nfunction doPost(e){try{var d;if(e.postData&&e.postData.contents)d=JSON.parse(e.postData.contents);else if(e.parameter&&e.parameter.payload)d=JSON.parse(decodeURIComponent(e.parameter.payload));return writeData(d);}catch(err){return out({error:err.message});}}\nfunction readTab(t){var ss=SpreadsheetApp.openById(SHEET_ID);var sh=ss.getSheetByName(t);if(!sh)return out({rows:[],error:\'Tab not found:\'+t});var lr=sh.getLastRow(),lc=sh.getLastColumn();if(lr===0||lc===0)return out({rows:[]});var raw=sh.getRange(1,1,lr,lc).getValues();var cleaned=raw.map(function(row){return row.map(function(c){if(c===null||c===undefined||c===\'\')return\'\';if(c instanceof Date){var y=c.getFullYear();var m=String(c.getMonth()+1).padStart(2,\'0\');var d=String(c.getDate()).padStart(2,\'0\');return y+\'-\'+m+\'-\'+d;}if(typeof c===\'number\')return String(c);return String(c).trim();});});return out({rows:cleaned});}\nfunction pullLog(mobile){var ss=SpreadsheetApp.openById(SHEET_ID);var sh=ss.getSheetByName(LOG_TAB);if(!sh||sh.getLastRow()<=1)return out({rows:[]});var lr=sh.getLastRow(),lc=sh.getLastColumn();var raw=sh.getRange(2,1,lr-1,lc).getValues();var filtered=raw.filter(function(r){return String(r[2]||\'\').trim()===String(mobile).trim();});return out({rows:filtered});}\nfunction writeData(data){var ss=SpreadsheetApp.openById(SHEET_ID);\nif(data.action===\'appendLog\'){var logSh=ss.getSheetByName(LOG_TAB)||ss.insertSheet(LOG_TAB);if(logSh.getLastRow()===0){var hdr=[[\'Timestamp\',\'Name\',\'Mobile\',\'Type\',\'Activity\',\'Notes\',\'Raw ID\']];var hr=logSh.getRange(1,1,1,7);hr.setValues(hdr);hr.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');logSh.setFrozenRows(1);}logSh.appendRow(data.row||[]);var lr3=logSh.getLastRow();logSh.getRange(lr3,1).setNumberFormat(\'@\');logSh.getRange(lr3,7).setNumberFormat(\'@\');return out({success:true});}\nif(data.action===\'deleteLogById\'){var lsh=ss.getSheetByName(LOG_TAB);if(lsh&&lsh.getLastRow()>1){var rid=String(data.rowId||\'\').trim();var dmob=String(data.mobile||\'\').trim();var dts=String(data.ts||\'\').trim();var dact=String(data.activity||\'\').trim();var n=lsh.getLastRow();var rng=lsh.getRange(2,1,n-1,7).getValues();for(var rj=0;rj<rng.length;rj++){var row=rng[rj];var gId=String(row[6]||\'\').trim();var rTs=String(row[0]||\'\').trim();var rMob=String(row[2]||\'\').trim();var rAct=String(row[4]||\'\').trim();var matchById=(rid!==\'\'&&gId===rid);var matchByTs=(rid===\'\'||gId===\'\')&&dts!==\'\'&&rMob===dmob&&rTs===dts&&rAct===dact;if(matchById||matchByTs){lsh.deleteRow(rj+2);break;}}}return out({success:true,deleted:true});}if(data.action===\'deleteLog\'){var lsh2=ss.getSheetByName(LOG_TAB);if(lsh2&&lsh2.getLastRow()>1){var mob3=String(data.mobile||\'\').trim();var n2=lsh2.getLastRow();for(var rk=n2;rk>=2;rk--){if(String(lsh2.getRange(rk,3).getValue()||\'\').trim()===mob3){lsh2.deleteRow(rk);}}}return out({success:true});}\nif(data.action===\'updateAnalytics\'){var aS=ss.getSheetByName(\'ANALYTICS\')||ss.insertSheet(\'ANALYTICS\');if(aS.getLastRow()===0){aS.getRange(1,1,1,7).setValues([[\'Date\',\'Lead Entries\',\'Prospects\',\'Contacted\',\'In Progress\',\'Converted\',\'Dropped\']]).setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');aS.setFrozenRows(1);}var ad=data.date,ac=parseInt(data.col)||2,adel=parseInt(data.delta)||1,alr=aS.getLastRow(),af=false;if(alr>1){var adts=aS.getRange(2,1,alr-1,1).getValues();for(var i=0;i<adts.length;i++){if(String(adts[i][0]).trim()===ad){var acel=aS.getRange(i+2,ac);acel.setValue((parseInt(acel.getValue())||0)+adel); /* negative values allowed */ af=true; break; }}}if(!af&&adel>0){var anr=[ad,0,0,0,0,0,0];anr[ac-1]=adel;aS.appendRow(anr);}return out({success:true});}\nif(data.action===\'appendLeads\'||data.action===\'appendClients\'){var atab=data.action===\'appendLeads\'?LEADS_TAB:CLIENTS_TAB;var ash=ss.getSheetByName(atab);if(ash&&data.rows&&data.rows.length){data.rows.forEach(function(rw){ash.appendRow(rw);});var alr=ash.getLastRow();ash.getRange(2,1,alr-1,data.rows[0].length).setNumberFormat(\'@\');}return out({success:true});}if(data.action===\'appendLead\'){var aSh=ss.getSheetByName(LEADS_TAB)||ss.insertSheet(LEADS_TAB);if(aSh.getLastRow()===0){var lHdr=[[\'Name\',\'Mobile\',\'Email\',\'Age\',\'Country\',\'Status\',\'Source\',\'Referred By\',\'Estimated AUM/SIP\',\'Next Follow-up\',\'Investment Products\',\'Mode of Contact\',\'Remarks\',\'Modified Date\',\'Created Date\',\'Geo Tag\']];var lHr=aSh.getRange(1,1,1,16);lHr.setValues(lHdr);lHr.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');aSh.setFrozenRows(1);}var aRow=data.row||[];aSh.appendRow(aRow);var aLr=aSh.getLastRow();aSh.getRange(aLr,1,1,aRow.length).setNumberFormat(\'@\');return out({success:true,action:\'appendLead\'});}if(data.action===\'updateLead\'){var uSh=ss.getSheetByName(LEADS_TAB);if(uSh&&uSh.getLastRow()>1){var uMob=String(data.mobile||\'\').trim();var uRow=data.row||[];var uN=uSh.getLastRow();var uVals=uSh.getRange(2,2,uN-1,1).getValues();for(var ui=0;ui<uVals.length;ui++){if(String(uVals[ui][0]||\'\').trim()===uMob){var uRng=uSh.getRange(ui+2,1,1,uRow.length);uRng.setValues([uRow]);uRng.setNumberFormat(\'@\');break;}}}return out({success:true,action:\'updateLead\'});}if(data.action===\'deleteLead\'){var dSh=ss.getSheetByName(LEADS_TAB);if(dSh&&dSh.getLastRow()>1){var dMob=String(data.mobile||\'\').trim();var dN=dSh.getLastRow();var dVals=dSh.getRange(2,2,dN-1,1).getValues();for(var di=dN-1;di>=0;di--){if(String(dVals[di][0]||\'\').trim()===dMob){dSh.deleteRow(di+2);break;}}}return out({success:true,action:\'deleteLead\'});}\n\n  // ── Append ONE client row (new client) ──\n  if(data.action===\'appendClient\'){\n    var aShC=ss.getSheetByName(CLIENTS_TAB)||ss.insertSheet(CLIENTS_TAB);\n    if(aShC.getLastRow()===0){\n      var cHdr=[[\'Name\',\'Mobile\',\'Email\',\'Country\',\'Source\',\'Referred By\',\'Next Follow up date\',\n        \'Age\',\'Gender\',\'Remarks\',\'Created date\',\'PAN\',\'DOB\',\'Spouse DOB\',\'Anniversary\',\n        \'Converted Date\',\'Review Date\',\'1st Anniversary\',\'App Installed\',\'Broadcast Added\',\n        \'SIP date\',\'Health insurance\',\'Life insurance\',\'WILL\',\'Due date Health\',\'Due date Life\',\n        \'AUM\',\'Potential AUM\',\'Welcome Message send\',\'Products\']];\n      var cHr=aShC.getRange(1,1,1,30);\n      cHr.setValues(cHdr);cHr.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');\n      aShC.setFrozenRows(1);\n    }\n    var cRow=data.row||[];\n    aShC.appendRow(cRow);\n    var cLr=aShC.getLastRow();\n    aShC.getRange(cLr,1,1,cRow.length).setNumberFormat(\'@\');\n    return out({success:true,action:\'appendClient\'});\n  }\n\n  // ── Update ONE client row (find by mobile col B, replace in place) ──\n  if(data.action===\'updateClient\'){\n    var uShC=ss.getSheetByName(CLIENTS_TAB);\n    if(uShC&&uShC.getLastRow()>1){\n      var uMobC=String(data.mobile||\'\').trim();\n      var uRowC=data.row||[];\n      var uNC=uShC.getLastRow();\n      var uValsC=uShC.getRange(2,2,uNC-1,1).getValues();\n      for(var uic=0;uic<uValsC.length;uic++){\n        if(String(uValsC[uic][0]||\'\').trim()===uMobC){\n          var uRngC=uShC.getRange(uic+2,1,1,uRowC.length);\n          uRngC.setValues([uRowC]);\n          uRngC.setNumberFormat(\'@\');\n          break;\n        }\n      }\n    }\n    return out({success:true,action:\'updateClient\'});\n  }\n\n  // ── Delete ONE client row (find by mobile col B) ──\n  if(data.action===\'deleteClient\'){\n    var dShC=ss.getSheetByName(CLIENTS_TAB);\n    if(dShC&&dShC.getLastRow()>1){\n      var dMobC=String(data.mobile||\'\').trim();\n      var dNC=dShC.getLastRow();\n      var dValsC=dShC.getRange(2,2,dNC-1,1).getValues();\n      for(var dic=dNC-1;dic>=0;dic--){\n        if(String(dValsC[dic][0]||\'\').trim()===dMobC){dShC.deleteRow(dic+2);break;}\n      }\n    }\n    return out({success:true,action:\'deleteClient\'});\n  }\n  if(data.action===\'backupNow\'){ return manualBackupNow(); }\n  // ── Get upcoming Google Calendar events (default calendar) ──\n  if(data.action===\'getCalendarEvents\'){\n    try{\n      var TZ=\'Asia/Kolkata\'; // force IST regardless of Apps Script project timezone setting\n      // Pad the fetch window by 1 day on each side so no boundary event is ever missed,\n      // then bucket every event to its correct IST calendar day using formatDate (not\n      // getFullYear/getMonth/getDate, which use the SERVER\'s default timezone and can\n      // silently shift events onto the wrong day if the project timezone isn\'t IST).\n      var baseStart=data.start?new Date(data.start+\'T00:00:00\'):new Date();\n      var baseEnd=data.end?new Date(data.end+\'T23:59:59\'):new Date(baseStart.getTime()+8*86400000);\n      var evStart=new Date(baseStart.getTime()-86400000); // -1 day padding\n      var evEnd=new Date(baseEnd.getTime()+86400000);     // +1 day padding\n      var wantStart=data.start||Utilities.formatDate(new Date(),TZ,\'yyyy-MM-dd\');\n      var wantEnd=data.end||Utilities.formatDate(new Date(baseStart.getTime()+8*86400000),TZ,\'yyyy-MM-dd\');\n\n      var cal=CalendarApp.getDefaultCalendar();\n      var events=cal.getEvents(evStart,evEnd);\n      var evRows=events.map(function(e){\n        var st=e.getStartTime();\n        var dateStr=Utilities.formatDate(st,TZ,\'yyyy-MM-dd\');\n        var timeStr=e.isAllDayEvent()?\'All day\':Utilities.formatDate(st,TZ,\'h:mm a\');\n        return {date:dateStr,title:e.getTitle(),time:timeStr,type:\'event\'};\n      }).filter(function(r){return r.date>=wantStart&&r.date<=wantEnd;}); // trim padding back to requested range\n\n      // ── Also pull Birthdays (Google\'s auto-generated Contacts birthday calendar) ──\n      var bdayRows=[];\n      try{\n        var allCals=CalendarApp.getAllCalendars();\n        var bdayCal=null;\n        for(var bi=0;bi<allCals.length;bi++){\n          var cName=allCals[bi].getName().toLowerCase();\n          var cId=allCals[bi].getId();\n          if(cName.indexOf(\'birthday\')>=0 || cId.indexOf(\'#contacts@group.v.calendar.google.com\')>=0){\n            bdayCal=allCals[bi]; break;\n          }\n        }\n        if(bdayCal){\n          var bdayEvents=bdayCal.getEvents(evStart,evEnd);\n          bdayRows=bdayEvents.map(function(e){\n            var st=e.getStartTime();\n            var dateStr=Utilities.formatDate(st,TZ,\'yyyy-MM-dd\');\n            return {date:dateStr,title:e.getTitle(),time:\'\',type:\'birthday\'};\n          }).filter(function(r){return r.date>=wantStart&&r.date<=wantEnd;});\n        }\n      }catch(be){ /* birthday calendar not accessible — skip silently */ }\n\n      return out({events:evRows.concat(bdayRows), calendarId:cal.getId(), calendarName:cal.getName(), birthdaysFound:bdayRows.length, scriptTimeZone:Session.getScriptTimeZone(), usedTimeZone:TZ});\n    }catch(e){\n      return out({events:[],error:e.message});\n    }\n  }\n\n  // ── Diagnose calendar access — lists ALL calendars this account can see ──\n  if(data.action===\'diagnoseCalendars\'){\n    try{\n      var allCals=CalendarApp.getAllCalendars();\n      var calList=allCals.map(function(c){\n        var isBday=c.getName().toLowerCase().indexOf(\'birthday\')>=0||c.getId().indexOf(\'#contacts@group.v.calendar.google.com\')>=0;\n        return {name:c.getName(), id:c.getId(), isSelected:c.isSelected(), isOwned:c.isOwnedByMe(), isBirthdayCalendar:isBday};\n      });\n      var defCal=CalendarApp.getDefaultCalendar();\n      return out({\n        defaultCalendarId: defCal.getId(),\n        defaultCalendarName: defCal.getName(),\n        allCalendars: calList\n      });\n    }catch(e){\n      return out({error:e.message});\n    }\n  }\n\n  // ── Client Documents: get-or-create a client\'s Drive folder ──\n  // Folder name includes mobile to avoid collisions between same-named clients.\n  // Folder naming: \"ClientName - PAN\" when PAN is available (PAN is unique,\n  // so this is also how duplicates are detected). Falls back to mobile only\n  // when no PAN is on file yet.\n  function clientFolderName(clientName, pan, mobile){\n    var idPart=(pan&&pan.trim())?pan.trim().toUpperCase():(mobile||\'\');\n    return (clientName||\'Unknown\')+\' - \'+idPart;\n  }\n\n  function getParentDocsFolder(){\n    var parentName=\'Wealth Matrix Client Documents\';\n    var parentIter=DriveApp.getFoldersByName(parentName);\n    return parentIter.hasNext()?parentIter.next():DriveApp.createFolder(parentName);\n  }\n\n  // Search for an existing client folder — PAN first (unique, preferred),\n  // falling back to an exact name+mobile match only if no PAN is available.\n  // Returns the folder or null — never creates anything.\n  function findClientFolder(clientName, pan, mobile){\n    var parent=getParentDocsFolder();\n    if(pan&&pan.trim()){\n      var panUpper=pan.trim().toUpperCase();\n      var allFolders=parent.getFolders();\n      while(allFolders.hasNext()){\n        var f=allFolders.next();\n        if(f.getName().toUpperCase().indexOf(panUpper)>=0) return f;\n      }\n      return null; // PAN given but no match — do NOT fall back to name (PAN is authoritative)\n    }\n    // No PAN available yet — fall back to exact name+mobile folder name match\n    var exactName=clientFolderName(clientName, \'\', mobile);\n    var iter=parent.getFoldersByName(exactName);\n    return iter.hasNext()?iter.next():null;\n  }\n\n  function getOrCreateClientFolder(clientName, pan, mobile){\n    var existing=findClientFolder(clientName, pan, mobile);\n    if(existing) return existing;\n    var parent=getParentDocsFolder();\n    return parent.createFolder(clientFolderName(clientName, pan, mobile));\n  }\n\n  // ── Check whether a client\'s folder already exists — used before deciding\n  // whether to prompt \"create folder?\" on Save, so duplicates are never created. ──\n  if(data.action===\'checkClientFolder\'){\n    try{\n      var existingFolder=findClientFolder(data.clientName, data.pan, data.mobile);\n      if(existingFolder){\n        return out({exists:true, folderId:existingFolder.getId(), folderUrl:existingFolder.getUrl()});\n      }\n      return out({exists:false});\n    }catch(e){\n      return out({exists:false, error:e.message});\n    }\n  }\n\n  // ── Create a client\'s Drive folder explicitly (called on new client add / lead conversion) ──\n  // Safe to call even if a folder already exists — never creates a duplicate.\n  if(data.action===\'createClientFolder\'){\n    try{\n      var cFolder=getOrCreateClientFolder(data.clientName, data.pan, data.mobile);\n      return out({success:true, folderId:cFolder.getId(), folderUrl:cFolder.getUrl()});\n    }catch(e){\n      return out({success:false, error:e.message});\n    }\n  }\n\n  // ── Upload a document into a client\'s folder, named after the document type ──\n  // Replaces any existing file of the same type (keeps exactly one current version per slot).\n  if(data.action===\'uploadClientDocument\'){\n    try{\n      var uFolder=getOrCreateClientFolder(data.clientName, data.pan, data.mobile);\n      // Remove any existing file with this doc type name (any extension)\n      var existingFiles=uFolder.getFiles();\n      while(existingFiles.hasNext()){\n        var ef=existingFiles.next();\n        if(ef.getName().indexOf(data.docType+\'.\')===0 || ef.getName()===data.docType){\n          ef.setTrashed(true);\n        }\n      }\n      var bytes=Utilities.base64Decode(data.fileData);\n      var blob=Utilities.newBlob(bytes, data.mimeType||\'application/octet-stream\', data.docType+(data.fileExt?\'.\'+data.fileExt:\'\'));\n      var newFile=uFolder.createFile(blob);\n      return out({success:true, fileId:newFile.getId(), fileUrl:newFile.getUrl(), fileName:newFile.getName()});\n    }catch(e){\n      return out({success:false, error:e.message});\n    }\n  }\n\n  // ── List all documents currently uploaded for a client ──\n  if(data.action===\'listClientDocuments\'){\n    try{\n      var lFolder=getOrCreateClientFolder(data.clientName, data.pan, data.mobile);\n      var files=lFolder.getFiles();\n      var fileList=[];\n      while(files.hasNext()){\n        var f=files.next();\n        var fname=f.getName();\n        var docType=fname.indexOf(\'.\')>=0?fname.substring(0,fname.lastIndexOf(\'.\')):fname;\n        fileList.push({docType:docType, name:fname, url:f.getUrl(), id:f.getId()});\n      }\n      return out({success:true, files:fileList, folderUrl:lFolder.getUrl()});\n    }catch(e){\n      return out({success:false, error:e.message, files:[]});\n    }\n  }\n\n  // ── Delete a single client document ──\n  if(data.action===\'deleteClientDocument\'){\n    try{\n      var dFile=DriveApp.getFileById(data.fileId);\n      dFile.setTrashed(true);\n      return out({success:true});\n    }catch(e){\n      return out({success:false, error:e.message});\n    }\n  }\n\n  if(data.action===\'readSpecialDays\'){var spSh=ss.getSheetByName(SPECIAL_TAB);if(!spSh)return out({rows:[]});var spLr=spSh.getLastRow();if(spLr<2)return out({rows:[]});var spVals=spSh.getRange(2,1,spLr-1,2).getValues();var spRows=spVals.map(function(r){return[String(r[0]||\'\').trim(),String(r[1]||\'\').trim()];}).filter(function(r){return r[0]&&r[1];});return out({rows:spRows});}\n  if(data.action===\'pushSpecialDays\'){\n    var spSh3=ss.getSheetByName(SPECIAL_TAB)||ss.insertSheet(SPECIAL_TAB);\n    var spDataRows=data.rows||[];\n    var spLastRow=spSh3.getLastRow();\n    if(spLastRow===0){\n      // Sheet is empty — write header then data\n      spSh3.appendRow([\'Date (MM-DD)\',\'Remarks\']);\n      var spHdr=spSh3.getRange(1,1,1,2);\n      spHdr.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');\n      spSh3.setFrozenRows(1);\n    }\n    // Get existing date values to avoid duplicates\n    var spExisting=spLastRow>1?spSh3.getRange(2,1,spLastRow-1,1).getValues().map(function(r){return String(r[0]||\'\').trim();}):[]; \n    // Append only new rows (skip header row from data)\n    spDataRows.forEach(function(row){\n      if(row[0]===\'Date (MM-DD)\'||row[0]===\'Day\') return; // skip header rows\n      if(spExisting.indexOf(String(row[0]||\'\').trim())>=0) return; // skip duplicates\n      spSh3.appendRow([row[0],row[1]]);\n      spSh3.getRange(spSh3.getLastRow(),1,1,2).setNumberFormat(\'@\');\n    });\n    return out({success:true,action:\'pushSpecialDays\'});\n  }\n  if(data.action===\'appendSpecialDay\'){var spSh2=ss.getSheetByName(SPECIAL_TAB)||ss.insertSheet(SPECIAL_TAB);if(spSh2.getLastRow()===0){var spH=spSh2.getRange(1,1,1,2);spH.setValues([[\'Date (MM-DD)\',\'Remarks\']]);spH.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');spSh2.setFrozenRows(1);}spSh2.appendRow([data.date||\'\',data.speciality||\'\']);return out({success:true,action:\'appendSpecialDay\'});}\nvar tab=data.action===\'pushLeads\'?LEADS_TAB:data.action===\'pushClients\'?CLIENTS_TAB:null;if(!tab)return out({error:\'Bad action:\'+data.action});var rows=data.rows;if(!rows||rows.length===0)return out({error:\'No rows\'});var sh=ss.getSheetByName(tab)||ss.insertSheet(tab);sh.clearContents();var r=sh.getRange(1,1,rows.length,rows[0].length);r.setNumberFormat(\'@\');r.setValues(rows);var h=sh.getRange(1,1,1,rows[0].length);h.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');sh.setFrozenRows(1);return out({success:true,written:rows.length-1});}\nfunction out(o){return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);}\nfunction testConnection(){Logger.log(\'OK: \'+SpreadsheetApp.openById(SHEET_ID).getName());}\n\n// ═══════════════════════════════════════════\n// AUTOMATED BACKUP SYSTEM\n// ═══════════════════════════════════════════\n// Run createBackupTrigger() ONCE manually from the Apps Script editor\n// (select it in the function dropdown, click Run). This sets up a weekly\n// trigger — after that, backups happen automatically with zero further action.\n\nconst BACKUP_FOLDER_NAME=\'Wealth Matrix CRM Backups\';\nconst MAX_BACKUPS_TO_KEEP=8; // ~2 months of weekly backups\n\nfunction createBackupTrigger(){\n  // Remove any existing backup triggers first (avoid duplicates)\n  var triggers=ScriptApp.getProjectTriggers();\n  triggers.forEach(function(t){\n    if(t.getHandlerFunction()===\'runWeeklyBackup\') ScriptApp.deleteTrigger(t);\n  });\n  // Create new weekly trigger — runs every Sunday at 2 AM\n  ScriptApp.newTrigger(\'runWeeklyBackup\')\n    .timeBased()\n    .onWeekDay(ScriptApp.WeekDay.SUNDAY)\n    .atHour(2)\n    .create();\n  Logger.log(\'✅ Weekly backup trigger created. Backups will run automatically every Sunday at 2 AM.\');\n}\n\nfunction runWeeklyBackup(){\n  try{\n    var srcFile=DriveApp.getFileById(SHEET_ID);\n    var folders=DriveApp.getFoldersByName(BACKUP_FOLDER_NAME);\n    var folder=folders.hasNext()?folders.next():DriveApp.createFolder(BACKUP_FOLDER_NAME);\n\n    var dateStr=Utilities.formatDate(new Date(),Session.getScriptTimeZone(),\'yyyy-MM-dd_HH-mm\');\n    var backupName=\'CRM Backup \'+dateStr;\n    srcFile.makeCopy(backupName, folder);\n    Logger.log(\'✅ Backup created: \'+backupName);\n\n    // Clean up old backups — keep only the most recent MAX_BACKUPS_TO_KEEP\n    var files=folder.getFiles();\n    var fileList=[];\n    while(files.hasNext()){\n      var f=files.next();\n      fileList.push({file:f, date:f.getDateCreated()});\n    }\n    fileList.sort(function(a,b){return b.date-a.date;}); // newest first\n    if(fileList.length>MAX_BACKUPS_TO_KEEP){\n      for(var i=MAX_BACKUPS_TO_KEEP;i<fileList.length;i++){\n        fileList[i].file.setTrashed(true);\n      }\n      Logger.log(\'🗑️ Cleaned up \'+(fileList.length-MAX_BACKUPS_TO_KEEP)+\' old backup(s)\');\n    }\n  }catch(e){\n    Logger.log(\'❌ Backup failed: \'+e.message);\n  }\n}\n\n// Manual backup — call this anytime from the app (Settings → Backup Now)\nfunction manualBackupNow(){\n  runWeeklyBackup();\n  return out({success:true,message:\'Backup created\'});\n}\n'
   var ov=document.createElement('div');
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:flex-end;justify-content:center;padding:10px';
   ov.innerHTML='<div style="background:var(--s1);border-radius:12px;width:100%;max-width:540px;max-height:90vh;overflow-y:auto;padding:16px">'
@@ -3055,6 +3061,7 @@ function renderDash(){
       +'<div style="font-size:12px;color:var(--t2)">All follow-ups done for today!</div>'
       +'</div>';
 
+  renderTodaysActivity(); // consolidated: follow-ups, events, SIP, review, anniversary — today
   // Update prominent totals
   // Total leads = active leads (Prospect + Contacted + In Progress)
   var prospCount=leads.filter(function(l){return (l.status||'').toUpperCase()==='PROSPECT';}).length;
@@ -4891,7 +4898,12 @@ function renderReminders(){
   function daysToAnnual(dStr){
     if(!dStr) return 9999;
     var p=dStr.split('-');if(p.length<3) return 9999;
-    var d=Math.round((new Date(now.getFullYear(),parseInt(p[1])-1,parseInt(p[2]))-now)/86400000);
+    // Compare pure calendar dates (midnight-to-midnight) — using the raw "now"
+    // (which includes the current time-of-day) causes off-by-one errors that
+    // can make "today" wrongly compute as 364 days away depending on the hour.
+    var todayMidnight=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+    var target=new Date(now.getFullYear(),parseInt(p[1])-1,parseInt(p[2]));
+    var d=Math.round((target-todayMidnight)/86400000);
     return d<0?d+365:d;
   }
   function daysToSip(sipDay){
@@ -4903,15 +4915,8 @@ function renderReminders(){
   }
   function waNum(c){var n=(c.mobile||'').replace(/\D/g,'');return n.length===10?'91'+n:n;}
 
-  // ── SIP due within 5 days ──
-  // Exclude clients who already received SIP reminder this month
-  var sipDue=clients.filter(function(c){return c.sipDate&&daysToSip(c.sipDate)<=5&&daysToSip(c.sipDate)>=0&&!isSipReminderSent(c.mobile);});
-  if(sipDue.length){
-    items.push({icon:'💰',color:'#f39c12',bg:'rgba(243,156,18,.08)',
-      title:'SIP due — '+sipDue.length+' client'+(sipDue.length>1?'s':''),
-      sub:sipDue.map(function(c){return toTitle(c.name)+' ('+c.sipDate+'th)';}).join(' · '),
-      list:sipDue, listType:'sip'});
-  }
+  // NOTE: SIP due (5 days) moved to the "Today's Activity" section on dashboard
+  // — no longer duplicated here.
 
   // ── Health insurance due within 30 days ──
   var healthDue=clients.filter(function(c){var d=daysTo(c.dueDateHealth);return d>=0&&d<=30;});
@@ -4942,14 +4947,8 @@ function renderReminders(){
       list:allBdays, listType:'bday'});
   }
 
-  // ── Anniversaries today ──
-  var anns=clients.filter(function(c){return daysToAnnual(c.anniversary)===0;});
-  if(anns.length){
-    items.push({icon:'💑',color:'#3498db',bg:'rgba(52,152,219,.08)',
-      title:'Anniversary today — '+anns.length+' client'+(anns.length>1?'s':''),
-      sub:anns.map(function(c){return toTitle(c.name);}).join(' · '),
-      list:anns, listType:'ann'});
-  }
+  // NOTE: Anniversary today moved to the "Today's Activity" section on
+  // dashboard — no longer duplicated here.
 
   // ── 1st Anniversary today ──
   var ann1s=clients.filter(function(c){return daysToAnnual(c.firstAnniversary)===0;});
@@ -5074,12 +5073,13 @@ async function pullSpecialDays(){
 // Days until next occurrence of a MM-DD recurring date
 function daysUntilAnnual(mmdd){
   var now=new Date();
+  var todayMidnight=new Date(now.getFullYear(),now.getMonth(),now.getDate());
   var parts=mmdd.split('-');
   if(parts.length!==2) return 9999;
   var m=parseInt(parts[0])-1, d=parseInt(parts[1]);
   var thisYear=new Date(now.getFullYear(),m,d);
-  var diff=Math.round((thisYear-now)/86400000);
-  if(diff<0){ thisYear=new Date(now.getFullYear()+1,m,d); diff=Math.round((thisYear-now)/86400000); }
+  var diff=Math.round((thisYear-todayMidnight)/86400000);
+  if(diff<0){ thisYear=new Date(now.getFullYear()+1,m,d); diff=Math.round((thisYear-todayMidnight)/86400000); }
   return {days:diff, date:thisYear};
 }
 
@@ -5997,7 +5997,7 @@ async function loadDocsForCurrentClient(){
   var c=clients.find(function(x){return x.mobile===mob;});
   if(!c) return;
   try{
-    var res=await apiFetch({action:'listClientDocuments', clientName:c.name, mobile:c.mobile});
+    var res=await apiFetch({action:'listClientDocuments', clientName:c.name, pan:c.pan, mobile:c.mobile});
     if(res&&res.success) _docsListCache=res.files||[];
   }catch(e){ console.warn('loadDocsForCurrentClient failed:', e.message); }
 }
@@ -6019,7 +6019,7 @@ async function handleDocUpload(inputEl){
     var ext=file.name.includes('.')?file.name.split('.').pop():'';
     var res=await apiFetch({
       action:'uploadClientDocument',
-      clientName:c.name, mobile:c.mobile,
+      clientName:c.name, pan:c.pan, mobile:c.mobile,
       docType:docType, fileData:base64,
       mimeType:file.type, fileExt:ext
     });
@@ -6054,7 +6054,7 @@ function fileToBase64(file){
 // Called after a NEW client is saved, or when a lead is converted to a client.
 function createClientFolderBg(client){
   if(!hasScript()) return Promise.resolve(false);
-  return apiFetch({action:'createClientFolder', clientName:client.name, mobile:client.mobile})
+  return apiFetch({action:'createClientFolder', clientName:client.name, pan:client.pan, mobile:client.mobile})
     .then(function(res){
       if(!res||!res.success){
         console.warn('createClientFolderBg: server returned failure', res);
@@ -6091,7 +6091,7 @@ async function toggleChipDocs(mob){
   if(!c||!hasScript()){ body.innerHTML='<div style="text-align:center;padding:10px;font-size:11px;color:var(--t3)">Not available</div>'; return; }
 
   try{
-    var res=await apiFetch({action:'listClientDocuments', clientName:c.name, mobile:c.mobile});
+    var res=await apiFetch({action:'listClientDocuments', clientName:c.name, pan:c.pan, mobile:c.mobile});
     if(!res||!res.success||!res.files||!res.files.length){
       body.innerHTML='<div style="text-align:center;padding:10px;font-size:11px;color:var(--t3)">No documents uploaded yet</div>';
       return;
@@ -6116,8 +6116,8 @@ async function promptUploadDocsAfterSave(client){
   ov.innerHTML='<div style="background:var(--s1);border-radius:14px;width:100%;max-width:340px;overflow:hidden;border:1px solid var(--accent)">'
     +'<div style="padding:20px 18px 16px;text-align:center">'
     +'<div style="font-size:32px;margin-bottom:10px">📁</div>'
-    +'<div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:6px">Upload documents for '+toTitle(client.name)+'?</div>'
-    +'<div style="font-size:12px;color:var(--t2);line-height:1.5">PAN, Aadhaar, Passport, Resident ID, CAS, and others — you can upload them now or later from the client\'s page.</div>'
+    +'<div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:6px">Create Drive folder for '+toTitle(client.name)+'?</div>'
+    +'<div style="font-size:12px;color:var(--t2);line-height:1.5">A folder will be created (named with their PAN) to hold PAN, Aadhaar, Passport, Resident ID, CAS, and other documents — you can upload now or later from the client\'s page.</div>'
     +'</div>'
     +'<div style="display:flex;border-top:1px solid var(--border)">'
     +'<button id="_udNo" style="flex:1;padding:14px;border:none;background:none;color:var(--t2);cursor:pointer;border-right:1px solid var(--border);font-size:13px;font-weight:700">Later</button>'
@@ -6166,7 +6166,7 @@ function renderUploadDocsList(client){
       +'</div>'
       +'<label style="font-size:11px;font-weight:700;color:#fff;background:var(--accent);padding:8px 12px;border-radius:7px;cursor:pointer;flex-shrink:0">'
       +'Upload'
-      +'<input type="file" accept="image/*,.pdf" style="display:none" data-doctype="'+dt+'" data-mobile="'+client.mobile+'" data-clientname="'+client.name+'" onchange="handleStreamingDocUpload(this)"></label>'
+      +'<input type="file" accept="image/*,.pdf" style="display:none" data-doctype="'+dt+'" data-mobile="'+client.mobile+'" data-clientname="'+client.name+'" data-pan="'+(client.pan||'')+'" onchange="handleStreamingDocUpload(this)"></label>'
       +'</div>';
   }).join('');
 }
@@ -6176,6 +6176,7 @@ async function handleStreamingDocUpload(inputEl){
   var docType=inputEl.dataset.doctype;
   var mobile=inputEl.dataset.mobile;
   var clientName=inputEl.dataset.clientname;
+  var pan=inputEl.dataset.pan||'';
   var file=inputEl.files[0];
   if(!file) return;
   var safeId=docType.replace(/\s+/g,'_');
@@ -6188,7 +6189,7 @@ async function handleStreamingDocUpload(inputEl){
     var ext=file.name.includes('.')?file.name.split('.').pop():'';
     var res=await apiFetch({
       action:'uploadClientDocument',
-      clientName:clientName, mobile:mobile,
+      clientName:clientName, pan:pan, mobile:mobile,
       docType:docType, fileData:base64,
       mimeType:file.type, fileExt:ext
     });
@@ -6204,6 +6205,185 @@ async function handleStreamingDocUpload(inputEl){
     toast('❌ Upload failed: '+e.message);
   }
   inputEl.value='';
+}
+
+
+// ── Check whether a client's Drive folder already exists (PAN-first search) ──
+// Used before Save on modification, so we never prompt to create a folder
+// that's already there — prevents duplicate folders entirely.
+async function checkClientFolderExists(client){
+  if(!hasScript()) return false;
+  try{
+    var res=await apiFetch({action:'checkClientFolder', clientName:client.name, pan:client.pan, mobile:client.mobile});
+    return !!(res&&res.exists);
+  }catch(e){
+    console.warn('checkClientFolderExists failed:', e.message);
+    return false; // if the check itself fails, treat as "unknown" — safer to ask than assume
+  }
+}
+
+
+// ── Today's Activity — consolidated prominent view on the dashboard ──
+// Order (fixed, per spec): Follow-ups today → Events today → SIP due (5d) →
+// Review meetings due (30d) → Anniversary today. Any empty category is skipped.
+function renderTodaysActivity(){
+  var el=document.getElementById('dash-todays-activity');
+  if(!el) return;
+  var now=new Date();
+  var todayStr=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+  var items=[];
+
+  function daysTo(dStr){
+    if(!dStr||!/^\d{4}-\d{2}-\d{2}/.test(dStr)) return 9999;
+    return Math.round((new Date(dStr)-now)/86400000);
+  }
+  function daysToAnnual(dStr){
+    if(!dStr) return 9999;
+    var p=dStr.split('-');if(p.length<3) return 9999;
+    // Compare pure calendar dates (midnight-to-midnight) — using the raw "now"
+    // (which includes the current time-of-day) causes off-by-one errors that
+    // can make "today" wrongly compute as 364 days away depending on the hour.
+    var todayMidnight=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+    var target=new Date(now.getFullYear(),parseInt(p[1])-1,parseInt(p[2]));
+    var d=Math.round((target-todayMidnight)/86400000);
+    return d<0?d+365:d;
+  }
+  function daysToSip(sipDay){
+    var day=parseInt(sipDay);if(!day||day<1||day>28) return 9999;
+    var dt=new Date(now.getFullYear(),now.getMonth(),day);
+    var d=Math.round((dt-now)/86400000);
+    if(d<0){dt=new Date(now.getFullYear(),now.getMonth()+1,day);d=Math.round((dt-now)/86400000);}
+    return d;
+  }
+
+  // ── 1. Follow-ups today (leads + clients) ──
+  var fd=parseInt(cfg_.followUpDays)||14;
+  var dueLeads=leads.filter(function(l){
+    if(!['PROSPECT','CONTACTED','IN PROGRESS'].includes((l.status||'').toUpperCase()))return false;
+    if(l.nextFollowUp&&/^\d{4}-\d{2}-\d{2}$/.test(l.nextFollowUp)) return daysUntil(l.nextFollowUp)<=0;
+    return daysAgo(l.modifiedDate||l.createdDate)>=fd;
+  });
+  var dueClients=clients.filter(function(c){
+    return c.nextFollowUp && /^\d{4}-\d{2}-\d{2}$/.test(c.nextFollowUp) && daysUntil(c.nextFollowUp)<=0;
+  });
+  var fuTotal=dueLeads.length+dueClients.length;
+  if(fuTotal>0){
+    items.push({icon:'🔔',color:'var(--accent)',bg:'rgba(192,57,43,.08)',
+      title:fuTotal+' follow-up'+(fuTotal>1?'s':'')+' due today',
+      sub:'Tap to view — prioritised by value',
+      action:'openFuOverlay()'});
+  }
+
+  // ── 2. Events today (calendar events + calendar-sourced birthdays) ──
+  var todayEvents=calendarEventsOn(todayStr);
+  if(todayEvents.length){
+    var evCount=todayEvents.filter(function(e){return e.type!=='birthday';}).length;
+    var bdayCount=todayEvents.filter(function(e){return e.type==='birthday';}).length;
+    var evLabel=[];
+    if(evCount) evLabel.push(evCount+' event'+(evCount>1?'s':''));
+    if(bdayCount) evLabel.push(bdayCount+' birthday'+(bdayCount>1?'s':''));
+    items.push({icon:'📅',color:'#4FC3F7',bg:'rgba(79,195,247,.08)',
+      title:'Today — '+evLabel.join(', '),
+      sub:todayEvents.map(function(e){return (e.type==='birthday'?'🎂 ':'')+e.title;}).join(' · '),
+      list:todayEvents, listType:'calendarEvents'});
+  }
+
+  // ── 3. SIP due next 5 days ──
+  var sipDue=clients.filter(function(c){return c.sipDate&&daysToSip(c.sipDate)<=5&&daysToSip(c.sipDate)>=0&&!isSipReminderSent(c.mobile);});
+  if(sipDue.length){
+    items.push({icon:'💰',color:'#f39c12',bg:'rgba(243,156,18,.08)',
+      title:'SIP due — '+sipDue.length+' client'+(sipDue.length>1?'s':''),
+      sub:sipDue.map(function(c){return toTitle(c.name)+' ('+c.sipDate+'th)';}).join(' · '),
+      list:sipDue, listType:'sip'});
+  }
+
+  // ── 4. Review meeting due next 30 days ──
+  var reviewDue=clients.filter(function(c){var d=daysTo(c.reviewDate);return d>=0&&d<=30;});
+  if(reviewDue.length){
+    items.push({icon:'📊',color:'#9b59b6',bg:'rgba(155,89,182,.08)',
+      title:'Review meeting due — '+reviewDue.length+' client'+(reviewDue.length>1?'s':''),
+      sub:reviewDue.map(function(c){return toTitle(c.name)+' ('+fmt(c.reviewDate)+')';}).join(' · '),
+      list:reviewDue, listType:'review'});
+  }
+
+  // ── 5. Anniversary today ──
+  var annsToday=clients.filter(function(c){return daysToAnnual(c.anniversary)===0;});
+  if(annsToday.length){
+    items.push({icon:'💑',color:'#3498db',bg:'rgba(52,152,219,.08)',
+      title:'Anniversary today — '+annsToday.length+' client'+(annsToday.length>1?'s':''),
+      sub:annsToday.map(function(c){return toTitle(c.name);}).join(' · '),
+      list:annsToday, listType:'ann'});
+  }
+
+  if(!items.length){
+    el.innerHTML='<div style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--s1);border-radius:var(--r);border:1px solid var(--border)">'
+      +'<div style="font-size:18px">🎉</div>'
+      +'<div style="font-size:12px;color:var(--t2)">All caught up — nothing due today!</div>'
+      +'</div>';
+    return;
+  }
+
+  el.innerHTML=items.map(function(item,idx){
+    var clickAttr=item.action?'onclick="'+item.action+'"':'onclick="showTodaysActivityList('+idx+')"';
+    return '<div '+clickAttr+' style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:9px;background:'+item.bg+';border:1px solid '+item.color+'33;margin-bottom:6px;cursor:pointer">'
+      +'<span style="font-size:20px;flex-shrink:0">'+item.icon+'</span>'
+      +'<div style="flex:1;min-width:0">'
+      +'<div style="font-size:12px;font-weight:700;color:var(--text)">'+item.title+'</div>'
+      +'<div style="font-size:10px;color:var(--t3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+item.sub+'</div>'
+      +'</div>'
+      +'<span style="font-size:14px;color:var(--t3)">›</span>'
+      +'</div>';
+  }).join('');
+
+  window._todaysActivityItems=items;
+}
+
+// ── Detail popup for a Today's Activity item (Events/SIP/Review/Anniversary) ──
+function showTodaysActivityList(idx){
+  var item=window._todaysActivityItems&&window._todaysActivityItems[idx];
+  if(!item||!item.list) return;
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:99999;display:flex;align-items:flex-end;justify-content:center';
+
+  var rows;
+  if(item.listType==='calendarEvents'){
+    rows=item.list.map(function(ev){
+      var isBday=ev.type==='birthday';
+      return '<div style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--border)">'
+        +'<span style="font-size:16px">'+(isBday?'🎂':'📅')+'</span>'
+        +'<div><div style="font-size:13px;font-weight:700;color:var(--text)">'+ev.title+'</div>'
+        +'<div style="font-size:10px;color:'+(isBday?'#25D366':'#4FC3F7')+';margin-top:2px">'+(isBday?'Birthday':ev.time)+'</div></div>'
+        +'</div>';
+    }).join('');
+  } else {
+    rows=item.list.map(function(c){
+      var wn=(c.mobile||'').replace(/\D/g,'');wn=wn.length===10?'91'+wn:wn;
+      var sub=item.listType==='sip'?'SIP: '+c.sipDate+'th'
+        :item.listType==='review'?'Review: '+fmt(c.reviewDate)
+        :item.listType==='ann'?'Anniversary today'
+        :c.mobile;
+      return '<div style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid var(--border)">'
+        +'<div class="tal-row" data-cmob="'+c.mobile+'" style="cursor:pointer;flex:1">'
+        +'<div style="font-size:13px;font-weight:700;color:var(--text)">'+toTitle(c.name)+'</div>'
+        +'<div style="font-size:10px;color:var(--t3);margin-top:2px">'+sub+'</div></div>'
+        +'<button data-rwaq="'+item.listType+'" data-rwanum="'+wn+'" data-rmob="'+c.mobile+'" class="rem-wa-btn" style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid rgba(37,211,102,.3);background:rgba(37,211,102,.08);color:#25D366;cursor:pointer;flex-shrink:0">💬 WA</button>'
+        +'</div>';
+    }).join('');
+  }
+
+  ov.innerHTML='<div style="background:var(--s1);border-radius:14px 14px 0 0;width:100%;max-width:420px;max-height:75vh;display:flex;flex-direction:column">'
+    +'<div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">'
+    +'<span style="font-size:14px;font-weight:800;color:var(--text)">'+item.icon+' '+item.title+'</span>'
+    +'<span id="_talClose" style="font-size:18px;color:var(--t2);cursor:pointer">✕</span></div>'
+    +'<div style="overflow-y:auto;flex:1">'+rows+'</div></div>';
+  document.body.appendChild(ov);
+  document.getElementById('_talClose').onclick=function(){ov.remove();};
+  ov.addEventListener('click',function(e){
+    var waBtn=e.target.closest('.rem-wa-btn');
+    if(waBtn){ sendWAQuick(waBtn.dataset.rwanum, waBtn.dataset.rwaq==='review'?'cas':waBtn.dataset.rwaq, waBtn.dataset.rmob); return; }
+    var row=e.target.closest('.tal-row');
+    if(row){ ov.remove(); openDetail(row.dataset.cmob,'client'); }
+  });
 }
 
 // Load offline queue and flush any writes that failed last session
