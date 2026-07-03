@@ -311,6 +311,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 
   <button id="lock-biometric-btn" style="display:none;margin-top:8px;background:none;border:1px solid #C0392B;border-radius:10px;padding:11px 22px;color:#C0392B;font-size:13px;font-weight:700;cursor:pointer">🔓 Unlock with Face ID / Fingerprint</button>
   <div id="lock-error" style="margin-top:14px;font-size:12px;color:#e74c3c;min-height:16px"></div>
+  <button id="lock-forgot-btn" style="margin-top:20px;background:none;border:none;color:#666;font-size:12px;text-decoration:underline;cursor:pointer">Forgot PIN? Tap to reset</button>
 </div>
 
 <div id="app">
@@ -433,6 +434,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div class="si"><span id="lock-status-text" style="font-size:12px;font-weight:700">🔓 App lock is OFF</span></div>
     <div class="syc"><button class="btn btn-gold btn-full" id="lock-setup-btn" onclick="promptSetupPin()">🔒 Set Up PIN Lock</button></div>
     <div class="syc"><button class="btn btn-ghost btn-full" id="lock-setup-bio-btn" style="display:none" onclick="setupBiometric()">👆 Enable Face ID / Fingerprint</button></div>
+    <div class="syc"><button class="btn btn-ghost btn-full" id="lock-recovery-btn" style="display:none" onclick="promptSetupRecoveryPhrase()">🔑 Change Recovery Phrase</button></div>
     <div class="syc"><button class="btn btn-red btn-full" id="lock-remove-btn" style="display:none" onclick="removeLock()">🗑️ Remove App Lock</button></div>
     <div class="si" style="font-size:10px;color:var(--t3);font-style:italic"><span>Locks the app when reopened or resumed from background. Uses your phone's own Face ID/Fingerprint/PIN — nothing is sent anywhere.</span></div>
   </div>
@@ -5698,11 +5700,30 @@ async function hashPin(pin){
 function isLockEnabled(){ return !!localStorage.getItem('wm_lock_pin_hash'); }
 function isBiometricEnabled(){ return !!localStorage.getItem('wm_lock_biometric_id'); }
 
-// ── Set up a new PIN (called from Settings) ──
-async function setupPin(pin){
+// ── Set up a new PIN (called from Settings) — always paired with a recovery phrase ──
+async function setupPin(pin, recoveryPhrase){
   var hash=await hashPin(pin);
   localStorage.setItem('wm_lock_pin_hash', hash);
+  if(recoveryPhrase){
+    var rHash=await hashPin(recoveryPhrase.trim().toLowerCase());
+    localStorage.setItem('wm_lock_recovery_hash', rHash);
+  }
   toast('✅ PIN set — app will now lock on open');
+  renderLockSettingsStatus();
+}
+
+function hasRecoveryPhrase(){ return !!localStorage.getItem('wm_lock_recovery_hash'); }
+
+// ── Set or change just the recovery phrase (Settings) ──
+async function promptSetupRecoveryPhrase(){
+  var phrase=prompt('Set a recovery phrase — something only you would know (a short sentence works well, not a number). You\'ll need this if you ever forget your PIN:');
+  if(!phrase) return;
+  if(phrase.trim().length<6){ toast('Recovery phrase should be at least 6 characters'); return; }
+  var confirmPhrase=prompt('Re-enter your recovery phrase to confirm:');
+  if(phrase.trim().toLowerCase()!==confirmPhrase.trim().toLowerCase()){ toast('Phrases did not match'); return; }
+  var rHash=await hashPin(phrase.trim().toLowerCase());
+  localStorage.setItem('wm_lock_recovery_hash', rHash);
+  toast('✅ Recovery phrase set');
   renderLockSettingsStatus();
 }
 
@@ -5710,6 +5731,7 @@ function removeLock(){
   if(!confirm('Remove app lock? Anyone with your phone will be able to open the CRM.')) return;
   localStorage.removeItem('wm_lock_pin_hash');
   localStorage.removeItem('wm_lock_biometric_id');
+  localStorage.removeItem('wm_lock_recovery_hash');
   toast('🔓 App lock removed');
   renderLockSettingsStatus();
 }
@@ -5832,6 +5854,34 @@ document.addEventListener('DOMContentLoaded', function(){
   if(bs) bs.onclick=function(){ _lockPinBuffer=_lockPinBuffer.slice(0,-1); updateLockDots(); };
   var bioBtn=document.getElementById('lock-biometric-btn');
   if(bioBtn) bioBtn.onclick=function(){ tryBiometricUnlock().then(function(ok){ if(ok) unlockApp(); }); };
+  var forgotBtn=document.getElementById('lock-forgot-btn');
+  if(forgotBtn) forgotBtn.onclick=async function(){
+    if(!hasRecoveryPhrase()){
+      // Legacy path — a lock was set up before recovery phrases existed.
+      // Allow a one-time reset, but make clear this gap needs fixing afterward.
+      if(confirm('No recovery phrase was ever set for this lock, so it cannot be verified. Reset the lock now? You will be asked to set a recovery phrase along with your next PIN, so this won\'t happen again.')){
+        localStorage.removeItem('wm_lock_pin_hash');
+        localStorage.removeItem('wm_lock_biometric_id');
+        localStorage.removeItem('wm_lock_recovery_hash');
+        unlockApp();
+      }
+      return;
+    }
+    var phrase=prompt('Enter your recovery phrase to reset the PIN lock:');
+    if(!phrase) return;
+    var hash=await hashPin(phrase.trim().toLowerCase());
+    if(hash===localStorage.getItem('wm_lock_recovery_hash')){
+      localStorage.removeItem('wm_lock_pin_hash');
+      localStorage.removeItem('wm_lock_biometric_id');
+      localStorage.removeItem('wm_lock_recovery_hash');
+      toast('Lock reset — set a new PIN in Settings');
+      unlockApp();
+    } else {
+      var errEl=document.getElementById('lock-error');
+      if(errEl) errEl.textContent='Recovery phrase incorrect';
+      setTimeout(function(){ if(errEl) errEl.textContent=''; }, 2000);
+    }
+  };
 });
 
 // Re-lock when app is hidden (backgrounded) and shown again
@@ -5848,8 +5898,9 @@ function renderLockSettingsStatus(){
   var el=document.getElementById('lock-status-text');
   if(!el) return;
   if(isLockEnabled()){
-    el.textContent='🔒 App lock is ON'+(isBiometricEnabled()?' · Face ID/Fingerprint enabled':' · PIN only');
-    el.style.color='var(--green)';
+    el.textContent='🔒 App lock is ON'+(isBiometricEnabled()?' · Face ID/Fingerprint enabled':' · PIN only')
+      +(hasRecoveryPhrase()?' · Recovery phrase set':' · ⚠️ No recovery phrase');
+    el.style.color=hasRecoveryPhrase()?'var(--green)':'#f39c12';
   } else {
     el.textContent='🔓 App lock is OFF';
     el.style.color='var(--t3)';
@@ -5857,9 +5908,14 @@ function renderLockSettingsStatus(){
   var setBtn=document.getElementById('lock-setup-btn');
   var removeBtn=document.getElementById('lock-remove-btn');
   var bioBtn2=document.getElementById('lock-setup-bio-btn');
+  var recoveryBtn=document.getElementById('lock-recovery-btn');
   if(setBtn) setBtn.textContent=isLockEnabled()?'🔁 Change PIN':'🔒 Set Up PIN Lock';
   if(removeBtn) removeBtn.style.display=isLockEnabled()?'block':'none';
   if(bioBtn2) bioBtn2.style.display=(isLockEnabled()&&window.PublicKeyCredential)?'block':'none';
+  if(recoveryBtn){
+    recoveryBtn.style.display=isLockEnabled()?'block':'none';
+    recoveryBtn.textContent=hasRecoveryPhrase()?'🔑 Change Recovery Phrase':'🔑 Set Recovery Phrase (recommended)';
+  }
 }
 
 function promptSetupPin(){
@@ -5868,7 +5924,13 @@ function promptSetupPin(){
   if(!/^\d{4,6}$/.test(pin)){ toast('PIN must be 4-6 digits'); return; }
   var confirm2=prompt('Re-enter the PIN to confirm:');
   if(pin!==confirm2){ toast('PINs did not match'); return; }
-  setupPin(pin);
+  // Recovery phrase is required alongside the PIN — this is what makes "Forgot
+  // PIN" actually secure instead of a one-tap bypass anyone could use.
+  var phrase=prompt('Now set a recovery phrase — something only YOU would know (a short sentence, not a number). You\'ll need this if you ever forget your PIN:');
+  if(!phrase||phrase.trim().length<6){ toast('Recovery phrase must be at least 6 characters — PIN not saved, try again'); return; }
+  var confirmPhrase=prompt('Re-enter your recovery phrase to confirm:');
+  if(phrase.trim().toLowerCase()!==confirmPhrase.trim().toLowerCase()){ toast('Phrases did not match — PIN not saved, try again'); return; }
+  setupPin(pin, phrase);
 }
 
 
