@@ -4024,6 +4024,16 @@ async function runHealthCheck(){
   async function rows(tab){ try{ var j=await scriptGet(tab,2); return (j&&j.rows)?j.rows.slice(1):[]; }catch(e){ return []; } }
   function byMob(rs,mob){ return rs.filter(function(r){return String(r[1]||'').trim()===mob;}); }
 
+  // 0. BACKEND VERSION
+  log('\u2501\u2501 0. Backend version \u2501\u2501');
+  try{
+    var vr=await fetch(cfg_.scriptUrl+'?ping=1&t='+Date.now());
+    var vj=await vr.json();
+    if(vj&&vj.version){ ok('Live backend version: '+vj.version); if(String(vj.version).indexOf('2.8.1')<0) wn('Expected 2.8.1 \u2014 the Apps Script deploy did not land the latest Code.gs'); }
+    else { wn('Backend has NO version endpoint \u2014 it is OLDER than 2.8.1. Redeploy Code.gs as a NEW version.'); }
+  }catch(e){ wn('Could not read backend version: '+e.message); }
+  log('');
+
   // 1. CONNECTION
   log('\u2501\u2501 1. Connection \u2501\u2501');
   try{
@@ -4070,7 +4080,7 @@ async function runHealthCheck(){
   await sleep(400);
   lr=await rows('LEADS'); mine=byMob(lr,TMOB);
   if(mine.length===0) ok('Delete removed the lead row from sheet');
-  else no('Delete left '+mine.length+' row(s)');
+  else no('Delete left '+mine.length+' row(s) \u2014 mobiles seen: '+JSON.stringify(mine.map(function(r){return String(r[1]);})));
 
   // 4. ACTIVITY LOG: add / dedupe / delete-by-RawID
   log(''); log('\u2501\u2501 4. Activity log (add \u00B7 dedupe \u00B7 delete by Raw ID) \u2501\u2501');
@@ -4108,7 +4118,7 @@ async function runHealthCheck(){
     await sleep(400);
     cr=await rows('CLIENTS'); mineC=byMob(cr,TMOB2);
     if(mineC.length===0) ok('Client delete removed the row');
-    else no('Client delete left '+mineC.length+' row(s)');
+    else no('Client delete left '+mineC.length+' row(s) \u2014 mobiles seen: '+JSON.stringify(mineC.map(function(r){return String(r[1]);})));
   } else { wn('Skipped client test (clientToRow unavailable)'); }
 
   // 6. DRIVE FOLDER / DOCUMENTS
