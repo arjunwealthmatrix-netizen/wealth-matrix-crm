@@ -12,7 +12,7 @@
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <meta name="theme-color" content="#C0392B">
-<title>Wealth Matrix CRM v2.9.2</title>
+<title>Wealth Matrix CRM v2.9.4</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -380,7 +380,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div style="display:flex;align-items:center;gap:8px">
       <button onclick="toggleDark()" style="background:none;border:none;cursor:pointer;font-size:16px" id="dark-btn">🌙</button>
       <button onclick="manualSync()" style="background:none;border:none;cursor:pointer;font-size:16px">🔄</button>
-      <span style="font-size:9px;font-weight:700;color:var(--accent);background:var(--accent2);padding:2px 7px;border-radius:999px;border:1px solid var(--accent)">v2.9.2</span>
+      <span style="font-size:9px;font-weight:700;color:var(--accent);background:var(--accent2);padding:2px 7px;border-radius:999px;border:1px solid var(--accent)">v2.9.4</span>
     </div>
   </div>
 
@@ -560,7 +560,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div class="syc"><button class="btn btn-ghost btn-full" onclick="showSpecialDaysList()">📋 View Upcoming Special Days</button></div>
   </div>
 
-  <div style="text-align:center;padding:20px 0 40px;font-size:10px;color:var(--t3)">Wealth Matrix CRM v2.9.2</div>
+  <div style="text-align:center;padding:20px 0 40px;font-size:10px;color:var(--t3)">Wealth Matrix CRM v2.9.4</div>
 </div>
 </div>
 
@@ -1803,7 +1803,7 @@ async function autoConvert(l){
     name:l.name||'', mobile:l.mobile||'', email:l.email||'',
     country:l.country||'', age:l.age||'', gender:'', pan:'',
     source:l.source||'', referral:l.referral||'',
-    aum:'', potentialAum:'',  // AUM in Clients is separate from Leads AUM
+    aum:l.aum||'', potentialAum:l.potentialAum||'',  // carried over from the lead — not reset on conversion
     products:l.products||'', remarks:l.remarks||'',
     convertedDate:onboard, createdDate:l.createdDate||today(),
     nextFollowUp:'', dob:'', spouseDob:'', anniversary:'',
@@ -2988,6 +2988,10 @@ function renderFuDetailInner(mob){
     +'<a href="botim://call/'+digits+'" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:10px;padding:6px 3px;justify-content:center">📱 Botim</a>'
     +'<a href="'+meetUrl+'" target="_blank" class="btn btn-ghost" style="flex:1;text-decoration:none;font-size:10px;padding:6px 3px;justify-content:center">📹 Meet</a>'
     +'</div>'
+    // Quick WhatsApp templates — same as Clients (CAS report; Upload Link to follow once the Leads Upload Token column exists)
+    +'<div style="display:grid;grid-template-columns:1fr;gap:6px;padding:0 14px 8px">'
+    +'<button data-action="fu-waq" data-waqtype="cas" data-wanum="'+waNum+'" data-mob="'+mob+'" class="qwa-btn qwa-blue" style="padding:8px 4px"><span class="qwa-ico">📊</span><span class="qwa-lbl">CAMS CAS Report</span></button>'
+    +'</div>'
     // Activity log
     +'<div style="padding:8px 14px 0">'
     +'<div style="font-size:9px;color:var(--t3);text-transform:uppercase;font-weight:700;letter-spacing:.4px;margin-bottom:5px">📋 Activity log <span style="font-weight:400;text-transform:none">(× to delete)</span></div>'
@@ -3033,6 +3037,7 @@ function renderFuDetailInner(mob){
         syncLead(lMode,'update');renderFuDetailInner(m);toast('Mode: '+btn.dataset.mode);}
     }
     if(action==='fu-status') quickStatus(m,btn.dataset.status);
+    if(action==='fu-waq') sendWAQuick(btn.dataset.wanum, btn.dataset.waqtype, m);
     if(action==='del-log') deleteActivityEntry(btn.dataset.rowid||'', btn.dataset.delmob||m, btn.dataset.delts||'');
     if(action==='fu-edit'){
       // Close popup, open edit lead form pre-filled
@@ -4122,6 +4127,8 @@ async function testActivityLog(){
 // Uses throwaway test records (mobiles 9000000009 / 9000000008) and
 // deletes them afterward, so it is safe to run on production data.
 // ═══════════════════════════════════════════════════════════════
+// Keep this in sync with the VERSION constant at the top of Code.gs whenever the backend changes.
+var EXPECTED_BACKEND_VERSION = '2.9.2';
 async function runHealthCheck(){
   var el=document.getElementById('health-result');
   var pass=0, fail=0, warn=0;
@@ -4147,7 +4154,7 @@ async function runHealthCheck(){
   try{
     var vr=await fetch(cfg_.scriptUrl+'?ping=1&t='+Date.now());
     var vj=await vr.json();
-    if(vj&&vj.version){ ok('Live backend version: '+vj.version); if(String(vj.version).indexOf('2.8.1')<0) wn('Expected 2.8.1 \u2014 the Apps Script deploy did not land the latest Code.gs'); }
+    if(vj&&vj.version){ ok('Live backend version: '+vj.version); if(String(vj.version)!==EXPECTED_BACKEND_VERSION) wn('Expected '+EXPECTED_BACKEND_VERSION+' \u2014 the Apps Script deploy did not land the latest Code.gs'); }
     else { wn('Backend has NO version endpoint \u2014 it is OLDER than 2.8.1. Redeploy Code.gs as a NEW version.'); }
   }catch(e){ wn('Could not read backend version: '+e.message); }
   log('');
