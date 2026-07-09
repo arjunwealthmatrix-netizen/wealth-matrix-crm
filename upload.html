@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Upload Documents — Wealth Matrix Finserv</title>
 <style>
 :root{
@@ -10,10 +10,11 @@
   --accent:#C0392B; --accent2:rgba(192,57,43,.12);
   --text:#FFFFFF; --t2:#AAAAAA; --t3:#666666;
   --green:#2ecc71; --r:12px; --r2:8px;
+  --page-w:460px; --grid-cols:1;
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;min-height:100vh}
-.wrap{max-width:460px;margin:0 auto;padding:0 0 40px}
+.wrap{max-width:var(--page-w);margin:0 auto;padding:0 0 40px;transition:max-width .2s}
 .hdr{padding:22px 18px 16px;text-align:center;border-bottom:1px solid var(--border)}
 .hdr .logo{font-size:34px;margin-bottom:6px}
 .hdr h1{font-size:16px;font-weight:800;margin:0 0 4px}
@@ -25,8 +26,13 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,B
 .greet{padding:18px;text-align:center}
 .greet .name{font-size:17px;font-weight:800}
 .greet .sub{font-size:11px;color:var(--t2);margin-top:4px;line-height:1.5}
-.slots{padding:6px 14px}
-.slot{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:10px}
+.notice{margin:0 14px 14px;background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px}
+.notice .t{font-size:12px;font-weight:800;color:var(--accent);margin-bottom:5px;display:flex;align-items:center;gap:6px}
+.notice p{font-size:11px;color:var(--t2);line-height:1.6;margin:0 0 8px}
+.notice p:last-child{margin-bottom:0}
+.sectionlbl{padding:16px 14px 6px;font-size:11px;font-weight:800;color:var(--t3);text-transform:uppercase;letter-spacing:.5px}
+.slots{padding:6px 14px;display:grid;grid-template-columns:repeat(var(--grid-cols),1fr);gap:10px}
+.slot{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:14px}
 .slot .l{flex:1;min-width:0}
 .slot .l .t{font-size:14px;font-weight:700}
 .slot .l .s{font-size:11px;color:var(--t3);margin-top:3px}
@@ -35,10 +41,37 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,B
 .slot.done .s{color:var(--green)}
 .slot.err .s{color:#e74c3c}
 .slot .btn.done{background:var(--s2);color:var(--green);border:1px solid var(--green)}
+.form-block{margin:6px 14px 0;background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:14px}
+.fg{margin-bottom:12px}
+.fg:last-child{margin-bottom:0}
+.fl{font-size:10px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px;display:block}
+.fi{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--r2);padding:10px 12px;color:var(--text);font-family:inherit;font-size:14px;outline:none}
+.fi:focus{border-color:var(--accent)}
+.nomform-grid{display:grid;grid-template-columns:repeat(var(--grid-cols),1fr);gap:0 14px}
+.savebtn{width:100%;padding:12px;font-size:13px;font-weight:700;color:#fff;background:var(--accent);border:none;border-radius:var(--r2);cursor:pointer;margin-top:4px}
+.savebtn:disabled{opacity:.5}
+.savemsg{font-size:11px;margin-top:8px;text-align:center}
+.savemsg.ok{color:var(--green)}
+.savemsg.err{color:#e74c3c}
 .footer-note{padding:18px 24px 4px;text-align:center;font-size:10px;color:var(--t3);line-height:1.6}
 input[type=file]{display:none}
 .spin{display:inline-block;width:14px;height:14px;border:2px solid var(--t3);border-top-color:var(--accent);border-radius:50%;animation:sp .7s linear infinite;vertical-align:middle;margin-right:4px}
 @keyframes sp{to{transform:rotate(360deg)}}
+
+/* ── Adaptive breakpoints ── */
+@media (min-width:700px){
+  :root{ --page-w:640px; --grid-cols:2; }
+  body{font-size:15px}
+  .hdr{padding:30px 18px 20px}
+  .hdr .logo{font-size:42px}
+  .hdr h1{font-size:19px}
+  .state{padding:90px 24px}
+}
+@media (min-width:1000px){
+  :root{ --page-w:820px; --grid-cols:3; }
+  .wrap{padding-top:24px}
+  .hdr{border-radius:var(--r) var(--r) 0 0}
+}
 </style>
 </head>
 <body>
@@ -57,13 +90,24 @@ input[type=file]{display:none}
 // ── CONFIGURATION ── update this if you ever redeploy Apps Script with a new URL
 var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxi1b4DHWFsXuOCO5XTpsCPmhEawBDpC66eVZW7K1Z6aZ7zwLZ7HYhNd--saAv6CdG5/exec';
 
-var DOC_TYPES = ['PAN','Aadhaar','Passport','Resident ID','CAS','Others'];
+var DOC_TYPES = [
+  {key:'PAN', label:'PAN'},
+  {key:'Aadhaar', label:'Aadhaar'},
+  {key:'Passport', label:'Passport (only for NRIs)'},
+  {key:'Resident ID', label:'Resident ID'},
+  {key:'Bank account details', label:'Bank account details'},
+  {key:'Visa', label:'Visa (only for NRIs)'},
+  {key:'Others', label:'Others'}
+];
+
 var client = null; // {name, mobile, pan}
 
 function qs(name){
   var p = new URLSearchParams(window.location.search);
   return p.get(name) || '';
 }
+
+function esc(s){ var d=document.createElement('div'); d.textContent=s||''; return d.innerHTML; }
 
 function fileToBase64(file){
   return new Promise(function(resolve, reject){
@@ -92,21 +136,43 @@ function renderSlots(){
   var app = document.getElementById('app');
   var html = '<div class="greet"><div class="name">Hi '+esc(client.name||'there')+'</div>'
     + '<div class="sub">Please upload the documents below. Tap any item to choose a photo or PDF from your phone.</div></div>'
+    + '<div class="notice">'
+    +   '<div class="t">📋 Why we need these documents</div>'
+    +   '<p>As per regulatory (KYC) requirements, please upload the documents below to complete your onboarding.</p>'
+    +   '<div class="t" style="margin-top:10px">🔒 Your Privacy Matters</div>'
+    +   '<p>In accordance with India\'s Digital Personal Data Protection Act, 2023 (DPDP Act), the documents and information you share here are collected solely to complete your KYC and service your investments. They are stored securely and will not be shared with any third party without your explicit consent, except where required by law. We value your privacy and are committed to protecting your personal data.</p>'
+    + '</div>'
+    + '<div class="sectionlbl">Documents</div>'
     + '<div class="slots" id="slotList">'
     + DOC_TYPES.map(function(dt){
-        var safeId = dt.replace(/\s+/g,'_');
+        var safeId = dt.key.replace(/\s+/g,'_');
         return '<div class="slot" id="row-'+safeId+'">'
-          + '<div class="l"><div class="t">'+dt+'</div><div class="s" id="status-'+safeId+'">Not uploaded</div></div>'
+          + '<div class="l"><div class="t">'+dt.label+'</div><div class="s" id="status-'+safeId+'">Not uploaded</div></div>'
           + '<label class="btn" id="btn-'+safeId+'">Upload'
-          + '<input type="file" accept="image/*,.pdf" data-doctype="'+dt+'" onchange="handleUpload(this)">'
+          + '<input type="file" accept="image/*,.pdf" data-doctype="'+dt.key+'" onchange="handleUpload(this)">'
           + '</label></div>';
       }).join('')
+    + '</div>'
+    + '<div class="sectionlbl">Nominee Details</div>'
+    + '<div class="form-block">'
+    +   '<div class="nomform-grid">'
+    +     '<div class="fg"><label class="fl">Nominee Name</label><input class="fi" id="nom-name" placeholder="FULL NAME" oninput="this.value=this.value.toUpperCase()"></div>'
+    +     '<div class="fg"><label class="fl">Nominee Mobile Number</label><input class="fi" id="nom-mobile" type="tel" inputmode="numeric" placeholder="10-digit mobile number" oninput="this.value=this.value.replace(/[^0-9]/g,\'\').slice(0,10)"></div>'
+    +   '</div>'
+    +   '<div class="fg"><label class="fl">Nominee Email ID</label><input class="fi" id="nom-email" type="email" placeholder="nominee@example.com"></div>'
+    +   '<div class="fg"><label class="fl">Nominee KYC Document (PAN / Aadhaar / Voter ID)</label>'
+    +     '<div class="slot" id="row-Nominee_KYC" style="margin-top:2px">'
+    +       '<div class="l"><div class="t">Nominee ID Proof</div><div class="s" id="status-Nominee_KYC">Not uploaded</div></div>'
+    +       '<label class="btn" id="btn-Nominee_KYC">Upload'
+    +       '<input type="file" accept="image/*,.pdf" data-doctype="Nominee KYC" onchange="handleUpload(this)">'
+    +       '</label></div>'
+    +   '</div>'
+    +   '<button class="savebtn" id="nomSaveBtn" onclick="saveNominee()">Save Nominee Details</button>'
+    +   '<div class="savemsg" id="nomMsg"></div>'
     + '</div>'
     + '<div class="footer-note">🔒 Documents are uploaded directly and securely to your advisor\'s private folder. No account or login needed.</div>';
   app.innerHTML = html;
 }
-
-function esc(s){ var d=document.createElement('div'); d.textContent=s||''; return d.innerHTML; }
 
 async function handleUpload(inputEl){
   var docType = inputEl.dataset.doctype;
@@ -147,6 +213,28 @@ async function handleUpload(inputEl){
     if(rowEl) rowEl.className = 'slot err';
   }
   inputEl.value = '';
+}
+
+async function saveNominee(){
+  var name=(document.getElementById('nom-name').value||'').trim();
+  var mobile=(document.getElementById('nom-mobile').value||'').trim();
+  var email=(document.getElementById('nom-email').value||'').trim();
+  var msgEl=document.getElementById('nomMsg');
+  var btn=document.getElementById('nomSaveBtn');
+
+  if(!name){ msgEl.textContent='Please enter the nominee name.'; msgEl.className='savemsg err'; return; }
+  if(mobile && mobile.length!==10){ msgEl.textContent='Mobile number must be exactly 10 digits.'; msgEl.className='savemsg err'; return; }
+  if(email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ msgEl.textContent='Please enter a valid email address.'; msgEl.className='savemsg err'; return; }
+
+  btn.disabled=true; msgEl.textContent='Saving…'; msgEl.className='savemsg';
+  var res = await apiPost({
+    action:'saveNomineeDetails',
+    clientName: client.name, pan: client.pan||'', mobile: client.mobile,
+    nomineeName: name, nomineeMobile: mobile, nomineeEmail: email
+  });
+  btn.disabled=false;
+  if(res && res.success){ msgEl.textContent='✅ Nominee details saved.'; msgEl.className='savemsg ok'; }
+  else { msgEl.textContent='Could not save — please try again.'; msgEl.className='savemsg err'; }
 }
 
 async function init(){
