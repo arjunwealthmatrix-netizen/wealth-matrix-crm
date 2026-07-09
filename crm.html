@@ -643,20 +643,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         <label class="fl">Referred by</label>
         <input class="fi" id="lf-referral" placeholder="Client name or mobile" autocomplete="off" oninput="autoCaps(this)">
       </div>
-      <div class="fg"><label class="fl">Estimated AUM / SIP</label>
-        <select class="fi fi-sel" id="lf-aum">
-          <option value="">Select range</option>
-          <option value="SIP>1L">SIP &gt; 1L/month</option>
-          <option value="SIP 50K-1L">SIP 50K–1L/month</option>
-          <option value="SIP~50K">SIP ~50K/month</option>
-          <option value="SIP<50K">SIP &lt; 50K/month</option>
-          <option value="100L+">Lumpsum 100L+</option>
-          <option value="50-100L">Lumpsum 50–100L</option>
-          <option value="25-50L">Lumpsum 25–50L</option>
-          <option value="<25L">Lumpsum &lt; 25L</option>
-        </select>
+      <div class="fg"><label class="fl">Estimated AUM / SIP (₹ Lakh)</label>
+        <input class="fi" id="lf-aum" placeholder="e.g. 25 (₹25 Lakh)" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
       </div>
-      <div class="fg"><label class="fl">Potential AUM</label><input class="fi" id="lf-potaum" placeholder="₹ estimate, e.g. 25L" oninput="autoCaps(this)"></div>
+      <div class="fg"><label class="fl">Potential AUM (₹ Lakh)</label><input class="fi" id="lf-potaum" placeholder="e.g. 25 (₹25 Lakh)" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')"></div>
       <div class="frow">
         <div class="fg"><label class="fl">Mode of contact</label>
           <select class="fi fi-sel" id="lf-mode">
@@ -758,7 +748,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.6px;margin-bottom:8px">FINANCIAL</div>
       <div class="frow">
         <div class="fg"><label class="fl">AUM</label><input class="fi" id="cf-aum" placeholder="₹ amount"></div>
-        <div class="fg"><label class="fl">Potential AUM</label><input class="fi" id="cf-potaum" placeholder="₹ estimate"></div>
+        <div class="fg"><label class="fl">Potential AUM (₹ Lakh)</label><input class="fi" id="cf-potaum" placeholder="e.g. 25 (₹25 Lakh)" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')"></div>
       </div>
       <div class="frow">
         <div class="fg"><label class="fl">SIP Date</label><input class="fi" id="cf-sipdate" type="number" min="1" max="28" placeholder="1–28"></div>
@@ -1364,14 +1354,26 @@ function parseAumValue(v){
   else if(v.includes('K')) num*=1000;
   return num;
 }
-// Ordinal rank for the LEADS "Estimated AUM/SIP" category dropdown — these are fixed labels
-// (e.g. "SIP>1L", "100L+") that parseAumValue can't parse reliably (several start with non-numeric
-// prefixes like "SIP" or "<"), so a small lookup table gives a clean, predictable sort order instead.
-var AUM_SIP_RANK = {
-  'SIP>1L':8, '100L+':7, 'SIP 50K-1L':6, '50-100L':5,
-  'SIP~50K':4, '25-50L':3, 'SIP<50K':2, '<25L':1
+// "Estimated AUM/SIP" and "Potential AUM" are now plain whole numbers meaning ₹ Lakh (e.g. "25" = ₹25L).
+// Older leads may still hold the retired dropdown category text (e.g. "SIP>1L") — this table gives
+// those a rough lakh-equivalent so old and new data sort together sensibly during the transition.
+var AUM_SIP_LEGACY_LAKH = {
+  'SIP>1L':150, '100L+':120, 'SIP 50K-1L':75, '50-100L':75,
+  'SIP~50K':40, '25-50L':38, 'SIP<50K':15, '<25L':15
 };
-function rankAumSip(v){ return AUM_SIP_RANK[(v||'').trim()] || 0; }
+function aumSipLakh(v){
+  v=(v||'').toString().trim();
+  if(!v) return 0;
+  if(/^\d+(\.\d+)?$/.test(v)) return parseFloat(v); // new format: plain number = ₹ Lakh
+  return AUM_SIP_LEGACY_LAKH[v] || 0;                  // old dropdown category — fallback estimate
+}
+function rankAumSip(v){ return aumSipLakh(v); } // kept as an alias for the Leads sort toggle
+// Display helper: shows "25L" for the new plain-number format, leaves old category text as-is.
+function aumDisplay(v){
+  v=(v||'').toString().trim();
+  if(!v) return '';
+  return /^\d+(\.\d+)?$/.test(v) ? v+'L' : v;
+}
 
 function renderClients(){
   var q=(document.getElementById('shared-search')?document.getElementById('shared-search').value||'':'').toLowerCase();
@@ -2263,8 +2265,13 @@ function nav(name,btn){
 // This gets appended before bootSequence()
 
 // AUM_SORT_ORDER for sorting follow-ups
-var AUM_ORDER={"SIP>1L":1,"SIP 50K-1L":2,"SIP~50K":3,"100L+":4,"50-100L":5,"SIP<50K":6,"25-50L":7,"<25L":8,"":99};
-function aumScore(l){return AUM_ORDER[l.aum||'']||99;}
+// Ascending-sort helper: lower = higher priority. Real AUM/SIP value (new numeric or legacy
+// category) becomes a negative number scaled by its lakh-equivalent, so bigger value sorts first;
+// no data at all sorts last (99), matching the original behavior.
+function aumScore(l){
+  var lakh=aumSipLakh(l.aum);
+  return lakh>0 ? -lakh : 99;
+}
 
 // ── OVERRIDE leadsRows to include AUM ──
 
@@ -2408,12 +2415,6 @@ function updateFUBadge(){
 // V1.6 — LEAD SCORING SYSTEM
 // ════════════════════════════════════════
 
-// AUM score map
-var AUM_SCORE_MAP={
-  'SIP>1L':25,'SIP 50K-1L':15,'SIP~50K':15,'SIP<50K':0,
-  '100L+':25,'50-100L':25,'25-50L':20,'<25L':15,''  :0
-};
-
 function leadScore(l){
   // Scoring out of 100:
   // AUM/SIP data available: 20 | Referral: 20 | Age 25-55: 20 | Non-India: 20 | Products: 5 each (max 20)
@@ -2467,8 +2468,8 @@ function scoreTooltip(l){
   if(age>=35&&age<=55) lines.push('Age 35-55 +15');
   if(country&&country!=='INDIA'&&country!=='IN') lines.push('Non-India +20');
   if(rem.includes('✅ WHATSAPP REPLIED')||rem.includes('✅ CALL PICKED UP')||rem.includes('RESPONDED')) lines.push('Responded +10');
-  var aum=AUM_SCORE_MAP[l.aum||'']||0;
-  if(aum>0) lines.push('AUM ('+l.aum+') +'+aum);
+  var aumVal=(l.aum||'').trim();
+  if(aumVal && aumVal!=='0' && aumVal!=='-') lines.push('AUM/SIP ('+aumDisplay(aumVal)+') +20');
   return 'Score: '+leadScore(l)+(lines.length?' ('+lines.join(', ')+')':'');
 }
 
@@ -2536,8 +2537,8 @@ function renderLeads(){
   var html=arr.length?arr.map(function(l){
     var d=daysAgo(l.modifiedDate||l.createdDate);var fd=parseInt(cfg_.followUpDays)||14;var hot=['PROSPECT','CONTACTED','IN PROGRESS'].includes((l.status||'').toUpperCase())&&d>=fd;
     var sel=selectedLeads.has(l.mobile);var lastRem=lastRemarkSummary(l.remarks);
-    var badge=heatBadge(l);var aumTag=l.aum?'<span style="font-size:9px;color:var(--accent);background:var(--accent2);border:1px solid rgba(192,57,43,.25);border-radius:999px;padding:1px 6px;margin-left:4px">'+l.aum+'</span>':'';
-    var potAumTag=l.potentialAum?'<span style="font-size:9px;color:#2ecc71;background:rgba(46,204,113,.1);border:1px solid rgba(46,204,113,.3);border-radius:999px;padding:1px 6px;margin-left:4px">\uD83D\uDCB0'+l.potentialAum+'</span>':'';
+    var badge=heatBadge(l);var aumTag=l.aum?'<span style="font-size:9px;color:var(--accent);background:var(--accent2);border:1px solid rgba(192,57,43,.25);border-radius:999px;padding:1px 6px;margin-left:4px">'+aumDisplay(l.aum)+'</span>':'';
+    var potAumTag=l.potentialAum?'<span style="font-size:9px;color:#2ecc71;background:rgba(46,204,113,.1);border:1px solid rgba(46,204,113,.3);border-radius:999px;padding:1px 6px;margin-left:4px">\uD83D\uDCB0'+aumDisplay(l.potentialAum)+'</span>':'';
     return '<div class="li'+(sel?' selected':'')+'" onclick="'+(bulkMode?'toggleSelect(\''+l.mobile+'\')':'openDetail(\''+l.mobile+'\',\'lead\')')+'">'
       +(bulkMode?'<div style="width:20px;height:20px;border-radius:50%;border:2px solid var(--accent);background:'+(sel?'var(--accent)':'transparent')+';display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:8px">'+(sel?'<svg width="10" height="10" viewBox="0 0 24 24" fill="white"><path d="M20 6L9 17l-5-5"/></svg>':'')+'</div>':'')
       +'<div class="av">'+ini(l.name)+'</div>'
@@ -2887,7 +2888,7 @@ function renderFuDetailInner(mob){
   if(l.age) infoChips.push(['🎂',l.age+' yrs']);
   if(l.country) infoChips.push(['🌍',l.country]);
   if(l.geoTag) infoChips.push(['📍',l.geoTag]);
-  if(l.aum) infoChips.push(['💰',l.aum]);
+  if(l.aum) infoChips.push(['💰',aumDisplay(l.aum)]);
   infoChips.push(['📅',fuInfo]);
   if(l.contactMode&&l.contactMode!=='Not contacted') infoChips.push(['📞',l.contactMode]);
   var infoCapsule='<div style="padding:8px 12px;background:var(--bg);border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:5px">'
@@ -2931,8 +2932,9 @@ function renderFuDetailInner(mob){
   // Potential AUM: inline-editable, free text (₹ estimate), auto-saves on blur
   var potAumHtml='<div style="padding:10px 14px;border-bottom:1px solid var(--border)">'
     +'<div style="font-size:9px;color:var(--t3);text-transform:uppercase;font-weight:700;letter-spacing:.4px;margin-bottom:6px">\uD83D\uDCB0 Potential AUM</div>'
-    +'<input type="text" id="lpa-'+mob+'" value="'+(l.potentialAum||'')+'" placeholder="e.g. 25L, 1.5Cr" '
+    +'<input type="text" inputmode="numeric" id="lpa-'+mob+'" value="'+(l.potentialAum||'')+'" placeholder="e.g. 25 (\u20B925 Lakh)" '
     +'style="width:100%;padding:9px 12px;font-size:14px;font-weight:700;color:var(--accent);background:var(--bg);border:2px solid var(--border);border-radius:var(--r2);box-sizing:border-box" '
+    +'oninput="this.value=this.value.replace(/[^0-9]/g,\'\')" '
     +'onblur="saveLeadPotAum(\''+mob+'\',this.value)">'
     +'</div>';
 
@@ -2942,7 +2944,7 @@ function renderFuDetailInner(mob){
     +'<div style="padding:12px 14px 8px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)">'
     +'<div>'
     +'<div style="font-size:16px;font-weight:800">'+toTitle(l.name)+'</div>'
-    +(l.aum?'<div style="font-size:10px;font-weight:700;color:var(--accent);margin-top:2px">💰 '+l.aum+(l.source?' · '+l.source:'')+'</div>':'')
+    +(l.aum?'<div style="font-size:10px;font-weight:700;color:var(--accent);margin-top:2px">💰 '+aumDisplay(l.aum)+(l.source?' · '+l.source:'')+'</div>':'')
     +'<div style="font-size:10px;color:var(--t3);margin-top:1px">'+d+' days since last activity</div>'
     +'</div>'
     +'<button class="sh-x" onclick="checkUnsavedNoteAndClose()">✕</button>'
@@ -3257,7 +3259,7 @@ function makeFuItem(l,itemType){
   var sColor=sColors[(l.status||'').toUpperCase()]||'#777';
   var borderStyle=itemType==='overdue'?'border-left:3px solid var(--accent);':'';
   var heatTag='<span style="font-size:10px;font-weight:700;color:'+heat.color+'">'+heat.emoji+' '+heat.label+'</span>';
-  var aumTag=l.aum?'<span style="font-size:9px;color:var(--accent);font-weight:700;background:var(--accent2);border:1px solid rgba(192,57,43,.25);border-radius:999px;padding:1px 5px">'+l.aum+'</span>':'';
+  var aumTag=l.aum?'<span style="font-size:9px;color:var(--accent);font-weight:700;background:var(--accent2);border:1px solid rgba(192,57,43,.25);border-radius:999px;padding:1px 5px">'+aumDisplay(l.aum)+'</span>':'';
   var curDate=l.nextFollowUp&&/^\d{4}-\d{2}-\d{2}$/.test(l.nextFollowUp)?l.nextFollowUp:'';
   var fuColor=!curDate?'var(--t3)':fuDue?'var(--accent)':daysUntil(curDate)<=3?'#FFB300':'#888';
 
@@ -4140,9 +4142,9 @@ async function runHealthCheck(){
   // 2. LEADS: add / field-sync / update
   log(''); log('\u2501\u2501 2. Leads (add \u00B7 field sync \u00B7 update) \u2501\u2501');
   var tLead={name:'HEALTHCHECK TEST',mobile:TMOB,email:'TEST@X.COM',age:'30',country:'INDIA',
-    status:'PROSPECT',source:'HEALTHCHECK',referral:'SELF',aum:'1-5 LAKH',nextFollowUp:today(),
+    status:'PROSPECT',source:'HEALTHCHECK',referral:'SELF',aum:'30',nextFollowUp:today(),
     products:'MUTUAL FUNDS',contactMode:'CALL',remarks:'healthcheck',modifiedDate:now(),
-    createdDate:today(),geoTag:'TEST',potentialAum:'25L'};
+    createdDate:today(),geoTag:'TEST',potentialAum:'25'};
   await sheetWrite({action:'deleteLead',mobile:TMOB});           // clear any leftover
   await sheetWrite({action:'appendLead',row:leadToRow(tLead)});
   await sleep(400);
