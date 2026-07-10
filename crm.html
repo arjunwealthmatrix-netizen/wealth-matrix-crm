@@ -12,7 +12,7 @@
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <meta name="theme-color" content="#C0392B">
-<title>Wealth Matrix CRM v2.9.8</title>
+<title>Wealth Matrix CRM v2.9.9</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -382,7 +382,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div style="display:flex;align-items:center;gap:8px">
       <button onclick="toggleDark()" style="background:none;border:none;cursor:pointer;font-size:16px" id="dark-btn">🌙</button>
       <button onclick="manualSync()" style="background:none;border:none;cursor:pointer;font-size:16px">🔄</button>
-      <span style="font-size:9px;font-weight:700;color:var(--accent);background:var(--accent2);padding:2px 7px;border-radius:999px;border:1px solid var(--accent)">v2.9.8</span>
+      <span style="font-size:9px;font-weight:700;color:var(--accent);background:var(--accent2);padding:2px 7px;border-radius:999px;border:1px solid var(--accent)">v2.9.9</span>
     </div>
   </div>
 
@@ -407,17 +407,13 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     </div>
   </div>
 
-  <!-- Today's Activity — follow-ups, events, SIP/review/anniversary due, all clubbed -->
+  <!-- Today's Activity — follow-ups, events, SIP/review/anniversary/birthdays due today, all clubbed. Made visually prominent: bordered accent card, bigger than the sections below. -->
   <div class="sec">
-    <div class="lbl" style="color:var(--accent)">📋 Today's Activity</div>
-    <div id="dash-alert" style="display:none"></div>
-    <div id="dash-todays-activity"></div>
-  </div>
-
-  <!-- Client Stage Pipeline -->
-  <div class="sec">
-    <div class="lbl" style="color:var(--accent)">🎯 Client Stages — Pending</div>
-    <div id="dash-stage-table"></div>
+    <div style="background:var(--accent2);border:1.5px solid var(--accent);border-radius:14px;padding:14px 12px 10px">
+      <div class="lbl" style="color:var(--accent);margin-bottom:8px">📋 Today's Activity</div>
+      <div id="dash-alert" style="display:none"></div>
+      <div id="dash-todays-activity"></div>
+    </div>
   </div>
 
   <!-- Week Follow-up Planner -->
@@ -426,9 +422,15 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div id="dash-weekcal"><div style="font-size:11px;color:var(--t3);text-align:center;padding:8px">Loading...</div></div>
   </div>
 
-  <!-- Reminders -->
+  <!-- Client Stage Pipeline -->
+  <div class="sec">
+    <div class="lbl" style="color:var(--accent)">🎯 Client Stages — Pending</div>
+    <div id="dash-stage-table"></div>
+  </div>
+
+  <!-- Planning Nudges (forward-looking only — Today's Activity above covers same-day items) -->
   <div class="sec" id="dash-reminders-wrap">
-    <div class="lbl" style="color:var(--accent)">🔔 Reminders</div>
+    <div class="lbl" style="color:var(--accent)">🧭 Planning Nudges</div>
     <div id="dash-reminders"><div style="font-size:11px;color:var(--t3);text-align:center;padding:8px">Loading...</div></div>
   </div>
 </div>
@@ -562,7 +564,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div class="syc"><button class="btn btn-ghost btn-full" onclick="showSpecialDaysList()">📋 View Upcoming Special Days</button></div>
   </div>
 
-  <div style="text-align:center;padding:20px 0 40px;font-size:10px;color:var(--t3)">Wealth Matrix CRM v2.9.8</div>
+  <div style="text-align:center;padding:20px 0 40px;font-size:10px;color:var(--t3)">Wealth Matrix CRM v2.9.9</div>
 </div>
 </div>
 
@@ -5379,11 +5381,20 @@ function renderReminders(){
   }
   function waNum(c){var n=(c.mobile||'').replace(/\D/g,'');return n.length===10?'91'+n:n;}
 
-  // NOTE: SIP due (5 days) moved to the "Today's Activity" section on dashboard
-  // — no longer duplicated here.
+  // Same-day items (SIP, birthdays, anniversaries) live in "Today's Activity" above —
+  // this section is deliberately forward-looking only, so nothing shows in both places.
 
-  // ── Health insurance due within 30 days ──
-  var healthDue=clients.filter(function(c){var d=daysTo(c.dueDateHealth);return d>=0&&d<=30;});
+  // ── Review meetings due — next 14 days ──
+  var reviewDue14=clients.filter(function(c){var d=daysTo(c.reviewDate);return d>=0&&d<=14;});
+  if(reviewDue14.length){
+    items.push({icon:'📊',color:'#9b59b6',bg:'rgba(155,89,182,.08)',
+      title:'Review meeting due — '+reviewDue14.length+' client'+(reviewDue14.length>1?'s':''),
+      sub:reviewDue14.map(function(c){return toTitle(c.name)+' ('+fmt(c.reviewDate)+')';}).join(' · '),
+      list:reviewDue14, listType:'review'});
+  }
+
+  // ── Health insurance due within 45 days ──
+  var healthDue=clients.filter(function(c){var d=daysTo(c.dueDateHealth);return d>=0&&d<=45;});
   if(healthDue.length){
     items.push({icon:'🏥',color:'#e74c3c',bg:'rgba(231,76,60,.08)',
       title:'Health Insurance due — '+healthDue.length+' client'+(healthDue.length>1?'s':''),
@@ -5391,36 +5402,13 @@ function renderReminders(){
       list:healthDue, listType:'health'});
   }
 
-  // ── Life insurance due within 30 days ──
-  var lifeDue=clients.filter(function(c){var d=daysTo(c.dueDateLife);return d>=0&&d<=30;});
+  // ── Life insurance due within 45 days ──
+  var lifeDue=clients.filter(function(c){var d=daysTo(c.dueDateLife);return d>=0&&d<=45;});
   if(lifeDue.length){
     items.push({icon:'🛡️',color:'#9b59b6',bg:'rgba(155,89,182,.08)',
       title:'Life Insurance due — '+lifeDue.length+' client'+(lifeDue.length>1?'s':''),
       sub:lifeDue.map(function(c){return toTitle(c.name)+' ('+fmt(c.dueDateLife)+')';}).join(' · '),
       list:lifeDue, listType:'life'});
-  }
-
-  // ── Birthdays today ──
-  var bdays=clients.filter(function(c){return daysToAnnual(c.dob)===0;});
-  var sbdays=clients.filter(function(c){return daysToAnnual(c.spouseDob)===0;});
-  var allBdays=bdays.concat(sbdays);
-  if(allBdays.length){
-    items.push({icon:'🎂',color:'#25D366',bg:'rgba(37,211,102,.08)',
-      title:'Birthday today — '+allBdays.length+' client'+(allBdays.length>1?'s':''),
-      sub:allBdays.map(function(c){return toTitle(c.name);}).join(' · '),
-      list:allBdays, listType:'bday'});
-  }
-
-  // NOTE: Anniversary today moved to the "Today's Activity" section on
-  // dashboard — no longer duplicated here.
-
-  // ── 1st Anniversary today ──
-  var ann1s=clients.filter(function(c){return daysToAnnual(c.firstAnniversary)===0;});
-  if(ann1s.length){
-    items.push({icon:'🏆',color:'#2ecc71',bg:'rgba(46,204,113,.08)',
-      title:'1 Year Anniversary — '+ann1s.length+' client'+(ann1s.length>1?'s':''),
-      sub:ann1s.map(function(c){return toTitle(c.name);}).join(' · '),
-      list:ann1s, listType:'cas'});
   }
 
   // ── Upcoming Special Days (next 14 days) ──
@@ -5440,7 +5428,7 @@ function renderReminders(){
   }
 
   if(!items.length){
-    el.innerHTML='<div style="font-size:11px;color:var(--t3);text-align:center;padding:10px;font-style:italic">No reminders today 🎉</div>';
+    el.innerHTML='<div style="font-size:11px;color:var(--t3);text-align:center;padding:10px;font-style:italic">Nothing coming up in the near term 🎉</div>';
     return;
   }
 
@@ -6861,7 +6849,22 @@ function renderTodaysActivity(){
       action:'openFuOverlay()'});
   }
 
-  // ── 2. Events today (calendar events + calendar-sourced birthdays) ──
+  // ── 2. Special days today ──
+  if(typeof _specialDays !== 'undefined'){
+    var specialToday=_specialDays.filter(function(sd){
+      if(!sd.date) return false;
+      var p=sd.date.split('-'); if(p.length<3) return false;
+      return parseInt(p[1])-1===now.getMonth() && parseInt(p[2])===now.getDate();
+    });
+    if(specialToday.length){
+      items.push({icon:'📅',color:'#8e44ad',bg:'rgba(142,68,173,.08)',
+        title:specialToday.length+' special day'+(specialToday.length>1?'s':'')+' today',
+        sub:specialToday.map(function(sd){return sd.speciality;}).join(' · '),
+        action:'showSpecialDaysList()'});
+    }
+  }
+
+  // ── 3. Events today (calendar events + calendar-sourced birthdays) ──
   var todayEvents=calendarEventsOn(todayStr);
   if(todayEvents.length){
     var evCount=todayEvents.filter(function(e){return e.type!=='birthday';}).length;
@@ -6875,7 +6878,7 @@ function renderTodaysActivity(){
       list:todayEvents, listType:'calendarEvents'});
   }
 
-  // ── 3. SIP due next 5 days ──
+  // ── 4. SIP due next 5 days ──
   var sipDue=clients.filter(function(c){return c.sipDate&&daysToSip(c.sipDate)<=5&&daysToSip(c.sipDate)>=0&&!isSipReminderSent(c.mobile);});
   if(sipDue.length){
     items.push({icon:'💰',color:'#f39c12',bg:'rgba(243,156,18,.08)',
@@ -6884,16 +6887,16 @@ function renderTodaysActivity(){
       list:sipDue, listType:'sip'});
   }
 
-  // ── 4. Review meeting due next 30 days ──
-  var reviewDue=clients.filter(function(c){var d=daysTo(c.reviewDate);return d>=0&&d<=30;});
+  // ── 5. Review due TODAY (forward-looking reviews now live in Planning Nudges, next 14 days) ──
+  var reviewDue=clients.filter(function(c){return daysTo(c.reviewDate)===0;});
   if(reviewDue.length){
     items.push({icon:'📊',color:'#9b59b6',bg:'rgba(155,89,182,.08)',
-      title:'Review meeting due — '+reviewDue.length+' client'+(reviewDue.length>1?'s':''),
-      sub:reviewDue.map(function(c){return toTitle(c.name)+' ('+fmt(c.reviewDate)+')';}).join(' · '),
+      title:'Review due today — '+reviewDue.length+' client'+(reviewDue.length>1?'s':''),
+      sub:reviewDue.map(function(c){return toTitle(c.name);}).join(' · '),
       list:reviewDue, listType:'review'});
   }
 
-  // ── 5. Anniversary today ──
+  // ── 6. Anniversary today ──
   var annsToday=clients.filter(function(c){return daysToAnnual(c.anniversary)===0;});
   if(annsToday.length){
     items.push({icon:'💑',color:'#3498db',bg:'rgba(52,152,219,.08)',
@@ -6902,7 +6905,27 @@ function renderTodaysActivity(){
       list:annsToday, listType:'ann'});
   }
 
-  // ── 6. Clients not contacted in 90+ days ──
+  // ── 7. Birthdays today ──
+  var bdaysToday=clients.filter(function(c){return daysToAnnual(c.dob)===0;});
+  var sbdaysToday=clients.filter(function(c){return daysToAnnual(c.spouseDob)===0;});
+  var allBdaysToday=bdaysToday.concat(sbdaysToday);
+  if(allBdaysToday.length){
+    items.push({icon:'🎂',color:'#25D366',bg:'rgba(37,211,102,.08)',
+      title:'Birthday today — '+allBdaysToday.length+' client'+(allBdaysToday.length>1?'s':''),
+      sub:allBdaysToday.map(function(c){return toTitle(c.name);}).join(' · '),
+      list:allBdaysToday, listType:'bday'});
+  }
+
+  // ── 8. 1st Anniversary today ──
+  var ann1sToday=clients.filter(function(c){return daysToAnnual(c.firstAnniversary)===0;});
+  if(ann1sToday.length){
+    items.push({icon:'🏆',color:'#2ecc71',bg:'rgba(46,204,113,.08)',
+      title:'1 Year Anniversary today — '+ann1sToday.length+' client'+(ann1sToday.length>1?'s':''),
+      sub:ann1sToday.map(function(c){return toTitle(c.name);}).join(' · '),
+      list:ann1sToday, listType:'cas'});
+  }
+
+  // ── 9. Clients not contacted in 90+ days ──
   var stale90=clients.filter(function(c){return clientDaysSinceContact(c)>90;});
   if(stale90.length){
     items.push({icon:'\u23F0',color:'#e67e22',bg:'rgba(230,126,34,.08)',
