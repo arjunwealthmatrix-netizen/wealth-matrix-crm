@@ -12,7 +12,7 @@
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <meta name="theme-color" content="#C0392B">
-<title>Wealth Matrix CRM v2.9.7</title>
+<title>Wealth Matrix CRM v2.9.8</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -382,7 +382,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div style="display:flex;align-items:center;gap:8px">
       <button onclick="toggleDark()" style="background:none;border:none;cursor:pointer;font-size:16px" id="dark-btn">🌙</button>
       <button onclick="manualSync()" style="background:none;border:none;cursor:pointer;font-size:16px">🔄</button>
-      <span style="font-size:9px;font-weight:700;color:var(--accent);background:var(--accent2);padding:2px 7px;border-radius:999px;border:1px solid var(--accent)">v2.9.7</span>
+      <span style="font-size:9px;font-weight:700;color:var(--accent);background:var(--accent2);padding:2px 7px;border-radius:999px;border:1px solid var(--accent)">v2.9.8</span>
     </div>
   </div>
 
@@ -562,7 +562,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div class="syc"><button class="btn btn-ghost btn-full" onclick="showSpecialDaysList()">📋 View Upcoming Special Days</button></div>
   </div>
 
-  <div style="text-align:center;padding:20px 0 40px;font-size:10px;color:var(--t3)">Wealth Matrix CRM v2.9.7</div>
+  <div style="text-align:center;padding:20px 0 40px;font-size:10px;color:var(--t3)">Wealth Matrix CRM v2.9.8</div>
 </div>
 </div>
 
@@ -4252,9 +4252,20 @@ async function runHealthCheck(){
   if(mineLg.length===0) ok('Deleted the exact log row by Raw ID');
   else no('Delete-by-Raw-ID failed');
 
-  // 5. CLIENTS: add / dedupe / delete
-  log(''); log('\u2501\u2501 5. Clients (add \u00B7 dedupe \u00B7 delete) \u2501\u2501');
-  var tClient={name:'HEALTHCHECK CLIENT',mobile:TMOB2,email:'TEST@X.COM',country:'INDIA',stage:'KYC PENDING',lastContacted:today()};
+  // 5. CLIENTS: add / dedupe / delete / full field-mapping
+  log(''); log('\u2501\u2501 5. Clients (add \u00B7 dedupe \u00B7 delete \u00B7 all fields) \u2501\u2501');
+  var tClient={
+    name:'HEALTHCHECK CLIENT', mobile:TMOB2, email:'TEST@X.COM', country:'INDIA',
+    source:'HEALTHCHECK', referral:'SELF TEST', nextFollowUp:today(),
+    age:'31', gender:'MALE', remarks:'FIELD TEST REMARKS', createdDate:today(),
+    pan:'ABCDE1234F', dob:'1994-05-15', spouseDob:'1995-06-20', anniversary:'2018-11-10',
+    convertedDate:today(), reviewDate:today(), firstAnniversary:today(),
+    appInstalled:true, broadcastAdded:true,
+    sipDate:'15', healthInsurance:'TEST HEALTH PLAN', lifeInsurance:'TEST LIFE PLAN',
+    willDone:true, dueDateHealth:today(), dueDateLife:today(),
+    aum:'25L', potentialAum:'10.50', welcomeSent:true, products:'INVESTMENT, WILL',
+    lastContacted:today(), stage:'KYC PENDING', uploadToken:''
+  };
   var cRow=null;
   try{ cRow=(typeof clientToRow==='function')?clientToRow(tClient):null; }catch(e){ cRow=null; }
   if(cRow){
@@ -4267,12 +4278,15 @@ async function runHealthCheck(){
     else if(mineC.length>1) no('Client duplicated ('+mineC.length+') \u2014 deploy v2.8');
     else no('Client not found after add');
     if(mineC.length>=1){
-      var gotLC=String(mineC[0][30]||'').trim();      // AE / col 31
-      var gotStage=String(mineC[0][31]||'').trim().toUpperCase(); // AF / col 32
-      if(gotLC===today()) ok('Last Contacted (col AE) writes/reads correctly');
-      else no('Last Contacted mismatch \u2014 got "'+gotLC+'" (check AE column position)');
-      if(gotStage==='KYC PENDING') ok('Stage (col AF) writes/reads correctly');
-      else no('Stage mismatch \u2014 got "'+gotStage+'" (check AF column position)');
+      var gotRow=mineC[0], wantRow=cRow, missF=[];
+      var colLetter=function(i){ return i<26 ? String.fromCharCode(65+i) : String.fromCharCode(64+Math.floor(i/26))+String.fromCharCode(65+(i%26)); };
+      for(var cci=0;cci<wantRow.length;cci++){
+        var wantV=String(wantRow[cci]||'').trim().toLowerCase();
+        var gotV=String(gotRow[cci]||'').trim().toLowerCase();
+        if(wantV!==gotV) missF.push(CLIENT_HDRS[cci]+' (col '+colLetter(cci)+', expected "'+wantRow[cci]+'" got "'+(gotRow[cci]||'')+'")');
+      }
+      if(missF.length===0) ok('All '+wantRow.length+' client fields map to the right columns');
+      else missF.forEach(function(m){ no('Field mismatch: '+m); });
     }
     await sheetWrite({action:'deleteClient',mobile:TMOB2});
     await sleep(400);
