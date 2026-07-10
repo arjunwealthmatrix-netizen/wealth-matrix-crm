@@ -11,57 +11,45 @@
 <meta name="apple-mobile-web-app-title" content="WM CRM">
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-192.png">
-<meta name="theme-color" content="#C0392B">
-<title>Wealth Matrix CRM v2.9.9</title>
+<meta name="theme-color" content="#000000">
+<title>Wealth Matrix CRM v3.0.1</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
-  /* Wealth Matrix — Black & White with Crimson accent only */
+  /* Wealth Matrix — Black base, navy surfaces, white as the single accent. No crimson. */
   --bg:#000000;
-  --s1:#111111;
-  --s2:#1A1A1A;
-  --s3:#222222;
-  --border:#2A2A2A;
-  --border2:#333333;
-  --accent:#C0392B;
-  --accent2:rgba(192,57,43,.12);
-  --accent-light:#E74C3C;
-  --gold:#C0392B;
-  --gold2:rgba(192,57,43,.12);
+  --s1:#0F1D2E;
+  --s2:#16283D;
+  --s3:#1C3347;
+  --border:#1C2B3E;
+  --border2:#2A3F56;
+  --accent:#FFFFFF;
+  --accent2:rgba(255,255,255,.12);
+  --accent-light:#FFFFFF;
+  --gold:#FFFFFF;
+  --gold2:rgba(255,255,255,.12);
   --text:#FFFFFF;
-  --t2:#AAAAAA;
-  --t3:#666666;
-  --green:#C0392B;
-  --gdim:rgba(192,57,43,.12);
-  --blue:#C0392B;
-  --bdim:rgba(192,57,43,.10);
-  --orange:#C0392B;
-  --odim:rgba(192,57,43,.10);
-  --red:#C0392B;
-  --rdim:rgba(192,57,43,.15);
-  --purple:#888888;
-  --pdim:rgba(136,136,136,.12);
-  --dropped:#555555;
-  --droppeddim:rgba(85,85,85,.15);
+  --t2:#8A9AB0;
+  --t3:#5C6B80;
+  --green:#FFFFFF;
+  --gdim:rgba(255,255,255,.12);
+  --blue:#FFFFFF;
+  --bdim:rgba(255,255,255,.10);
+  --orange:#FFFFFF;
+  --odim:rgba(255,255,255,.10);
+  --red:#FFFFFF;
+  --rdim:rgba(255,255,255,.15);
+  --purple:#8A9AB0;
+  --pdim:rgba(138,154,176,.12);
+  --dropped:#5C6B80;
+  --droppeddim:rgba(92,107,128,.15);
   --r:12px;--r2:8px;
   --shell-w:520px; /* adaptive shell width — widened at tablet/desktop breakpoints below */
-}
-.dark-mode{
-  --bg:#F5F5F5;
-  --s1:#FFFFFF;
-  --s2:#EEEEEE;
-  --s3:#E0E0E0;
-  --border:#CCCCCC;
-  --border2:#AAAAAA;
-  --text:#000000;
-  --t2:#444444;
-  --t3:#888888;
 }
 html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;overscroll-behavior:none;-webkit-font-smoothing:antialiased;transition:background .2s,color .2s}
 #app{display:flex;flex-direction:column;height:100dvh;height:100vh;max-width:var(--shell-w);margin:0 auto;position:relative;overflow-x:hidden}
 #content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:calc(72px + env(safe-area-inset-bottom, 10px))}
 #nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:calc(100% - 24px);max-width:calc(var(--shell-w) - 24px);background:rgba(12,20,32,.97);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--border);border-radius:14px 14px 0 0;display:flex;justify-content:center;z-index:100;padding:6px 16px env(safe-area-inset-bottom,8px);min-height:60px;gap:2px}
-.dark-mode #nav{background:rgba(248,250,252,.97)}
 .nb{flex:1;max-width:68px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 2px;font-size:10px;font-weight:700;color:var(--t3);cursor:pointer;border:none;background:none;gap:3px;transition:color .2s}
 .nb.active{color:var(--accent)}
 .nb svg{width:23px;height:23px;flex-shrink:0}
@@ -76,29 +64,29 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .card{background:var(--s1);border-radius:var(--r);border:1px solid var(--border);overflow:hidden}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:10px 16px;border-radius:var(--r2);border:none;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .12s,transform .08s;text-decoration:none;white-space:nowrap}
 .btn:active{transform:scale(.97)}
-.btn-gold{background:var(--accent);color:#FFFFFF}
+.btn-gold{background:var(--accent);color:#000000}
 .btn-ghost{background:var(--s2);color:var(--text);border:1px solid var(--border)}
 .btn-wa{background:#25D366;color:#fff}
-.btn-red{background:var(--accent2);color:var(--accent);border:1px solid rgba(192,57,43,.3)}
+.btn-red{background:var(--accent2);color:var(--accent);border:1px solid rgba(255,255,255,.3)}
 .btn-blue{background:var(--s2);color:var(--t2);border:1px solid var(--border2)}
-.btn-green{background:var(--accent2);color:var(--accent);border:1px solid rgba(192,57,43,.3)}
+.btn-green{background:var(--accent2);color:var(--accent);border:1px solid rgba(255,255,255,.3)}
 .btn-full{width:100%;display:flex}
 .pill{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700}
 .pill-prospect{background:rgba(255,255,255,.08);color:#888888}
 .pill-contacted{background:rgba(255,255,255,.1);color:#AAAAAA}
 .pill-inprogress{background:rgba(255,255,255,.1);color:#CCCCCC}
-.pill-converted{background:rgba(192,57,43,.15);color:var(--accent)}
+.pill-converted{background:rgba(255,255,255,.15);color:var(--accent)}
 .pill-dropped{background:rgba(85,85,85,.15);color:#555555}
 .sbox{width:100%;background:var(--s1);border:1px solid var(--border);border-radius:var(--r2);padding:9px 12px;color:var(--text);font-family:inherit;font-size:14px;outline:none;-webkit-appearance:none}
 .sbox:focus{border-color:var(--accent)}
 .chips{display:flex;gap:6px;padding:0 12px 9px;overflow-x:auto;scrollbar-width:none}
 .chips::-webkit-scrollbar{display:none}
 .chip{flex-shrink:0;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;border:1px solid var(--border);background:var(--s1);color:var(--t2);cursor:pointer;white-space:nowrap}
-.chip.active{background:var(--accent);color:#FFFFFF;border-color:var(--accent)}
+.chip.active{background:var(--accent);color:#000000;border-color:var(--accent)}
 .li{padding:11px 12px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:10px;cursor:pointer;transition:background .1s}
 .li:active{background:var(--s2)}
 .li.selected{background:var(--bdim);border-left:3px solid var(--blue)}
-.av{width:36px;height:36px;min-width:36px;border-radius:50%;background:rgba(192,57,43,.15);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:var(--accent)}
+.av{width:36px;height:36px;min-width:36px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:var(--accent)}
 .li-info{flex:1;min-width:0}
 .li-name{font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .li-meta{font-size:11px;color:var(--t2);margin-top:1px}
@@ -148,7 +136,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .pt{background:var(--bg);border:1px solid var(--border);border-radius:var(--r2);padding:7px 8px;font-size:11px;font-weight:600;color:var(--t2);cursor:pointer;text-align:center;-webkit-user-select:none;user-select:none;transition:all .1s}
 .pt.on{background:var(--bdim);border-color:var(--blue);color:var(--blue)}
 .dt-hdr{padding:12px;display:flex;gap:10px;align-items:flex-start}
-.dt-av{width:44px;height:44px;min-width:44px;border-radius:50%;background:rgba(192,57,43,.2);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;color:var(--accent)}
+.dt-av{width:44px;height:44px;min-width:44px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;color:var(--accent)}
 .dt-name{font-size:17px;font-weight:800}
 .dt-sub{font-size:11px;color:var(--t2);margin-top:2px}
 .dr{display:flex;justify-content:space-between;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--border)}
@@ -176,8 +164,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .ci-av{width:36px;height:36px;min-width:36px;border-radius:50%;background:var(--gdim);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:var(--green)}
 
 /* Floating Add Button */
-.fab{position:fixed;bottom:86px;right:max(18px, calc(50vw - var(--shell-w)/2 + 18px));width:54px;height:54px;border-radius:50%;background:var(--accent);color:#0C1420;border:none;font-size:26px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(192,57,43,.5);z-index:150;transition:transform .15s,box-shadow .15s;-webkit-user-select:none;user-select:none}
-.fab:active{transform:scale(.92);box-shadow:0 2px 8px rgba(192,57,43,.3)}
+.fab{position:fixed;bottom:86px;right:max(18px, calc(50vw - var(--shell-w)/2 + 18px));width:54px;height:54px;border-radius:50%;background:var(--accent);color:#0C1420;border:none;font-size:26px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(255,255,255,.5);z-index:150;transition:transform .15s,box-shadow .15s;-webkit-user-select:none;user-select:none}
+.fab:active{transform:scale(.92);box-shadow:0 2px 8px rgba(255,255,255,.3)}
 .fab.hidden{display:none}
 #toast{position:fixed;bottom:152px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--s2);border:1px solid var(--border2);border-radius:999px;padding:7px 14px;font-size:12px;font-weight:600;opacity:0;transition:all .25s;z-index:999;white-space:nowrap;pointer-events:none;max-width:88vw;text-align:center}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -208,11 +196,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .goal-target{font-size:11px;color:var(--t3)}
 .goal-pct{font-size:11px;font-weight:700}
 /* Stale lead badge */
-.stale-badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:999px;font-size:10px;font-weight:700;background:var(--accent2);color:var(--accent);border:1px solid rgba(192,57,43,.3)}
+.stale-badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:999px;font-size:10px;font-weight:700;background:var(--accent2);color:var(--accent);border:1px solid rgba(255,255,255,.3)}
 /* Referral chip */
 .ref-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:999px;font-size:10px;font-weight:700;background:var(--s2);color:var(--t2)}
 .qlog-chip{padding:7px 11px;border-radius:999px;font-size:11px;font-weight:600;border:1px solid var(--border2);background:var(--s1);color:var(--text);cursor:pointer;transition:all .12s;white-space:nowrap;-webkit-user-select:none;user-select:none;display:inline-flex;align-items:center;gap:4px}
-.qlog-chip:active{background:var(--accent);color:#fff;border-color:var(--accent);transform:scale(.95)}
+.qlog-chip:active{background:var(--accent);color:#000;border-color:var(--accent);transform:scale(.95)}
 .qlog-chip:hover{border-color:var(--accent);color:var(--accent)}
 /* Log entry types */
 .log-status{color:var(--t2)!important}
@@ -300,7 +288,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 
 <!-- APP LOCK SCREEN — shown before the app if a PIN/biometric lock is set up -->
 <div id="lock-screen" style="display:none;position:fixed;inset:0;z-index:2147483647;background:#0a0a0a;flex-direction:column;align-items:center;justify-content:center;padding:24px">
-  <div style="width:72px;height:72px;background:#C0392B;border-radius:18px;display:flex;align-items:center;justify-content:center;margin-bottom:20px">
+  <div style="width:72px;height:72px;background:#0F1D2E;border:1px solid #1C2B3E;border-radius:18px;display:flex;align-items:center;justify-content:center;margin-bottom:20px">
     <span style="font-size:26px;font-weight:900;color:#fff">WM</span>
   </div>
   <div style="font-size:17px;font-weight:800;color:#fff;margin-bottom:4px">Wealth Matrix CRM</div>
@@ -330,7 +318,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <button id="lock-backspace" style="width:64px;height:64px;border-radius:50%;border:none;background:none;color:#888;font-size:20px">⌫</button>
   </div>
 
-  <button id="lock-biometric-btn" style="display:none;margin-top:8px;background:none;border:1px solid #C0392B;border-radius:10px;padding:11px 22px;color:#C0392B;font-size:13px;font-weight:700;cursor:pointer">🔓 Unlock with Face ID / Fingerprint</button>
+  <button id="lock-biometric-btn" style="display:none;margin-top:8px;background:none;border:1px solid #FFFFFF;border-radius:10px;padding:11px 22px;color:#FFFFFF;font-size:13px;font-weight:700;cursor:pointer">🔓 Unlock with Face ID / Fingerprint</button>
   <div id="lock-error" style="margin-top:14px;font-size:12px;color:#e74c3c;min-height:16px"></div>
   <button id="lock-forgot-btn" style="margin-top:20px;background:none;border:none;color:#666;font-size:12px;text-decoration:underline;cursor:pointer">Forgot PIN? Tap to reset</button>
 </div>
@@ -358,7 +346,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   <div id="lead-totals" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 12px 10px"></div>
 
   <div style="display:flex;gap:5px;padding:0 12px 8px">
-    <button id="lsort-score-btn" onclick="setLeadSort('score')" style="flex:1;padding:6px 3px;font-size:10px;font-weight:700;border-radius:8px;border:1.5px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer">🔥 Score</button>
+    <button id="lsort-score-btn" onclick="setLeadSort('score')" style="flex:1;padding:6px 3px;font-size:10px;font-weight:700;border-radius:8px;border:1.5px solid var(--accent);background:var(--accent);color:#000;cursor:pointer">🔥 Score</button>
     <button id="lsort-potaum-btn" onclick="setLeadSort('potentialAum')" style="flex:1;padding:6px 3px;font-size:10px;font-weight:700;border-radius:8px;border:1.5px solid var(--border);background:transparent;color:var(--t2);cursor:pointer">💰 Pot. AUM ↓</button>
     <button id="lsort-sip-btn" onclick="setLeadSort('aum')" style="flex:1;padding:6px 3px;font-size:10px;font-weight:700;border-radius:8px;border:1.5px solid var(--border);background:transparent;color:var(--t2);cursor:pointer">📈 Pot. SIP ↓</button>
   </div>
@@ -367,8 +355,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   <div id="geo-filter-wrap" style="padding:4px 12px 8px"><select id="geo-dropdown" onchange="setFG(this.value)" style="width:100%;padding:9px 10px;font-size:12px;font-weight:600;color:var(--text);background:var(--s2);border:1px solid var(--border);border-radius:8px;-webkit-appearance:none;cursor:pointer"></select></div>
   <div id="lead-list"></div>
   <!-- FAB: Add Lead -->
-  <button onclick="openAddLead()" style="position:fixed;bottom:80px;right:18px;width:54px;height:54px;border-radius:50%;background:#C0392B;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:999;box-shadow:0 4px 16px rgba(192,57,43,0.45)" aria-label="Add lead">
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+  <button onclick="openAddLead()" style="position:fixed;bottom:80px;right:18px;width:54px;height:54px;border-radius:50%;background:#FFFFFF;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:999;box-shadow:0 4px 16px rgba(255,255,255,0.25)" aria-label="Add lead">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
   </button>
 </div>
 
@@ -376,13 +364,12 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 <div class="page active" id="pg-dash">
   <div class="ph">
     <div style="display:flex;align-items:center;gap:8px">
-      <div style="width:32px;height:32px;background:var(--accent);border-radius:4px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(192,57,43,.5)"><span style="font-size:12px;font-weight:900;color:#fff;letter-spacing:.5px">WM</span></div>
+      <div style="width:32px;height:32px;background:var(--accent);border-radius:4px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.5)"><span style="font-size:12px;font-weight:900;color:#000;letter-spacing:.5px">WM</span></div>
       <div><div style="font-size:15px;font-weight:900">Wealth Matrix</div><div style="font-size:9px;color:var(--t3);letter-spacing:1px;text-transform:uppercase">Prosper With Purpose</div></div>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
-      <button onclick="toggleDark()" style="background:none;border:none;cursor:pointer;font-size:16px" id="dark-btn">🌙</button>
       <button onclick="manualSync()" style="background:none;border:none;cursor:pointer;font-size:16px">🔄</button>
-      <span style="font-size:9px;font-weight:700;color:var(--accent);background:var(--accent2);padding:2px 7px;border-radius:999px;border:1px solid var(--accent)">v2.9.9</span>
+      <span style="font-size:9px;font-weight:700;color:var(--accent);background:var(--accent2);padding:2px 7px;border-radius:999px;border:1px solid var(--accent)">v3.0.1</span>
     </div>
   </div>
 
@@ -444,10 +431,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <button class="btn btn-ghost" style="padding:6px 10px;font-size:11px" onclick="toggleClientBulk()" id="client-select-btn">☑️</button>
   </div>
   <div style="display:flex;gap:6px;padding:0 12px 8px">
-    <button id="sort-aum-btn" onclick="setClientSort('aum')" style="flex:1;padding:7px 4px;font-size:11px;font-weight:700;border-radius:8px;border:1.5px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer">💰 AUM ↓</button>
+    <button id="sort-aum-btn" onclick="setClientSort('aum')" style="flex:1;padding:7px 4px;font-size:11px;font-weight:700;border-radius:8px;border:1.5px solid var(--accent);background:var(--accent);color:#000;cursor:pointer">💰 AUM ↓</button>
     <button id="sort-potaum-btn" onclick="setClientSort('potentialAum')" style="flex:1;padding:7px 4px;font-size:11px;font-weight:700;border-radius:8px;border:1.5px solid var(--border);background:transparent;color:var(--t2);cursor:pointer">📈 Potential AUM ↓</button>
   </div>
-  <div id="client-bulk-bar" style="display:none;padding:8px 12px;background:rgba(192,57,43,.08);border-bottom:1px solid var(--border);justify-content:space-between;align-items:center">
+  <div id="client-bulk-bar" style="display:none;padding:8px 12px;background:rgba(255,255,255,.08);border-bottom:1px solid var(--border);justify-content:space-between;align-items:center">
     <span id="client-sel-count" style="font-size:12px;font-weight:700;color:var(--accent)">0 selected</span>
     <div style="display:flex;gap:6px">
       <button class="btn btn-ghost" style="padding:5px 10px;font-size:11px" onclick="clientSelectAll()">All</button>
@@ -455,8 +442,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     </div>
   </div>
   <div id="client-list" style="padding:4px 12px 100px"></div>
-  <button onclick="openAddClient()" style="position:fixed;bottom:80px;right:18px;width:54px;height:54px;border-radius:50%;background:#C0392B;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:999;box-shadow:0 4px 16px rgba(192,57,43,0.45)" aria-label="Add client">
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+  <button onclick="openAddClient()" style="position:fixed;bottom:80px;right:18px;width:54px;height:54px;border-radius:50%;background:#FFFFFF;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:999;box-shadow:0 4px 16px rgba(255,255,255,0.25)" aria-label="Add client">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
   </button>
 </div>
 
@@ -564,7 +551,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div class="syc"><button class="btn btn-ghost btn-full" onclick="showSpecialDaysList()">📋 View Upcoming Special Days</button></div>
   </div>
 
-  <div style="text-align:center;padding:20px 0 40px;font-size:10px;color:var(--t3)">Wealth Matrix CRM v2.9.9</div>
+  <div style="text-align:center;padding:20px 0 40px;font-size:10px;color:var(--t3)">Wealth Matrix CRM v3.0.1</div>
 </div>
 </div>
 
@@ -593,7 +580,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 </div>
 
   
-  <div id="client-bulk-bar" style="display:none;padding:8px 12px;background:rgba(192,57,43,.08);border-bottom:1px solid var(--border);justify-content:space-between">
+  <div id="client-bulk-bar" style="display:none;padding:8px 12px;background:rgba(255,255,255,.08);border-bottom:1px solid var(--border);justify-content:space-between">
     <span id="client-sel-count" style="font-size:12px;font-weight:700;color:var(--accent)">0 selected</span>
     <div style="display:flex;gap:6px">
       <button class="btn btn-ghost" style="padding:5px 10px;font-size:11px" onclick="clientSelectAll()">All</button>
@@ -822,7 +809,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div style="background:var(--s1);border-radius:10px;padding:12px 14px;margin-bottom:10px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
         <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.6px">PRODUCTS</div>
-        <span id="cf-prod-badge" style="font-size:9px;background:rgba(192,57,43,.15);color:var(--accent);border-radius:99px;padding:2px 7px;font-weight:700">Auto-filled from lead</span>
+        <span id="cf-prod-badge" style="font-size:9px;background:rgba(255,255,255,.15);color:var(--accent);border-radius:99px;padding:2px 7px;font-weight:700">Auto-filled from lead</span>
       </div>
       <div class="ptoggle-grid" id="cf-products">
         <div class="pt" data-p="INVESTMENT" onclick="tp(this)">📈 Investment</div>
@@ -1088,8 +1075,6 @@ function bumpM(mob){var l=leads.find(function(x){return x.mobile===mob;});if(l){
 // ═══════════════════════════════════════════════
 // DARK MODE
 // ═══════════════════════════════════════════════
-function toggleDark(){var isDark=document.body.classList.toggle('dark-mode');document.getElementById('dark-btn').textContent=isDark?'☀️':'🌙';cfg('darkMode',isDark);}
-function applyDarkMode(){if(cfg_.darkMode){document.body.classList.add('dark-mode');var b=document.getElementById('dark-btn');if(b)b.textContent='☀️';}}
 function hideLoading(){}
 
 // ═══════════════════════════════════════════════
@@ -1428,22 +1413,18 @@ function renderClients(){
     return;
   }
 
-  // Avatar accent colours — cycles through 5
+  // Avatar accent — single navy/white treatment (was a 5-color cycle; collapsed for the 3-color palette)
   var avatarColors=[
-    {bg:'rgba(192,57,43,.12)', border:'#C0392B', text:'#C0392B'},
-    {bg:'rgba(46,204,113,.1)',  border:'#2ecc71', text:'#2ecc71'},
-    {bg:'rgba(52,152,219,.1)',  border:'#3498db', text:'#3498db'},
-    {bg:'rgba(231,76,60,.1)',   border:'#e74c3c', text:'#e74c3c'},
-    {bg:'rgba(243,156,18,.1)',  border:'#f39c12', text:'#f39c12'}
+    {bg:'rgba(255,255,255,.10)', border:'#5C6B80', text:'#FFFFFF'}
   ];
 
   // Alternating card backgrounds
-  var cardBg=['#111111','#0d0d0d'];
+  var cardBg=['#0F1D2E','#0A1622'];
 
   cl.innerHTML=arr.map(function(c,i){
     var ac=avatarColors[i%avatarColors.length];
     var bg=cardBg[i%2];
-    var borderColor=i%2===0?'#1e1e1e':'#181818';
+    var borderColor=i%2===0?'#1C2B3E':'#162333';
     var sel=selectedClients.has(c.mobile);
     var clickFn=clientBulkMode?'toggleClientSelect(\''+c.mobile+'\')':'openDetail(\''+c.mobile+'\',\'client\')';
     var initials=ini(c.name);
@@ -1451,7 +1432,7 @@ function renderClients(){
     var prods=(c.products||'').trim();
 
     return '<div onclick="'+clickFn+'" style="background:'+bg+';border:1px solid '+borderColor+';border-radius:14px;padding:12px 14px;display:flex;gap:12px;align-items:flex-start;cursor:pointer;margin-bottom:8px;transition:opacity .15s">'
-      +(clientBulkMode?'<div style="width:22px;height:22px;border-radius:50%;border:2px solid var(--accent);background:'+(sel?'var(--accent)':'transparent')+';display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:9px">'+(sel?'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>':'')+'</div>':'')
+      +(clientBulkMode?'<div style="width:22px;height:22px;border-radius:50%;border:2px solid var(--accent);background:'+(sel?'var(--accent)':'transparent')+';display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:9px">'+(sel?'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>':'')+'</div>':'')
       +'<div style="width:42px;height:42px;border-radius:50%;background:'+ac.bg+';border:1.5px solid '+ac.border+';display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:'+ac.text+';flex-shrink:0">'+initials+'</div>'
       +'<div style="flex:1;min-width:0">'
         +'<div style="display:flex;justify-content:space-between;align-items:center;gap:6px">'
@@ -1572,7 +1553,7 @@ function openDetail(mob,type){
     + '</div></div>'
     + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;padding:0 14px 14px">'
     + '<button data-revert="'+mob+'" style="background:none;border:1px solid var(--border);border-radius:8px;padding:10px 4px;color:var(--t2);font-size:10px;font-weight:700;cursor:pointer">← Back to<br>In Progress</button>'
-    + '<button data-editclient="'+mob+'" style="background:var(--accent);border:none;border-radius:8px;padding:10px 4px;color:#fff;font-size:10px;font-weight:700;cursor:pointer">✏️ Modify</button>'
+    + '<button data-editclient="'+mob+'" style="background:var(--accent);border:none;border-radius:8px;padding:10px 4px;color:#000;font-size:10px;font-weight:700;cursor:pointer">✏️ Modify</button>'
     + '<button data-delclient="'+mob+'" style="background:none;border:1px solid #e74c3c;border-radius:8px;padding:10px 4px;color:#e74c3c;font-size:10px;font-weight:700;cursor:pointer">🗑 Delete</button>'
     + '</div>';
   document.getElementById('detail-sh').innerHTML = html;  // ← was missing!
@@ -1846,7 +1827,7 @@ async function autoConvert(l){
 
 function showConvertedBanner(name){
   var banner=document.createElement('div');
-  banner.style.cssText='position:fixed;top:0;left:0;right:0;z-index:9999;background:var(--accent);color:#fff;padding:18px 20px;text-align:center;font-weight:800;font-size:15px;box-shadow:0 4px 20px rgba(0,0,0,.5)';
+  banner.style.cssText='position:fixed;top:0;left:0;right:0;z-index:9999;background:var(--accent);color:#000;padding:18px 20px;text-align:center;font-weight:800;font-size:15px;box-shadow:0 4px 20px rgba(0,0,0,.5)';
   banner.innerHTML='🎉 '+name+' successfully converted!<br><span style="font-size:11px;font-weight:400;opacity:.85">Added to Clients. Go to Clients tab to fill details.</span>';
   document.body.appendChild(banner);
   setTimeout(function(){
@@ -2582,7 +2563,7 @@ function renderLeads(){
   var html=arr.length?arr.map(function(l){
     var d=daysAgo(l.modifiedDate||l.createdDate);var fd=parseInt(cfg_.followUpDays)||14;var hot=['PROSPECT','CONTACTED','IN PROGRESS'].includes((l.status||'').toUpperCase())&&d>=fd;
     var sel=selectedLeads.has(l.mobile);var lastRem=lastRemarkSummary(l.remarks);
-    var badge=heatBadge(l);var aumTag=l.aum?'<span style="font-size:9px;color:var(--accent);background:var(--accent2);border:1px solid rgba(192,57,43,.25);border-radius:999px;padding:1px 6px;margin-left:4px">'+aumDisplay(l.aum)+'</span>':'';
+    var badge=heatBadge(l);var aumTag=l.aum?'<span style="font-size:9px;color:var(--accent);background:var(--accent2);border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:1px 6px;margin-left:4px">'+aumDisplay(l.aum)+'</span>':'';
     var potAumTag=l.potentialAum?'<span style="font-size:9px;color:#2ecc71;background:rgba(46,204,113,.1);border:1px solid rgba(46,204,113,.3);border-radius:999px;padding:1px 6px;margin-left:4px">\uD83D\uDCB0'+aumDisplay(l.potentialAum)+'</span>':'';
     return '<div class="li'+(sel?' selected':'')+'" onclick="'+(bulkMode?'toggleSelect(\''+l.mobile+'\')':'openDetail(\''+l.mobile+'\',\'lead\')')+'">'
       +(bulkMode?'<div style="width:20px;height:20px;border-radius:50%;border:2px solid var(--accent);background:'+(sel?'var(--accent)':'transparent')+';display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:8px">'+(sel?'<svg width="10" height="10" viewBox="0 0 24 24" fill="white"><path d="M20 6L9 17l-5-5"/></svg>':'')+'</div>':'')
@@ -2907,7 +2888,7 @@ function renderFuDetailInner(mob){
   var fuColor=!hasCurrent?'var(--t3)':fuDays<=0?'var(--accent)':fuDays<=3?'#FFB300':'#888';
 
   // Status tabs
-  var statusOpts=[['PROSPECT','#C0C0C0'],['CONTACTED','#4FC3F7'],['IN PROGRESS','#FFB300'],['CONVERTED','#C0392B'],['DROPPED','#888888']];
+  var statusOpts=[['PROSPECT','#C0C0C0'],['CONTACTED','#4FC3F7'],['IN PROGRESS','#FFB300'],['CONVERTED','#FFFFFF'],['DROPPED','#888888']];
   var statusHtml='<div style="display:flex;overflow-x:auto;scrollbar-width:none;border-bottom:2px solid var(--border);padding:0 14px">'
     +statusOpts.map(function(x){
       var active=(l.status||'').toUpperCase()===x[0];
@@ -3311,7 +3292,7 @@ function makeFuItem(l,itemType){
   var sColor=sColors[(l.status||'').toUpperCase()]||'#777';
   var borderStyle=itemType==='overdue'?'border-left:3px solid var(--accent);':'';
   var heatTag='<span style="font-size:10px;font-weight:700;color:'+heat.color+'">'+heat.emoji+' '+heat.label+'</span>';
-  var aumTag=l.aum?'<span style="font-size:9px;color:var(--accent);font-weight:700;background:var(--accent2);border:1px solid rgba(192,57,43,.25);border-radius:999px;padding:1px 5px">'+aumDisplay(l.aum)+'</span>':'';
+  var aumTag=l.aum?'<span style="font-size:9px;color:var(--accent);font-weight:700;background:var(--accent2);border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:1px 5px">'+aumDisplay(l.aum)+'</span>':'';
   var curDate=l.nextFollowUp&&/^\d{4}-\d{2}-\d{2}$/.test(l.nextFollowUp)?l.nextFollowUp:'';
   var fuColor=!curDate?'var(--t3)':fuDue?'var(--accent)':daysUntil(curDate)<=3?'#FFB300':'#888';
 
@@ -3429,7 +3410,7 @@ function renderFU(){
     updateFUBadge();
     return;
   }
-  var html = '<div style="padding:7px 14px 5px;background:rgba(192,57,43,.08);border-bottom:1px solid var(--border)">'
+  var html = '<div style="padding:7px 14px 5px;background:rgba(255,255,255,.08);border-bottom:1px solid var(--border)">'
     + '<div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase">'
     + '🔴 ' + due.length + ' Due — sorted by value</div></div>';
   html += due.map(function(l){ return makeFuItem(l,'overdue'); }).join('');
@@ -5317,7 +5298,7 @@ function checkStaleAumPopup(){
     +'</div>'
     +'<div style="display:flex;border-top:1px solid var(--border)">'
     +'<button id="_staleClose" style="flex:1;padding:13px;border:none;background:none;color:var(--t2);cursor:pointer;border-right:1px solid var(--border);font-size:12px">Dismiss</button>'
-    +'<button id="_staleView" style="flex:1;padding:13px;border:none;background:var(--accent);color:#fff;font-weight:700;cursor:pointer;font-size:12px">View All ('+stale.length+')</button>'
+    +'<button id="_staleView" style="flex:1;padding:13px;border:none;background:var(--accent);color:#000;font-weight:700;cursor:pointer;font-size:12px">View All ('+stale.length+')</button>'
     +'</div></div>';
   document.body.appendChild(ov);
   document.getElementById('_staleClose').onclick=function(){ov.remove();};
@@ -5771,21 +5752,21 @@ function renderWeekCalendar(){
     days.push({dateStr:dateStr, dayName:dayName, dayNum:dayNum, fuCount:fuCount, evCount:evCount});
   }
 
-  // Larger squares, arranged 4-per-row (2 rows: 4 + 3) — follow-ups and
+  // Compact squares, arranged 4-per-row (2 rows: 4 + 3) — follow-ups and
   // calendar events shown as two SEPARATE, clearly labeled pills, never merged
-  var html='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">';
+  var html='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">';
   days.forEach(function(d){
     var hasAny=d.fuCount>0||d.evCount>0;
     var bg=hasAny?'var(--s1)':'var(--s2)';
     var border=hasAny?'var(--accent)':'var(--border)';
-    html+='<div class="wk-day" data-wkdate="'+d.dateStr+'" style="background:'+bg+';border:1.5px solid '+border+';border-radius:14px;padding:12px 6px;text-align:center;cursor:pointer;min-height:104px;display:flex;flex-direction:column;justify-content:space-between">'
+    html+='<div class="wk-day" data-wkdate="'+d.dateStr+'" style="background:'+bg+';border:1.5px solid '+border+';border-radius:10px;padding:7px 4px;text-align:center;cursor:pointer;min-height:76px;display:flex;flex-direction:column;justify-content:space-between">'
       +'<div>'
-      +'<div style="font-size:11px;color:var(--t3);font-weight:700;text-transform:uppercase;letter-spacing:.3px">'+d.dayName+'</div>'
-      +'<div style="font-size:19px;font-weight:900;color:var(--text);margin:3px 0 6px">'+d.dayNum+'</div>'
+      +'<div style="font-size:9px;color:var(--t3);font-weight:700;text-transform:uppercase;letter-spacing:.3px">'+d.dayName+'</div>'
+      +'<div style="font-size:15px;font-weight:900;color:var(--text);margin:2px 0 4px">'+d.dayNum+'</div>'
       +'</div>'
-      +'<div style="display:flex;flex-direction:column;gap:4px">'
-      +'<div style="background:'+(d.fuCount>0?'rgba(192,57,43,.15)':'transparent')+';border:1px solid '+(d.fuCount>0?'var(--accent)':'transparent')+';border-radius:7px;padding:3px 4px;font-size:11px;font-weight:800;color:'+(d.fuCount>0?'var(--accent)':'var(--t3)')+'">📋 '+d.fuCount+' FU</div>'
-      +'<div style="background:'+(d.evCount>0?'rgba(79,195,247,.15)':'transparent')+';border:1px solid '+(d.evCount>0?'#4FC3F7':'transparent')+';border-radius:7px;padding:3px 4px;font-size:11px;font-weight:800;color:'+(d.evCount>0?'#4FC3F7':'var(--t3)')+'">📅 '+d.evCount+' Ev</div>'
+      +'<div style="display:flex;flex-direction:column;gap:3px">'
+      +'<div style="background:'+(d.fuCount>0?'rgba(255,255,255,.15)':'transparent')+';border:1px solid '+(d.fuCount>0?'var(--accent)':'transparent')+';border-radius:6px;padding:2px 3px;font-size:9px;font-weight:800;color:'+(d.fuCount>0?'var(--accent)':'var(--t3)')+'">📋 '+d.fuCount+' FU</div>'
+      +'<div style="background:'+(d.evCount>0?'rgba(79,195,247,.15)':'transparent')+';border:1px solid '+(d.evCount>0?'#4FC3F7':'transparent')+';border-radius:6px;padding:2px 3px;font-size:9px;font-weight:800;color:'+(d.evCount>0?'#4FC3F7':'var(--t3)')+'">📅 '+d.evCount+' Ev</div>'
       +'</div>'
       +'</div>';
   });
@@ -6309,8 +6290,8 @@ function unlockApp(){
 function updateLockDots(){
   var dots=document.querySelectorAll('.lock-dot');
   dots.forEach(function(d,i){
-    d.style.background = i<_lockPinBuffer.length ? '#C0392B' : 'transparent';
-    d.style.borderColor = i<_lockPinBuffer.length ? '#C0392B' : '#444';
+    d.style.background = i<_lockPinBuffer.length ? '#FFFFFF' : 'transparent';
+    d.style.borderColor = i<_lockPinBuffer.length ? '#FFFFFF' : '#444';
   });
 }
 
@@ -6693,7 +6674,7 @@ async function promptUploadDocsAfterSave(client){
     +'<div style="font-size:12px;color:var(--t2);line-height:1.5">PAN, Aadhaar, Passport, Resident ID, CAS and other documents can be collected two ways.</div>'
     +'</div>'
     +'<div style="display:flex;flex-direction:column;border-top:1px solid var(--border)">'
-    +'<button id="_udLink" style="padding:14px;border:none;border-bottom:1px solid var(--border);background:var(--accent);color:#fff;font-weight:700;cursor:pointer;font-size:13px">📤 Send Upload Link via WhatsApp</button>'
+    +'<button id="_udLink" style="padding:14px;border:none;border-bottom:1px solid var(--border);background:var(--accent);color:#000;font-weight:700;cursor:pointer;font-size:13px">📤 Send Upload Link via WhatsApp</button>'
     +'<button id="_udYes" style="padding:14px;border:none;border-bottom:1px solid var(--border);background:none;color:var(--text);font-weight:700;cursor:pointer;font-size:13px">📁 Upload Documents Myself</button>'
     +'<button id="_udNo" style="padding:12px;border:none;background:none;color:var(--t2);cursor:pointer;font-size:12px">Later</button>'
     +'</div></div>';
@@ -6710,7 +6691,7 @@ async function openUploadDocsScreen(client){
   ov.style.cssText='position:fixed;inset:0;z-index:9500;background:var(--bg);overflow-y:auto;display:flex;flex-direction:column';
   ov.innerHTML='<div style="display:flex;align-items:center;padding:14px;border-bottom:1px solid var(--border);background:var(--s1);position:sticky;top:0">'
     +'<div style="flex:1"><div style="font-size:16px;font-weight:800">Upload Documents</div><div style="font-size:11px;color:var(--t3);margin-top:2px">'+toTitle(client.name)+'</div></div>'
-    +'<button id="_udDone" style="background:var(--accent);border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;color:#fff;cursor:pointer">Done</button>'
+    +'<button id="_udDone" style="background:var(--accent);border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;color:#000;cursor:pointer">Done</button>'
     +'</div>'
     +'<div id="upload-docs-status" style="padding:10px 14px;font-size:11px;color:var(--t3);text-align:center">Setting up client folder...</div>'
     +'<div id="upload-docs-list" style="padding:0 14px"></div>';
@@ -6843,7 +6824,7 @@ function renderTodaysActivity(){
   });
   var fuTotal=dueLeads.length+dueClients.length;
   if(fuTotal>0){
-    items.push({icon:'🔔',color:'var(--accent)',bg:'rgba(192,57,43,.08)',
+    items.push({icon:'🔔',color:'var(--accent)',bg:'rgba(255,255,255,.08)',
       title:fuTotal+' follow-up'+(fuTotal>1?'s':'')+' due today',
       sub:'Tap to view — prioritised by value',
       action:'openFuOverlay()'});
@@ -7013,7 +6994,7 @@ try{var _sd=localStorage.getItem('wm_specialdays');if(_sd){var _sdo=JSON.parse(_
 try{_calendarEvents=JSON.parse(localStorage.getItem('wm_calendar_events')||'[]');}catch(e){_calendarEvents=[];}
 // Show lock screen FIRST if app lock is enabled — blocks the app until unlocked
 if(isLockEnabled()){ showLockScreen(); }
-load();applyDarkMode();loadActivityLog();bootSequenceV17();
+load();loadActivityLog();bootSequenceV17();
 // Load cached analytics
 try{_analyticsData=JSON.parse(localStorage.getItem('wm_analytics')||'[]');}catch(e){_analyticsData=[];}
 checkURLParams();
