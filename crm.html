@@ -12,7 +12,7 @@
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <meta name="theme-color" content="#000000">
-<title>Wealth Matrix CRM v3.0.6</title>
+<title>Wealth Matrix CRM v3.0.7</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -369,7 +369,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     </div>
     <div style="display:flex;align-items:center;gap:8px">
       <button onclick="manualSync()" style="background:none;border:none;cursor:pointer;font-size:16px">🔄</button>
-      <span style="font-size:9px;font-weight:700;color:var(--accent);background:var(--accent2);padding:2px 7px;border-radius:999px;border:1px solid var(--accent)">v3.0.6</span>
+      <span style="font-size:9px;font-weight:700;color:var(--accent);background:var(--accent2);padding:2px 7px;border-radius:999px;border:1px solid var(--accent)">v3.0.7</span>
     </div>
   </div>
 
@@ -538,7 +538,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div class="syc"><button class="btn btn-ghost btn-full" onclick="showSpecialDaysList()">📋 View Upcoming Special Days</button></div>
   </div>
 
-  <div style="text-align:center;padding:20px 0 40px;font-size:10px;color:var(--t3)">Wealth Matrix CRM v3.0.6</div>
+  <div style="text-align:center;padding:20px 0 40px;font-size:10px;color:var(--t3)">Wealth Matrix CRM v3.0.7</div>
 </div>
 </div>
 
@@ -5724,6 +5724,83 @@ function makeFuClientItem(c){
     +'</div>';
 }
 
+
+// ── Move a client back to Leads (undo an accidental/premature conversion) ──
+async function revertClientToLead(mob){
+  var c=clients.find(function(x){return x.mobile===mob;});
+  if(!c){toast('Client not found');return;}
+  if(!confirm('Move '+toTitle(c.name)+' back to In Progress? This removes them from Clients and adds them back to Leads.')) return;
+
+  // Build a lead object from the client's data
+  var newLead={
+    name:c.name||'', mobile:c.mobile||'', email:c.email||'',
+    age:c.age||'', country:c.country||'', gender:c.gender||'',
+    status:'IN PROGRESS',
+    source:c.source||'', referral:c.referral||'',
+    aum:c.aum||'', nextFollowUp:c.nextFollowUp||'',
+    products:c.products||'', contactMode:'Not contacted',
+    remarks:appendRemark(migrateRemarks(c.remarks||''), 'Reverted from Client to In Progress lead'),
+    modifiedDate:now(), createdDate:c.createdDate||today(),
+    geoTag:''
+  };
+
+  // Update local state
+  leads.unshift(newLead);
+  clients=clients.filter(function(x){return x.mobile!==mob;});
+  saveL(); saveC();
+
+  // Close chip window, refresh UI
+  closeOv('ov-detail');
+  renderLeads(); renderClients(); renderDash();
+
+  // Sync: add to LEADS sheet, delete from CLIENTS sheet (targeted, one row each)
+  await syncLead(newLead, 'add');
+  await syncClient(c, 'delete');
+
+  // Track in Analytics: +1 In Progress column
+  logAnalytics(4, 1); // 4 = In Progress
+
+  toast('\u2705 '+toTitle(c.name)+' moved back to In Progress');
+}
+
+// ── Delete client directly from the modify form ──
+async function deleteClientFromForm(){
+  var origMob=document.getElementById('cf-orig')?document.getElementById('cf-orig').value.trim():'';
+  if(!origMob){toast('No client selected');return;}
+  var c=clients.find(function(x){return x.mobile===origMob;});
+  if(!c){toast('Client not found');return;}
+  if(!confirm('Delete '+toTitle(c.name)+'? This cannot be undone.')) return;
+
+  clients=clients.filter(function(x){return x.mobile!==origMob;});
+  saveC();
+  closeOv('ov-client');
+  renderClients();
+  toast('Client deleted');
+  await syncClient(c,'delete'); // targeted — deletes only this row
+}
+
+// ── Google Calendar events — cached, pulled during boot ──
+var _calendarEvents = []; // [{date:'YYYY-MM-DD', title, time}, ...]
+
+async function pullCalendarEvents(){
+  if(!hasScript()) return;
+  try{
+    var now=new Date();
+    var start=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+    var endD=new Date(now.getTime()+8*86400000);
+    var end=endD.getFullYear()+'-'+String(endD.getMonth()+1).padStart(2,'0')+'-'+String(endD.getDate()).padStart(2,'0');
+    var res=await apiFetch({action:'getCalendarEvents', start:start, end:end});
+    if(res && res.events){
+      _calendarEvents=res.events;
+      localStorage.setItem('wm_calendar_events', JSON.stringify(_calendarEvents));
+    }
+  }catch(e){ console.warn('pullCalendarEvents failed:', e.message); }
+}
+
+// Get calendar events for one specific date (YYYY-MM-DD)
+function calendarEventsOn(dateStr){
+  return _calendarEvents.filter(function(e){return e.date===dateStr;});
+}
 
 // ── Shared LEADS row-parser — single source of truth, used by BOTH boot and manual sync ──
 // Prevents the two call sites from drifting out of sync with each other or with the sheet schema.
