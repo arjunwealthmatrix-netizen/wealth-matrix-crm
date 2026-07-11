@@ -12,7 +12,7 @@
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <meta name="theme-color" content="#000000">
-<title>Wealth Matrix CRM v3.0.5</title>
+<title>Wealth Matrix CRM v3.0.6</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -369,7 +369,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     </div>
     <div style="display:flex;align-items:center;gap:8px">
       <button onclick="manualSync()" style="background:none;border:none;cursor:pointer;font-size:16px">🔄</button>
-      <span style="font-size:9px;font-weight:700;color:var(--accent);background:var(--accent2);padding:2px 7px;border-radius:999px;border:1px solid var(--accent)">v3.0.5</span>
+      <span style="font-size:9px;font-weight:700;color:var(--accent);background:var(--accent2);padding:2px 7px;border-radius:999px;border:1px solid var(--accent)">v3.0.6</span>
     </div>
   </div>
 
@@ -523,19 +523,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div class="syc"><pre id="health-result" style="font-size:10px;background:var(--s2);border-radius:8px;padding:10px;white-space:pre-wrap;max-height:340px;overflow-y:auto;margin:0"></pre></div>
   </div>
 
-  <!-- Diagnostics (collapsible) -->
-  <div style="padding:0 12px;margin-bottom:7px;margin-top:14px" class="lbl">🔬 Diagnostics</div>
-  <div class="sg">
-    <div id="diag-del-result" style="font-size:10px;color:var(--text);white-space:pre-wrap;font-family:monospace;line-height:1.4;background:var(--bg);border-radius:6px;padding:8px;max-height:250px;overflow-y:auto;margin-bottom:6px"></div>
-    <div class="syc"><button class="btn btn-ghost btn-full" style="font-size:10px" onclick="diagActivityDelete()">🔍 Show log Raw IDs</button></div>
-    <div class="syc"><button class="btn btn-ghost btn-full" style="font-size:10px" onclick="diagLeadActivity()">🔬 Diagnose lead activity</button></div>
-    <div class="syc"><button class="btn btn-gold btn-full" style="font-size:11px;font-weight:700" onclick="diagClientsSheet()">🔬 Diagnose Clients Sheet</button></div>
-    <div class="syc"><pre id="diag-clients-result" style="font-size:10px;background:var(--s2);border-radius:8px;padding:10px;white-space:pre-wrap;max-height:300px;overflow-y:auto;margin:0"></pre></div>
-    <div class="syc"><button class="btn btn-gold btn-full" style="font-size:11px;font-weight:700" onclick="diagCalendar()">📅 Diagnose Calendar</button></div>
-    <div class="syc"><pre id="diag-cal-result" style="font-size:10px;background:var(--s2);border-radius:8px;padding:10px;white-space:pre-wrap;max-height:300px;overflow-y:auto;margin:0"></pre></div>
-    <div class="syc"><button class="btn btn-ghost btn-full" style="font-size:10px" onclick="testLeadPush()">🧪 Test lead write</button></div>
-  </div>
-
   <!-- Special Days -->
   <div style="padding:0 12px;margin-bottom:7px;margin-top:14px" class="lbl">📅 Special Days</div>
   <div class="sg">
@@ -551,7 +538,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div class="syc"><button class="btn btn-ghost btn-full" onclick="showSpecialDaysList()">📋 View Upcoming Special Days</button></div>
   </div>
 
-  <div style="text-align:center;padding:20px 0 40px;font-size:10px;color:var(--t3)">Wealth Matrix CRM v3.0.5</div>
+  <div style="text-align:center;padding:20px 0 40px;font-size:10px;color:var(--t3)">Wealth Matrix CRM v3.0.6</div>
 </div>
 </div>
 
@@ -1759,7 +1746,7 @@ async function saveClient(){
     });
   } else {
     // ── ADD new client ──
-    if(clients.find(function(c){return c.mobile===mob;})){toast('Mobile already exists');return;}
+    if(clients.find(function(c){return c.mobile===mob&&(c.name||'').toUpperCase().trim()===name.toUpperCase().trim();})){toast('A client with this exact name and mobile already exists');return;}
     data.createdDate=today();
     data.modifiedDate=now();
     clients.unshift(data); // newest at top
@@ -3531,7 +3518,7 @@ async function saveLead(){
     }
     editLead=null;
   }else{
-    if(leads.find(function(x){return x.mobile===mob;})){toast('Mobile already exists');return;}
+    if(leads.find(function(x){return x.mobile===mob&&(x.name||'').toUpperCase().trim()===name.toUpperCase().trim();})){toast('A lead with this exact name and mobile already exists');return;}
     var newLead={name:name,mobile:mob,email:email,country:country,age:age,gender:gender,
       status:status,source:source,referral:referral,products:prods,aum:aum,potentialAum:potentialAum,
       contactMode:contactMode,nextFollowUp:nextFU,remarks:remarks,geoTag:geoTag,notes:[],
@@ -4364,6 +4351,19 @@ async function runHealthCheck(){
   await sheetWrite({action:'deleteLead',mobile:TMOB});
   leads=leads.filter(function(x){return x.mobile!==TMOB;}); saveL();
 
+  // 11. CALENDAR & BIRTHDAY INTEGRATION
+  log(''); log('\u2501\u2501 11. Calendar & birthday integration \u2501\u2501');
+  try{
+    var calRes=await apiFetch({action:'diagnoseCalendars'});
+    if(calRes&&calRes.error){ no('Calendar check failed: '+calRes.error); }
+    else if(calRes){
+      ok('Default calendar: '+(calRes.defaultCalendarName||'(unnamed)'));
+      var bdayCalFound=(calRes.allCalendars||[]).some(function(c){return c.isBirthdayCalendar;});
+      if(bdayCalFound) ok('Birthday calendar detected \u2014 birthdays pull automatically');
+      else wn('No Birthday calendar found \u2014 check Google Contacts has birthdays saved');
+    } else { wn('Calendar check returned no response'); }
+  }catch(e){ wn('Calendar check error: '+e.message); }
+
   // SUMMARY
   log(''); log('\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501');
   log('RESULT: '+pass+' passed \u00B7 '+fail+' failed \u00B7 '+warn+' warnings');
@@ -4527,163 +4527,6 @@ async function pullLogForMobile(mob){
 
 
 
-async function diagActivityDelete(){
-  var el=document.getElementById('diag-del-result');
-  function log(m){ if(el) el.textContent+=m+'\n'; }
-  if(el) el.textContent='';
-  if(!hasScript()){ log('No script URL'); return; }
-  log('Reading ACTIVITY_LOG from sheet...');
-  try{
-    var resp=await fetch(cfg_.scriptUrl+'?tab=ACTIVITY_LOG&t='+Date.now());
-    var d=await resp.json();
-    if(!d.rows||d.rows.length<2){ log('Sheet has NO log rows.'); return; }
-    log('Header: '+JSON.stringify(d.rows[0]));
-    log('Total rows: '+(d.rows.length-1));
-    log('');
-    log('--- Rows in sheet (Timestamp | Mobile | Raw ID) ---');
-    for(var i=1;i<d.rows.length;i++){
-      var r=d.rows[i];
-      log((i)+'. ts="'+(r[0]||'')+'" mob="'+(r[2]||'')+'" rawid="'+(r[6]||'')+'"');
-    }
-    log('');
-    log('--- Local app entries ---');
-    activityLog.forEach(function(e,i){
-      log((i+1)+'. ts="'+(e.ts||'')+'" mob="'+(e.mobile||'')+'" rawid="'+(e.rowId||'')+'"');
-    });
-    log('');
-    log('Compare: does each local rawid match a sheet rawid in column G?');
-    activityLog.forEach(function(e){
-      var found=false;
-      for(var i=1;i<d.rows.length;i++){
-        if(String(d.rows[i][6]||'').trim()===String(e.rowId||'').trim() && e.rowId){ found=true; break; }
-      }
-      log('  local "'+(e.rowId||'(empty)')+'" → '+(found?'FOUND in sheet col G':'NOT in sheet'));
-    });
-  }catch(err){ log('ERROR: '+err.message); }
-}
-
-async function testDeleteFirstLog(){
-  var el=document.getElementById('diag-del-result');
-  function log(m){ if(el) el.textContent+=m+'\n'; }
-  if(el) el.textContent='';
-  if(activityLog.length===0){ log('No local activity to test with.'); return; }
-  var e=activityLog[0];
-  log('Attempting to delete FIRST log entry:');
-  log('  ts="'+e.ts+'" mob="'+e.mobile+'" rawid="'+(e.rowId||'(empty)')+'"');
-  log('');
-  log('Sending deleteLogById...');
-  var res=await sheetWrite({action:'deleteLogById', rowId:e.rowId||'', mobile:e.mobile, ts:e.ts, activity:e.activity});
-  log('Response: '+JSON.stringify(res));
-  log('');
-  log('Waiting 2s then re-reading sheet...');
-  await new Promise(function(r){setTimeout(r,2000);});
-  try{
-    var resp=await fetch(cfg_.scriptUrl+'?action=pullLog&mobile='+encodeURIComponent(e.mobile)+'&t='+Date.now());
-    var d=await resp.json();
-    var stillThere=(d.rows||[]).some(function(r){
-      return String(r[0]||'').trim()===String(e.ts).trim() && String(r[4]||'').trim()===String(e.activity).trim();
-    });
-    log(stillThere?'❌ STILL in sheet — delete did NOT work':'✅ GONE from sheet — delete worked!');
-  }catch(er){ log('Verify error: '+er.message); }
-}
-
-
-
-async function diagLeadActivity(){
-  var el=document.getElementById('diag-del-result');
-  function log(m){ if(el) el.textContent+=m+'\n'; }
-  if(el) el.textContent='';
-  if(!hasScript()){ log('No script URL'); return; }
-  var nameQuery=prompt('Enter part of the lead name (e.g. SHANAVAS):');
-  if(!nameQuery) return;
-  nameQuery=nameQuery.toUpperCase().trim();
-  var lead=leads.find(function(l){return (l.name||'').toUpperCase().includes(nameQuery);});
-  if(!lead){ log('No lead found matching "'+nameQuery+'"'); return; }
-  log('LEAD FOUND:');
-  log('  name: '+lead.name);
-  log('  mobile (app): "'+lead.mobile+'"');
-  log('  last 10: "'+String(lead.mobile||'').replace(/\D/g,'').slice(-10)+'"');
-  log('');
-  log('Reading ACTIVITY_LOG sheet...');
-  try{
-    var resp=await fetch(cfg_.scriptUrl+'?tab=ACTIVITY_LOG&t='+Date.now());
-    var d=await resp.json();
-    if(!d.rows||d.rows.length<2){ log('Sheet has no log rows.'); return; }
-    log('Header: '+JSON.stringify(d.rows[0]));
-    log('Total rows: '+(d.rows.length-1));
-    log('');
-    var leadLast10=String(lead.mobile||'').replace(/\D/g,'').slice(-10);
-    var matchCount=0;
-    for(var i=1;i<d.rows.length;i++){
-      var r=d.rows[i];
-      var rowMob=String(r[2]||'');
-      var rowLast10=rowMob.replace(/\D/g,'').slice(-10);
-      var isMatch=(rowLast10===leadLast10 && leadLast10);
-      if(isMatch) matchCount++;
-      log((i)+'. colC="'+rowMob+'" last10="'+rowLast10+'" act="'+(r[4]||'')+'" '+(isMatch?'MATCH':'-'));
-    }
-    log('');
-    log('RESULT: '+matchCount+' rows match this lead.');
-    if(matchCount>0){
-      log('Running pullLeadActivity...');
-      await pullLeadActivity(lead.mobile);
-      var loaded=getActivity(lead.mobile);
-      log('After pull: getActivity returned '+loaded.length+' entries.');
-    }else{
-      log('The lead mobile does NOT match any sheet row mobile.');
-    }
-  }catch(err){ log('ERROR: '+err.message); }
-}
-
-
-async function testLeadPush(){
-  var el=document.getElementById('diag-del-result');
-  function log(m){ if(el) el.textContent+=m+'\n'; }
-  if(el) el.textContent='';
-  if(!hasScript()){ log('No script URL'); return; }
-
-  // Step 1: try a tiny POST to confirm POST works at all
-  log('1. Testing POST to Apps Script...');
-  var pingPayload = JSON.stringify({action:'pushLeads', rows:[
-    ['Name','Mobile','Email','Age','Country','Status','Source','Referred By',
-     'Potential SIP','Next Follow-up','Investment Products','Mode of Contact',
-     'Remarks','Modified Date','Created Date'],
-    ['ZZTEST','0000000001','','','','PROSPECT','','','','','','','test','','']
-  ]});
-  var postOk=false;
-  try{
-    var r1=await fetch(cfg_.scriptUrl,{method:'POST',headers:{'Content-Type':'text/plain'},body:pingPayload});
-    var t1=await r1.text();
-    log('   POST HTTP: '+r1.status+' type:'+r1.type);
-    log('   POST response: '+t1.substring(0,100));
-    postOk=(t1.indexOf('success')>=0||t1.indexOf('written')>=0);
-    log('   POST worked: '+(postOk?'YES':'NO'));
-  }catch(e1){ log('   POST failed: '+e1.message); }
-
-  // Step 2: read back to verify
-  log('2. Reading LEADS sheet...');
-  await new Promise(function(r){setTimeout(r,1500);});
-  try{
-    var r2=await fetch(cfg_.scriptUrl+'?tab=LEADS&t='+Date.now());
-    var d2=await r2.json();
-    var found=(d2.rows||[]).some(function(r){return String(r[1]||'').trim()==='0000000001';});
-    log('   Test lead in sheet: '+(found?'YES - WRITE WORKS!':'NO - WRITE FAILED'));
-    log('   Total rows in LEADS: '+((d2.rows||[]).length-1));
-
-    // Step 3: clean up test row
-    if(found){
-      log('3. Cleaning up test row...');
-      var cleanRows=(d2.rows||[]).filter(function(r,i){
-        return i===0||String(r[1]||'').trim()!=='0000000001';
-      });
-      await fetch(cfg_.scriptUrl,{method:'POST',headers:{'Content-Type':'text/plain'},
-        body:JSON.stringify({action:'pushLeads',rows:cleanRows})});
-      log('   Cleaned.');
-    }
-  }catch(e2){ log('   Read back failed: '+e2.message); }
-  log('Done.');
-}
-
 // ── Quick-add lead from phone contacts ──
 // Uses Contact Picker API (Chrome Android). Falls back to manual entry.
 async function quickAddFromContacts(){
@@ -4701,8 +4544,8 @@ async function quickAddFromContacts(){
     phone = phone.replace(/[\s\-\(\)]/g,''); // strip formatting
     if(!phone){ toast('No phone number found'); return; }
     // Check duplicate
-    if(leads.find(function(l){return l.mobile===phone;})){
-      toast('Lead with this number already exists');
+    if(leads.find(function(l){return l.mobile===phone&&(l.name||'').toUpperCase().trim()===name.toUpperCase().trim();})){
+      toast('A lead with this exact name and number already exists');
       return;
     }
     // Open add lead form pre-filled
@@ -5882,213 +5725,6 @@ function makeFuClientItem(c){
 }
 
 
-// ── Diagnose CLIENTS sheet fetch — shows exactly what the sheet returns ──
-async function diagClientsSheet(){
-  var el=document.getElementById('diag-clients-result');
-  function log(m){ if(el) el.textContent+=m+'\n'; }
-  if(el) el.textContent='';
-  if(!hasScript()){ log('❌ No Apps Script URL configured in Settings.'); return; }
-
-  log('Fetching CLIENTS tab from your sheet...');
-  log('URL: '+cfg_.scriptUrl.substring(0,60)+'...');
-  log('');
-
-  try{
-    var resp=await fetch(cfg_.scriptUrl+'?tab=CLIENTS&t='+Date.now());
-    var data=await resp.json();
-
-    if(data.error){
-      log('❌ ERROR FROM SHEET: '+data.error);
-      log('');
-      log('This usually means the tab name in your Google Sheet');
-      log('does not match "CLIENTS" exactly (check spelling/case).');
-      return;
-    }
-
-    if(!data.rows){
-      log('❌ No "rows" field in response. Raw response:');
-      log(JSON.stringify(data).substring(0,300));
-      return;
-    }
-
-    log('✅ Tab found. Total rows returned: '+data.rows.length);
-    log('(Row 1 = header, remaining rows = data)');
-    log('');
-
-    if(data.rows.length===0){
-      log('⚠️ Sheet appears completely empty — no header row even.');
-      return;
-    }
-
-    log('HEADER ROW (row 1):');
-    log(JSON.stringify(data.rows[0]));
-    log('');
-
-    if(data.rows.length===1){
-      log('⚠️ Only the header row exists — no client data rows found.');
-      log('This means your CLIENTS tab currently has 0 client records in it.');
-      return;
-    }
-
-    log('FIRST DATA ROW (row 2):');
-    log(JSON.stringify(data.rows[1]));
-    log('');
-    log('Total client records found: '+(data.rows.length-1));
-    log('');
-
-    // Check if mobile number would be detected correctly
-    var hdr=data.rows[0].map(function(h){return (h||'').toLowerCase().trim();});
-    var mobIdx=hdr.findIndex(function(h){return h.includes('mobile');});
-    log('Mobile column detected at index: '+mobIdx+' (header: "'+(hdr[mobIdx]||'NOT FOUND')+'")');
-    if(mobIdx<0){
-      log('❌ PROBLEM: No column header contains "mobile" — this is why');
-      log('   client rows are being skipped (app cannot find mobile numbers).');
-    } else {
-      log('✅ Mobile column found correctly — rows should parse.');
-    }
-
-  }catch(e){
-    log('❌ Fetch failed: '+e.message);
-    log('This could mean the Apps Script URL is wrong, not deployed,');
-    log('or there is a network/CORS issue.');
-  }
-}
-
-
-// ── Revert a client back to an IN PROGRESS lead ──
-// Deletes the row from CLIENTS sheet, recreates it as a lead (status = IN PROGRESS)
-// in the LEADS sheet. Mirrors autoConvert() in reverse.
-async function revertClientToLead(mob){
-  var c=clients.find(function(x){return x.mobile===mob;});
-  if(!c){toast('Client not found');return;}
-  if(!confirm('Move '+toTitle(c.name)+' back to In Progress? This removes them from Clients and adds them back to Leads.')) return;
-
-  // Build a lead object from the client's data
-  var newLead={
-    name:c.name||'', mobile:c.mobile||'', email:c.email||'',
-    age:c.age||'', country:c.country||'', gender:c.gender||'',
-    status:'IN PROGRESS',
-    source:c.source||'', referral:c.referral||'',
-    aum:c.aum||'', nextFollowUp:c.nextFollowUp||'',
-    products:c.products||'', contactMode:'Not contacted',
-    remarks:appendRemark(migrateRemarks(c.remarks||''), 'Reverted from Client to In Progress lead'),
-    modifiedDate:now(), createdDate:c.createdDate||today(),
-    geoTag:''
-  };
-
-  // Update local state
-  leads.unshift(newLead);
-  clients=clients.filter(function(x){return x.mobile!==mob;});
-  saveL(); saveC();
-
-  // Close chip window, refresh UI
-  closeOv('ov-detail');
-  renderLeads(); renderClients(); renderDash();
-
-  // Sync: add to LEADS sheet, delete from CLIENTS sheet (targeted, one row each)
-  await syncLead(newLead, 'add');
-  await syncClient(c, 'delete');
-
-  // Track in Analytics: +1 In Progress column
-  logAnalytics(4, 1); // 4 = In Progress
-
-  toast('✅ '+toTitle(c.name)+' moved back to In Progress');
-}
-
-
-// ── Delete client directly from the modify form ──
-async function deleteClientFromForm(){
-  var origMob=document.getElementById('cf-orig')?document.getElementById('cf-orig').value.trim():'';
-  if(!origMob){toast('No client selected');return;}
-  var c=clients.find(function(x){return x.mobile===origMob;});
-  if(!c){toast('Client not found');return;}
-  if(!confirm('Delete '+toTitle(c.name)+'? This cannot be undone.')) return;
-
-  clients=clients.filter(function(x){return x.mobile!==origMob;});
-  saveC();
-  closeOv('ov-client');
-  renderClients();
-  toast('Client deleted');
-  await syncClient(c,'delete'); // targeted — deletes only this row
-}
-
-
-// ── Google Calendar events — cached, pulled during boot ──
-var _calendarEvents = []; // [{date:'YYYY-MM-DD', title, time}, ...]
-
-async function pullCalendarEvents(){
-  if(!hasScript()) return;
-  try{
-    var now=new Date();
-    var start=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
-    var endD=new Date(now.getTime()+8*86400000);
-    var end=endD.getFullYear()+'-'+String(endD.getMonth()+1).padStart(2,'0')+'-'+String(endD.getDate()).padStart(2,'0');
-    var res=await apiFetch({action:'getCalendarEvents', start:start, end:end});
-    if(res && res.events){
-      _calendarEvents=res.events;
-      localStorage.setItem('wm_calendar_events', JSON.stringify(_calendarEvents));
-    }
-  }catch(e){ console.warn('pullCalendarEvents failed:', e.message); }
-}
-
-// Get calendar events for one specific date (YYYY-MM-DD)
-function calendarEventsOn(dateStr){
-  return _calendarEvents.filter(function(e){return e.date===dateStr;});
-}
-
-
-// ── Diagnose Calendar access — shows which account/calendar is being read ──
-async function diagCalendar(){
-  var el=document.getElementById('diag-cal-result');
-  function log(m){ if(el) el.textContent+=m+'\n'; }
-  if(el) el.textContent='';
-  if(!hasScript()){ log('❌ No Apps Script URL configured.'); return; }
-
-  log('Checking calendar access...');
-  try{
-    var res=await apiFetch({action:'diagnoseCalendars'});
-    if(res.error){ log('❌ ERROR: '+res.error); return; }
-
-    log('');
-    log('DEFAULT CALENDAR (this is what the app reads):');
-    log('  Name: '+res.defaultCalendarName);
-    log('  ID/Email: '+res.defaultCalendarId);
-    log('');
-    log('ALL CALENDARS this account can see:');
-    var bdayCalFound=false;
-    res.allCalendars.forEach(function(c){
-      var tag=c.isBirthdayCalendar?' 🎂 [BIRTHDAY CALENDAR]':'';
-      if(c.isBirthdayCalendar) bdayCalFound=true;
-      log('  • '+c.name+' ('+c.id+')'+(c.isOwned?' [Owned]':' [Shared/Other]')+(c.isSelected?' [Visible]':'')+tag);
-    });
-    log('');
-    log(bdayCalFound?'✅ Birthday calendar detected — birthdays will be pulled automatically.':'⚠️ No Birthday calendar found — check Google Contacts has birthdays saved.');
-    log('');
-    log('👉 If your event isn\'t showing, check it was created on the');
-    log('   DEFAULT calendar above, not a different/shared one.');
-
-    // Also show what events (including birthdays) were actually found
-    log('');
-    log('Fetching events + birthdays for next 14 days...');
-    var now=new Date();
-    var start=now.toISOString().split('T')[0];
-    var endD=new Date(now.getTime()+14*86400000);
-    var end=endD.toISOString().split('T')[0];
-    var evRes=await apiFetch({action:'getCalendarEvents', start:start, end:end});
-    log('Reading from: '+evRes.calendarName+' ('+evRes.calendarId+')');
-    log('Script project timezone: '+evRes.scriptTimeZone+' (dates are computed in '+evRes.usedTimeZone+' regardless)');
-    log('Birthdays found: '+(evRes.birthdaysFound||0));
-    log('Total events found: '+evRes.events.length);
-    evRes.events.forEach(function(ev){
-      var tag=ev.type==='birthday'?' 🎂':'';
-      log('  '+ev.date+' — '+ev.title+' ('+(ev.time||'—')+')'+tag);
-    });
-  }catch(e){
-    log('❌ Fetch failed: '+e.message);
-  }
-}
-
-
 // ── Shared LEADS row-parser — single source of truth, used by BOTH boot and manual sync ──
 // Prevents the two call sites from drifting out of sync with each other or with the sheet schema.
 function parseLeadsFromRows(rows){
@@ -6858,8 +6494,8 @@ function renderTodaysActivity(){
   if(typeof _specialDays !== 'undefined'){
     var specialToday=_specialDays.filter(function(sd){
       if(!sd.date) return false;
-      var p=sd.date.split('-'); if(p.length<3) return false;
-      return parseInt(p[1])-1===now.getMonth() && parseInt(p[2])===now.getDate();
+      var p=sd.date.split('-'); if(p.length<2) return false;
+      return parseInt(p[0])-1===now.getMonth() && parseInt(p[1])===now.getDate();
     });
     if(specialToday.length){
       items.push({icon:'📅',color:'#8e44ad',bg:'rgba(142,68,173,.08)',
