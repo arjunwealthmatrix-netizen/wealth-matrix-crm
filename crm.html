@@ -12,7 +12,7 @@
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <meta name="theme-color" content="#000000">
-<title>Wealth Matrix CRM v3.0.7</title>
+<title>Wealth Matrix CRM v3.0.8</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -369,7 +369,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     </div>
     <div style="display:flex;align-items:center;gap:8px">
       <button onclick="manualSync()" style="background:none;border:none;cursor:pointer;font-size:16px">🔄</button>
-      <span style="font-size:9px;font-weight:700;color:var(--accent);background:var(--accent2);padding:2px 7px;border-radius:999px;border:1px solid var(--accent)">v3.0.7</span>
+      <span style="font-size:9px;font-weight:700;color:var(--accent);background:var(--accent2);padding:2px 7px;border-radius:999px;border:1px solid var(--accent)">v3.0.8</span>
     </div>
   </div>
 
@@ -538,7 +538,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div class="syc"><button class="btn btn-ghost btn-full" onclick="showSpecialDaysList()">📋 View Upcoming Special Days</button></div>
   </div>
 
-  <div style="text-align:center;padding:20px 0 40px;font-size:10px;color:var(--t3)">Wealth Matrix CRM v3.0.7</div>
+  <div style="text-align:center;padding:20px 0 40px;font-size:10px;color:var(--t3)">Wealth Matrix CRM v3.0.8</div>
 </div>
 </div>
 
@@ -618,7 +618,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         <div class="fg"><label class="fl">Age</label><input class="fi" id="lf-age" type="number" placeholder="35"></div>
       </div>
       <div class="fg"><label class="fl">Country</label><input class="fi" id="lf-country" placeholder="India / UAE / Qatar…" oninput="autoCaps(this)"></div>
-      <div class="fg"><label class="fl">Geo Tag (Location)</label><input class="fi" id="lf-geotag" placeholder="e.g. Kakkanad, Edappally, Aluva…" oninput="autoCaps(this)"></div>
+      <div class="fg"><label class="fl">Geo Tag (Location)</label><input class="fi" id="lf-geotag" list="geotag-suggestions" placeholder="e.g. Kakkanad, Edappally, Aluva…" oninput="autoCaps(this)"><datalist id="geotag-suggestions"></datalist></div>
     </div>
 
     <div style="background:var(--s1);border-radius:10px;padding:12px 14px;margin-bottom:10px">
@@ -888,6 +888,15 @@ function debounce(key, fn, delay){
 // ── Unified search handler — works for both Leads and Clients ──
 function onLeadSearch(){   debounce('lead',   renderLeads,   200); }
 function onClientSearch(){ debounce('client', renderClients, 200); }
+// Fill the Geo Tag datalist with every unique location already used across leads,
+// so typing the first letter or two of a previously-used location suggests it.
+function populateGeoTagSuggestions(){
+  var dl=document.getElementById('geotag-suggestions');
+  if(!dl) return;
+  var unique=Array.from(new Set(leads.map(function(l){return (l.geoTag||'').trim();}).filter(Boolean))).sort();
+  dl.innerHTML=unique.map(function(g){return '<option value="'+g+'">';}).join('');
+}
+
 function onSharedSearch(){
   // Route to the correct renderer based on active page
   if(document.getElementById('pg-leads').classList.contains('active')){
@@ -1305,7 +1314,7 @@ function toggleClientSelect(mob){
 
 function clientSelectAll(){
   var q=(document.getElementById('shared-search')?document.getElementById('shared-search').value||'':'').toLowerCase();
-  var arr=clients.filter(function(c){return !q||c.name.toLowerCase().includes(q)||(c.mobile||'').includes(q);});
+  var arr=clients.filter(function(c){return !q||c.name.toLowerCase().includes(q);});
   if(selectedClients.size===arr.length){ selectedClients.clear(); }
   else { arr.forEach(function(c){selectedClients.add(c.mobile);}); }
   var cnt=document.getElementById('client-sel-count');
@@ -1380,7 +1389,7 @@ function renderClients(){
   var q=(document.getElementById('shared-search')?document.getElementById('shared-search').value||'':'').toLowerCase();
   // Sort newest first (most recently converted at top)
   var arr=clients.filter(function(c){
-    return !q||(c.name||'').toLowerCase().includes(q)||(c.mobile||'').includes(q)||(c.products||'').toLowerCase().includes(q);
+    return !q||(c.name||'').toLowerCase().includes(q);
   }).sort(function(a,b){
     // Sort by selected field (AUM or Potential AUM) descending
     var diff=parseAumValue(b[clientSortBy])-parseAumValue(a[clientSortBy]);
@@ -2535,7 +2544,7 @@ function renderLeads(){
     if(filterGeo!=='All' && (l.geoTag||'').trim()!==filterGeo) return false;
     var st=(l.status||'').toUpperCase();
     var ok=filterStatus==='Active'?!['CONVERTED','DROPPED'].includes(st):filterStatus==='All'||(st===filterStatus);
-    var sq=!q||l.name.toLowerCase().includes(q)||(l.mobile||'').includes(q)||(l.country||'').toLowerCase().includes(q)||(l.products||'').toLowerCase().includes(q);
+    var sq=!q||l.name.toLowerCase().includes(q);
     return ok&&sq;
   }).sort(function(a,b){
     if(leadSortBy==='potentialAum'){
@@ -3430,6 +3439,7 @@ function renderFU(){
 // ── OVERRIDE openAddLead + saveLead + editLeadOpen to handle Country ──
 function openAddLead(pre){
   editLead=null;
+  populateGeoTagSuggestions();
   document.getElementById('lf-title').textContent='New Lead';
   ['name','mob','email','age','rem'].forEach(function(f){var el=document.getElementById('lf-'+f);if(el)el.value=(pre&&pre[f])||'';});
   var gEl=document.getElementById('lf-gender');if(gEl)gEl.value='';
@@ -3451,6 +3461,7 @@ function openAddLead(pre){
 function editLeadOpen(mob){
   var l=leads.find(function(x){return x.mobile===mob;});if(!l)return;
   editLead=mob;
+  populateGeoTagSuggestions();
   document.getElementById('lf-title').textContent='Edit Lead';
   document.getElementById('lf-name').value=l.name||'';
   document.getElementById('lf-mob').value=l.mobile||'';
