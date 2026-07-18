@@ -12,7 +12,7 @@
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <meta name="theme-color" content="#000000">
-<title>Wealth Matrix CRM v3.0.8</title>
+<title>Wealth Matrix CRM v3.0.9</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -369,7 +369,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     </div>
     <div style="display:flex;align-items:center;gap:8px">
       <button onclick="manualSync()" style="background:none;border:none;cursor:pointer;font-size:16px">🔄</button>
-      <span style="font-size:9px;font-weight:700;color:var(--accent);background:var(--accent2);padding:2px 7px;border-radius:999px;border:1px solid var(--accent)">v3.0.8</span>
+      <span style="font-size:9px;font-weight:700;color:var(--accent);background:var(--accent2);padding:2px 7px;border-radius:999px;border:1px solid var(--accent)">v3.0.9</span>
     </div>
   </div>
 
@@ -538,7 +538,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div class="syc"><button class="btn btn-ghost btn-full" onclick="showSpecialDaysList()">📋 View Upcoming Special Days</button></div>
   </div>
 
-  <div style="text-align:center;padding:20px 0 40px;font-size:10px;color:var(--t3)">Wealth Matrix CRM v3.0.8</div>
+  <div style="text-align:center;padding:20px 0 40px;font-size:10px;color:var(--t3)">Wealth Matrix CRM v3.0.9</div>
 </div>
 </div>
 
@@ -1164,8 +1164,10 @@ function setupAutocomplete(inputId,listId,type){
 // ═══════════════════════════════════════════════
 // FOLLOW-UP DETAIL POPUP
 // ═══════════════════════════════════════════════
-function openFuDetail(mob){
-  var l = leads.find(function(x){ return x.mobile===mob; });
+function openFuDetail(mob,nameHint){
+  var wantName2 = nameHint ? decodeURIComponent(nameHint) : null;
+  var l = leads.find(function(x){ return x.mobile===mob && (!wantName2 || x.name===wantName2); });
+  if(!l && wantName2) l = leads.find(function(x){ return x.mobile===mob; });
   if(!l) return;
   _detailOpenMobile = mob;
   _detailOpenType   = 'lead';
@@ -1177,7 +1179,7 @@ function openFuDetail(mob){
     document.body.appendChild(ovEl);
   }
 
-  renderFuDetailInner(mob);
+  renderFuDetailInner(mob, encodeURIComponent(l.name||''));
   document.getElementById('ov-fu-detail').classList.add('open');
 
   // Pull fresh history from sheet in background
@@ -1423,7 +1425,7 @@ function renderClients(){
     var bg=cardBg[i%2];
     var borderColor=i%2===0?'#1C2B3E':'#162333';
     var sel=selectedClients.has(c.mobile);
-    var clickFn=clientBulkMode?'toggleClientSelect(\''+c.mobile+'\')':'openDetail(\''+c.mobile+'\',\'client\')';
+    var clickFn=clientBulkMode?'toggleClientSelect(\''+c.mobile+'\')':'openDetail(\''+c.mobile+'\',\'client\',\''+encodeURIComponent(c.name||'')+'\')';
     var initials=ini(c.name);
     var sinceDate=c.convertedDate?fmt(c.convertedDate):'';
     var prods=(c.products||'').trim();
@@ -1452,16 +1454,24 @@ function renderClients(){
 // DETAIL VIEW
 // ═══════════════════════════════════════════════
 function dr(k,v){return v?'<div class="dr"><span class="dk">'+k+'</span><span class="dv">'+v+'</span></div>':'';}
-function openDetail(mob,type){
-  var rec=type==='lead'?leads.find(function(x){return x.mobile===mob;}):clients.find(function(x){return x.mobile===mob;});
+function openDetail(mob,type,nameHint){
+  var wantName=nameHint?decodeURIComponent(nameHint):null;
+  var matchFn=function(x){return x.mobile===mob && (!wantName || x.name===wantName);};
+  var rec=type==='lead'?leads.find(matchFn):clients.find(matchFn);
+  if(!rec && wantName){
+    // Name hint didn't match anything (e.g. edited since this row rendered) — fall back
+    // to mobile-only rather than silently opening nothing.
+    rec=type==='lead'?leads.find(function(x){return x.mobile===mob;}):clients.find(function(x){return x.mobile===mob;});
+  }
   if(!rec)return;
+  mob=rec.mobile; // use the resolved record's own mobile from here on, not the raw parameter
   _detailOpenMobile=mob;_detailOpenType=type;_detailModified=false;
   var html='';
   if(type==='lead'){
     // Use the same unified popup as Follow-up section
     closeOv('ov-detail');
     _detailOpenMobile=rec.mobile;_detailOpenType='lead';_detailModified=false;
-    renderFuDetailInner(rec.mobile);
+    renderFuDetailInner(rec.mobile, encodeURIComponent(rec.name||''));
     document.getElementById('ov-fu-detail').classList.add('open');
     // Pull fresh activity from sheet, refresh history
     if(hasScript()){
@@ -2565,7 +2575,7 @@ function renderLeads(){
     var sel=selectedLeads.has(l.mobile);var lastRem=lastRemarkSummary(l.remarks);
     var badge=heatBadge(l);var aumTag=l.aum?'<span style="font-size:9px;color:var(--accent);background:var(--accent2);border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:1px 6px;margin-left:4px">'+aumDisplay(l.aum)+'</span>':'';
     var potAumTag=l.potentialAum?'<span style="font-size:9px;color:#2ecc71;background:rgba(46,204,113,.1);border:1px solid rgba(46,204,113,.3);border-radius:999px;padding:1px 6px;margin-left:4px">\uD83D\uDCB0'+aumDisplay(l.potentialAum)+'</span>':'';
-    return '<div class="li'+(sel?' selected':'')+'" onclick="'+(bulkMode?'toggleSelect(\''+l.mobile+'\')':'openDetail(\''+l.mobile+'\',\'lead\')')+'">'
+    return '<div class="li'+(sel?' selected':'')+'" onclick="'+(bulkMode?'toggleSelect(\''+l.mobile+'\')':'openDetail(\''+l.mobile+'\',\'lead\',\''+encodeURIComponent(l.name||'')+'\')')+'">'
       +(bulkMode?'<div style="width:20px;height:20px;border-radius:50%;border:2px solid var(--accent);background:'+(sel?'var(--accent)':'transparent')+';display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:8px">'+(sel?'<svg width="10" height="10" viewBox="0 0 24 24" fill="white"><path d="M20 6L9 17l-5-5"/></svg>':'')+'</div>':'')
       +'<div class="av">'+ini(l.name)+'</div>'
       +'<div class="li-info"><div class="li-name" style="display:flex;align-items:center;flex-wrap:wrap;gap:3px">'+toTitle(l.name)+' <span style="font-size:11px">'+leadHeat(leadScore(l)).emoji+'</span>'+badge+aumTag+potAumTag+'</div>'
@@ -2576,7 +2586,7 @@ function renderLeads(){
       +'<div class="li-right"><span class="pill '+scls(l.status)+'">'+(l.status||'').charAt(0)+(l.status||'').slice(1).toLowerCase()+'</span><span class="days'+(hot?' hot':'')+'">'+(d===0?'Today':d+'d ago')+'</span></div>'
       +'</div>';
   }).join(''):'<div class="empty"><div class="empty-ico">🔍</div><div class="empty-t">No leads found</div></div>';
-  if(clientResults.length){html+='<div style="padding:8px 12px;font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;background:var(--s2)">Clients ('+clientResults.length+')</div>';html+=clientResults.map(function(c){return '<div class="ci" onclick="openDetail(\''+c.mobile+'\',\'client\')"><div class="ci-av">'+ini(c.name)+'</div><div class="li-info"><div class="li-name">'+toTitle(c.name)+'</div><div class="li-meta">'+c.mobile+'</div></div><div class="li-right"><span style="font-size:9px;color:var(--green);font-weight:700">CLIENT</span></div></div>';}).join('');}
+  if(clientResults.length){html+='<div style="padding:8px 12px;font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;background:var(--s2)">Clients ('+clientResults.length+')</div>';html+=clientResults.map(function(c){return '<div class="ci" onclick="openDetail(\''+c.mobile+'\',\'client\',\''+encodeURIComponent(c.name||'')+'\')"><div class="ci-av">'+ini(c.name)+'</div><div class="li-info"><div class="li-name">'+toTitle(c.name)+'</div><div class="li-meta">'+c.mobile+'</div></div><div class="li-right"><span style="font-size:9px;color:var(--green);font-weight:700">CLIENT</span></div></div>';}).join('');}
   var ll=document.getElementById('lead-list');if(ll)ll.innerHTML=html;
 }
 
@@ -2880,8 +2890,11 @@ async function saveFuDateV17(mob, newDate){
 }
 
 // ── OVERRIDE renderFuDetailInner (v2.7 unified popup) ──
-function renderFuDetailInner(mob){
-  var l=leads.find(function(x){return x.mobile===mob;});if(!l)return;
+function renderFuDetailInner(mob,nameHint){
+  var wantName=nameHint?decodeURIComponent(nameHint):null;
+  var l=leads.find(function(x){return x.mobile===mob && (!wantName || x.name===wantName);});
+  if(!l && wantName) l=leads.find(function(x){return x.mobile===mob;}); // fallback if hint is stale
+  if(!l)return;
   var d=daysAgo(l.modifiedDate||l.createdDate);
   var hasCurrent=!!(l.nextFollowUp&&/^\d{4}-\d{2}-\d{2}$/.test(l.nextFollowUp));
   var fuDays=hasCurrent?daysUntil(l.nextFollowUp):null;
@@ -3298,7 +3311,7 @@ function makeFuItem(l,itemType){
 
   return '<div class="fu-item" style="'+borderStyle+'">'
     // Top row — tapping anywhere opens detail
-    +'<div class="fu-row" data-action="fu-open" data-mob="'+mob+'">'
+    +'<div class="fu-row" data-action="fu-open" data-mob="'+mob+'" data-name="'+encodeURIComponent(l.name||'')+'">'
     +'<div class="av" style="width:36px;height:36px;min-width:36px;font-size:12px">'+ini(l.name)+'</div>'
     +'<div style="flex:1;min-width:0">'
     +'<div style="font-weight:700;font-size:13px">'+toTitle(l.name)+'</div>'
@@ -3350,7 +3363,7 @@ function wireFuList(){
   fuList.addEventListener('click',function(e){
     var btn=e.target.closest('[data-action]');if(!btn)return;
     var mob=btn.dataset.mob;var action=btn.dataset.action;
-    if(action==='fu-open') openFuDetail(mob);
+    if(action==='fu-open') openFuDetail(mob,btn.dataset.name);
     if(action==='fu-set-date'){
       // Toggle inline date picker
       var panel=document.getElementById('fu-inline-date-'+mob);
@@ -3418,7 +3431,7 @@ function renderFU(){
   fuList.onclick = function(e){
     var btn = e.target.closest('[data-action]'); if(!btn) return;
     var mob = btn.dataset.mob; var action = btn.dataset.action;
-    if(action==='fu-open') openFuDetail(mob);
+    if(action==='fu-open') openFuDetail(mob,btn.dataset.name);
     if(action==='fu-set-date'){
       document.querySelectorAll('[id^="fu-inline-date-"]').forEach(function(p){p.style.display='none';});
       var p = document.getElementById('fu-inline-date-'+mob); if(p) p.style.display='block';
@@ -3960,11 +3973,11 @@ function renderFuInElement(container, subEl){
   container.onclick=function(e){
     // Client card click
     var cbtn=e.target.closest('[data-caction]');
-    if(cbtn){ if(cbtn.dataset.caction==='fu-client-open') openDetail(cbtn.dataset.cmob,'client'); return; }
+    if(cbtn){ if(cbtn.dataset.caction==='fu-client-open') openDetail(cbtn.dataset.cmob,'client',cbtn.dataset.cname); return; }
 
     var btn=e.target.closest('[data-action]');if(!btn)return;
     var mob=btn.dataset.mob;var action=btn.dataset.action;
-    if(action==='fu-open') openFuDetail(mob);
+    if(action==='fu-open') openFuDetail(mob,btn.dataset.name);
     if(action==='fu-set-date'){
       document.querySelectorAll('[id^="fu-inline-date-"]').forEach(function(p){p.style.display='none';});
       var p=document.getElementById('fu-inline-date-'+mob);if(p)p.style.display='block';
@@ -5174,7 +5187,7 @@ function showStaleAumList(){
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:99999;display:flex;align-items:flex-end;justify-content:center';
   var rows=stale.map(function(item){
     var c=item.client;
-    return '<div onclick="closeStaleList();openDetail(\''+c.mobile+'\',\'client\')" style="padding:11px 14px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;justify-content:space-between;align-items:center">'
+    return '<div onclick="closeStaleList();openDetail(\''+c.mobile+'\',\'client\',\''+encodeURIComponent(c.name||'')+'\')" style="padding:11px 14px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;justify-content:space-between;align-items:center">'
       +'<div><div style="font-size:13px;font-weight:700;color:var(--text)">'+toTitle(c.name)+'</div>'
       +'<div style="font-size:10px;color:var(--t3);margin-top:2px">'+item.days+' days since contact</div></div>'
       +'<div style="font-size:12px;font-weight:700;color:var(--accent)">'+(item.potAum||'—')+'</div>'
@@ -5300,7 +5313,7 @@ function showReminderList(idx){
   var rows=item.list.map(function(c){
     var wn=(c.mobile||'').replace(/\D/g,'');wn=wn.length===10?'91'+wn:wn;
     return '<div style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid var(--border)">'
-      +'<div class="rem-chip-open" data-cmob="'+c.mobile+'" style="cursor:pointer;flex:1">'
+      +'<div class="rem-chip-open" data-cmob="'+c.mobile+'" data-cname="'+encodeURIComponent(c.name||'')+'" style="cursor:pointer;flex:1">'
       +'<div style="font-size:13px;font-weight:700;color:var(--text)">'+toTitle(c.name)+'</div>'
       +'<div style="font-size:10px;color:var(--t3);margin-top:1px">'+c.mobile+'</div></div>'
       +'<button data-rwaq="'+item.listType+'" data-rwanum="'+wn+'" data-rmob="'+c.mobile+'" class="rem-wa-btn" '
@@ -5330,7 +5343,7 @@ function showReminderList(idx){
       }
     }
     var ch=e.target.closest('.rem-chip-open');
-    if(ch){ov.remove();openDetail(ch.dataset.cmob,'client');}
+    if(ch){ov.remove();openDetail(ch.dataset.cmob,'client',ch.dataset.cname);}
   });
 }
 
@@ -5512,7 +5525,7 @@ function showStageList(stage){
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:99999;display:flex;align-items:flex-end;justify-content:center';
   var rows=items.map(function(item){
     var sub=(item.country||'')+(item.aum?' \u00B7 \uD83D\uDCB0'+item.aum:'')+(item.lastContacted?' \u00B7 last '+fmt(item.lastContacted):'');
-    return '<div data-slmob="'+item.mobile+'" class="sl-row" style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid var(--border);cursor:pointer">'
+    return '<div data-slmob="'+item.mobile+'" data-slname="'+encodeURIComponent(item.name||'')+'" class="sl-row" style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid var(--border);cursor:pointer">'
       +'<div><div style="font-size:13px;font-weight:700;color:var(--text)">'+toTitle(item.name)+'</div>'
       +'<div style="font-size:10px;color:var(--t3);margin-top:2px">'+sub+'</div></div>'
       +'<span style="font-size:12px;color:var(--accent)">\u203A</span></div>';
@@ -5523,7 +5536,7 @@ function showStageList(stage){
     +'<span id="_slX" style="font-size:20px;color:var(--t2);cursor:pointer">\u2715</span></div>'
     +'<div style="overflow-y:auto;flex:1">'+(rows||'<div style="padding:24px;text-align:center;color:var(--t3);font-size:12px">No clients in this stage</div>')+'</div></div>';
   document.body.appendChild(ov);
-  ov.addEventListener('click',function(e){ var row=e.target.closest('.sl-row'); if(row){var m=row.dataset.slmob;if(m){ov.remove();openDetail(m,'client');}} });
+  ov.addEventListener('click',function(e){ var row=e.target.closest('.sl-row'); if(row){var m=row.dataset.slmob;if(m){ov.remove();openDetail(m,'client',row.dataset.slname);}} });
   document.getElementById('_slX').onclick=function(){ov.remove();};
 }
 
@@ -5549,7 +5562,7 @@ function showDashList(type){
     var sub=isClient
       ?((item.country||'')+(item.aum?' · 💰'+item.aum:''))
       :((item.status||'')+(item.country?' · '+item.country:'')+(item.aum?' · '+item.aum:''));
-    var click='data-dlmob="'+item.mobile+'" data-dltype="'+type+'"';
+    var click='data-dlmob="'+item.mobile+'" data-dltype="'+type+'" data-dlname="'+encodeURIComponent(item.name||'')+'"';
     return '<div '+click+' class="dl-row" style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid var(--border);cursor:pointer">'
       +'<div><div style="font-size:13px;font-weight:700;color:var(--text)">'+toTitle(item.name)+'</div>'
       +'<div style="font-size:10px;color:var(--t3);margin-top:2px">'+sub+'</div></div>'
@@ -5564,7 +5577,7 @@ function showDashList(type){
   ov.id='_dashListOv';
   ov.addEventListener('click',function(e){
     var row=e.target.closest('.dl-row');
-    if(row){var m=row.dataset.dlmob,t=row.dataset.dltype;if(m){ov.remove();if(t==='clients')openDetail(m,'client');else openFuDetail(m);}}
+    if(row){var m=row.dataset.dlmob,t=row.dataset.dltype;if(m){ov.remove();if(t==='clients')openDetail(m,'client',row.dataset.dlname);else openFuDetail(m,row.dataset.dlname);}}
   });
   document.getElementById('_dListX').onclick=function(){ov.remove();};
 }
@@ -5665,13 +5678,13 @@ function showWeekDayList(dateStr){
       +'</div>';
   });
   dayLeads.forEach(function(l){
-    rows+='<div class="wk-row" data-wkmob="'+l.mobile+'" data-wktype="lead" style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid var(--border);cursor:pointer">'
+    rows+='<div class="wk-row" data-wkmob="'+l.mobile+'" data-wktype="lead" data-wkname="'+encodeURIComponent(l.name||'')+'" style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid var(--border);cursor:pointer">'
       +'<div><div style="font-size:13px;font-weight:700;color:var(--text)">'+toTitle(l.name)+'</div>'
       +'<div style="font-size:10px;color:var(--t3);margin-top:2px">📋 Lead · '+(l.status||'')+'</div></div>'
       +'<span style="font-size:12px;color:var(--accent)">›</span></div>';
   });
   dayClients.forEach(function(c){
-    rows+='<div class="wk-row" data-wkmob="'+c.mobile+'" data-wktype="client" style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid var(--border);cursor:pointer">'
+    rows+='<div class="wk-row" data-wkmob="'+c.mobile+'" data-wktype="client" data-wkname="'+encodeURIComponent(c.name||'')+'" style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid var(--border);cursor:pointer">'
       +'<div><div style="font-size:13px;font-weight:700;color:var(--text)">'+toTitle(c.name)+'</div>'
       +'<div style="font-size:10px;color:var(--t3);margin-top:2px">👥 Client</div></div>'
       +'<span style="font-size:12px;color:#4FC3F7">›</span></div>';
@@ -5691,7 +5704,7 @@ function showWeekDayList(dateStr){
     if(row){
       ov.remove();
       var mob=row.dataset.wkmob, type=row.dataset.wktype;
-      if(type==='client') openDetail(mob,'client'); else openFuDetail(mob);
+      if(type==='client') openDetail(mob,'client',row.dataset.wkname); else openFuDetail(mob,row.dataset.wkname);
     }
   });
 }
@@ -5712,7 +5725,7 @@ function makeFuClientItem(c){
   var aumTag=c.aum?'<span style="font-size:9px;color:#4FC3F7;font-weight:700;background:rgba(79,195,247,.1);border:1px solid rgba(79,195,247,.3);border-radius:999px;padding:1px 5px">'+c.aum+'</span>':'';
 
   return '<div class="fu-item" style="border-left:3px solid #4FC3F7;">'
-    +'<div class="fu-row" data-caction="fu-client-open" data-cmob="'+mob+'">'
+    +'<div class="fu-row" data-caction="fu-client-open" data-cmob="'+mob+'" data-cname="'+encodeURIComponent(c.name||'')+'">'
     +'<div class="av" style="width:36px;height:36px;min-width:36px;font-size:12px">'+ini(c.name)+'</div>'
     +'<div style="flex:1;min-width:0">'
     +'<div style="font-weight:700;font-size:13px">'+toTitle(c.name)+'</div>'
@@ -6712,7 +6725,7 @@ function showTodaysActivityList(idx){
         :item.listType==='stale90'?(c.lastContacted?'Last: '+fmt(c.lastContacted)+' ('+clientDaysSinceContact(c)+'d)':'Never contacted')
         :c.mobile;
       return '<div style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid var(--border)">'
-        +'<div class="tal-row" data-cmob="'+c.mobile+'" style="cursor:pointer;flex:1">'
+        +'<div class="tal-row" data-cmob="'+c.mobile+'" data-cname="'+encodeURIComponent(c.name||'')+'" style="cursor:pointer;flex:1">'
         +'<div style="font-size:13px;font-weight:700;color:var(--text)">'+toTitle(c.name)+'</div>'
         +'<div style="font-size:10px;color:var(--t3);margin-top:2px">'+sub+'</div></div>'
         +'<button data-rwaq="'+item.listType+'" data-rwanum="'+wn+'" data-rmob="'+c.mobile+'" class="rem-wa-btn" style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid rgba(37,211,102,.3);background:rgba(37,211,102,.08);color:#25D366;cursor:pointer;flex-shrink:0">💬 WA</button>'
@@ -6731,7 +6744,7 @@ function showTodaysActivityList(idx){
     var waBtn=e.target.closest('.rem-wa-btn');
     if(waBtn){ var _wt=waBtn.dataset.rwaq; if(_wt==='review')_wt='cas'; if(_wt==='stale90')_wt='greet'; sendWAQuick(waBtn.dataset.rwanum, _wt, waBtn.dataset.rmob); if(_wt==='greet'&&waBtn.dataset.rmob)promptUpdateLastContacted(waBtn.dataset.rmob,'WhatsApp'); return; }
     var row=e.target.closest('.tal-row');
-    if(row){ ov.remove(); openDetail(row.dataset.cmob,'client'); }
+    if(row){ ov.remove(); openDetail(row.dataset.cmob,'client',row.dataset.cname); }
   });
 }
 
