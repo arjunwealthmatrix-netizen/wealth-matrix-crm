@@ -12,7 +12,7 @@
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <meta name="theme-color" content="#000000">
-<title>Wealth Matrix CRM v3.1.2</title>
+<title>Wealth Matrix CRM v3.1.4</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -370,7 +370,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     </div>
     <div style="display:flex;align-items:center;gap:8px">
       <button onclick="manualSync()" style="background:none;border:none;cursor:pointer;font-size:16px">🔄</button>
-      <span style="font-size:9px;font-weight:700;color:var(--accent);background:var(--accent2);padding:2px 7px;border-radius:999px;border:1px solid var(--accent)">v3.1.2</span>
+      <span style="font-size:9px;font-weight:700;color:var(--accent);background:var(--accent2);padding:2px 7px;border-radius:999px;border:1px solid var(--accent)">v3.1.4</span>
     </div>
   </div>
 
@@ -548,7 +548,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div class="syc"><button class="btn btn-ghost btn-full" onclick="showSpecialDaysList()">📋 View Upcoming Special Days</button></div>
   </div>
 
-  <div style="text-align:center;padding:20px 0 40px;font-size:10px;color:var(--t3)">Wealth Matrix CRM v3.1.2</div>
+  <div style="text-align:center;padding:20px 0 40px;font-size:10px;color:var(--t3)">Wealth Matrix CRM v3.1.4</div>
 </div>
 </div>
 
@@ -620,8 +620,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div style="background:var(--s1);border-radius:10px;padding:12px 14px;margin-bottom:10px">
       <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.6px;margin-bottom:8px">IDENTITY</div>
       <div class="frow">
-        <div class="fg"><label class="fl">Name *</label><input class="fi" id="lf-name" placeholder="Full name" autocomplete="off" oninput="autoCaps(this)"><div class="ac-list" id="lf-ac-list"></div></div>
-        <div class="fg"><label class="fl">Family Name</label><input class="fi" id="lf-family" placeholder="e.g. Nair Family" oninput="autoCaps(this)"></div>
+        <div class="fg"><label class="fl">Name *</label><input class="fi" id="lf-name" placeholder="Full name" autocomplete="off" oninput="autoCaps(this);deriveFamilyName(this,document.getElementById('lf-family'),'_lfFamilyLocked')"><div class="ac-list" id="lf-ac-list"></div></div>
+        <div class="fg"><label class="fl">Family Name</label><input class="fi" id="lf-family" placeholder="e.g. Nair Family" oninput="autoCaps(this);_lfFamilyLocked=true"></div>
         <div class="fg"><label class="fl">Mobile *</label><input class="fi" id="lf-mob" type="tel" placeholder="9847012345"></div>
       </div>
       <div class="frow">
@@ -658,7 +658,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       </div>
       <div class="fg"><label class="fl">Potential AUM (₹ Lakh)</label><input class="fi" id="lf-potaum" placeholder="e.g. 25 or 1.25 (₹ Lakh)" inputmode="decimal" oninput="this.value=this.value.replace(/[^0-9.]/g,'').replace(/(\..*)\./g,'$1').replace(/(\.\d{2}).+/g,'$1')"></div>
       <div id="lf-uploadlink-wrap" style="display:none;margin-bottom:10px">
-        <button type="button" class="btn btn-ghost btn-full" style="border-color:rgba(243,156,18,.3);color:#f39c12" onclick="sendLeadUploadLinkWA(document.getElementById('lf-mob').value)">📤 Send Document Upload Link via WhatsApp</button>
+        <button type="button" class="btn btn-ghost btn-full" style="border-color:rgba(243,156,18,.3);color:#f39c12;margin-bottom:8px" onclick="sendLeadUploadLinkWA(document.getElementById('lf-mob').value)">📤 Send Document Upload Link via WhatsApp</button>
+        <button type="button" class="btn btn-ghost btn-full" style="border-color:rgba(52,152,219,.3);color:#3498db" onclick="(function(){var d=(document.getElementById('lf-mob').value||'').replace(/\D/g,'');var n=d.length===10?'91'+d:d;sendWAQuick(n,'cas',document.getElementById('lf-mob').value);})()">📊 Send CAMS CAS Report via WhatsApp</button>
       </div>
       <div class="frow">
         <div class="fg"><label class="fl">Mode of contact</label>
@@ -711,8 +712,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div style="background:var(--s1);border-radius:10px;padding:12px 14px;margin-bottom:10px">
       <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.6px;margin-bottom:8px">IDENTITY</div>
       <div class="frow">
-        <div class="fg"><label class="fl">Name *</label><input class="fi" id="cf-name" placeholder="Full name" oninput="autoCaps(this)"><div class="ac-list" id="cf-ac-list"></div></div>
-        <div class="fg"><label class="fl">Family Name</label><input class="fi" id="cf-family" placeholder="e.g. Nair Family" oninput="autoCaps(this)"></div>
+        <div class="fg"><label class="fl">Name *</label><input class="fi" id="cf-name" placeholder="Full name" oninput="autoCaps(this);deriveFamilyName(this,document.getElementById('cf-family'),'_cfFamilyLocked')"><div class="ac-list" id="cf-ac-list"></div></div>
+        <div class="fg"><label class="fl">Family Name</label><input class="fi" id="cf-family" placeholder="e.g. Nair Family" oninput="autoCaps(this);_cfFamilyLocked=true"></div>
         <div class="fg"><label class="fl">Mobile *</label><input class="fi" id="cf-mob" type="tel" placeholder="9847012345"></div>
       </div>
       <div class="frow">
@@ -977,6 +978,18 @@ var today=function(){return new Date().toISOString().split('T')[0];};
 var now=function(){return new Date().toISOString();};
 function caps(s){return String(s===null||s===undefined?'':s).toUpperCase().trim();}
 function autoCaps(el){var p=el.selectionStart;el.value=el.value.toUpperCase();try{el.setSelectionRange(p,p);}catch(e){}}
+
+// ── Family Name auto-fill: derives "{First word of Name} Family" as you type,
+// but only while the Family field hasn't been touched directly by a human —
+// either by typing into it, or because it already held a saved value when the
+// form opened. Once "locked", typing in Name never overwrites it again. ──
+var _lfFamilyLocked=false, _cfFamilyLocked=false;
+function deriveFamilyName(nameEl, familyEl, lockedVarName){
+  if(window[lockedVarName]) return; // human has taken control — leave it alone
+  var raw=(nameEl.value||'').trim();
+  var firstWord=raw.split(/\s+/)[0]||'';
+  familyEl.value = firstWord ? (firstWord.toUpperCase()+' FAMILY') : '';
+}
 
 function ini(n){return (n||'?').split(' ').map(function(w){return w[0]||'';}).join('').toUpperCase().slice(0,2)||'?';}
 function daysAgo(d){
@@ -1520,6 +1533,9 @@ function openDetail(mob,type,nameHint){
     // ── CLIENT DETAIL ──
   var c = rec;
   var histHtml = buildHistoryHtml(mob,'client');
+  var chipsHtml = V17_CHIPS.map(function(c2){
+    return '<div class="qlog-chip" style="padding:4px 8px;font-size:11px" data-action="fu-qlog" data-mob="'+mob+'" data-note="'+c2[0]+' '+c2[1]+'">'+c2[0]+' '+c2[1]+'</div>';
+  }).join('');
   var digits = (c.mobile||'').replace(/\D/g,'');
   var waNum = digits.length===10?'91'+digits:digits;
   var wmsg = encodeURIComponent('Hello '+toTitle(c.name)+', this is Arjun from Wealth Matrix Finserv.');
@@ -1588,6 +1604,13 @@ function openDetail(mob,type,nameHint){
     + '<div style="padding:0 14px 8px"><div style="background:var(--s2);border-radius:9px;padding:10px 12px">'
     + '<div style="font-size:9px;color:var(--accent);font-weight:700;letter-spacing:.5px;margin-bottom:7px">ACTIVITY LOG</div>'
     + '<div id="client-hist-'+mob+'">'+histHtml+'</div>'
+    + '<div style="padding:8px 0 0">'
+    + '<div style="font-size:9px;color:var(--t3);text-transform:uppercase;font-weight:700;letter-spacing:.4px;margin-bottom:5px">⚡ Log now</div>'
+    + '<div class="qlog-grid" style="margin-bottom:6px">'+chipsHtml+'</div>'
+    + '<div style="display:flex;gap:6px">'
+    + '<input class="fi" id="client-note-input-'+mob+'" placeholder="Custom note…" style="flex:1;padding:7px 10px;font-size:13px;background:var(--bg)">'
+    + '<button class="btn btn-gold" style="padding:7px 11px;font-size:12px;flex-shrink:0" data-action="fu-save-note" data-mob="'+mob+'">Log →</button>'
+    + '</div></div>'
     + '</div></div>'
     + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;padding:0 14px 14px">'
     + '<button data-revert="'+mob+'" style="background:none;border:1px solid var(--border);border-radius:8px;padding:10px 4px;color:var(--t2);font-size:10px;font-weight:700;cursor:pointer">← Back to<br>In Progress</button>'
@@ -1638,8 +1661,17 @@ function openDetail(mob,type,nameHint){
       logActivity(btn.dataset.mob||mob,'client',btn.dataset.note,'');
       btn.style.background='var(--accent)';btn.style.color='#fff';
       setTimeout(function(){btn.style.background='';btn.style.color='';},800);
-      var el2=document.getElementById('cl-hist-'+(btn.dataset.mob||mob));
+      var el2=document.getElementById('client-hist-'+(btn.dataset.mob||mob));
       setTimeout(function(){if(el2){el2.innerHTML=buildHistoryHtml(btn.dataset.mob||mob,'client');el2.scrollTop=el2.scrollHeight;}},350);
+    }
+    if(action==='fu-save-note'){
+      var noteMob=btn.dataset.mob||mob;
+      var noteInp=document.getElementById('client-note-input-'+noteMob);
+      var noteTxt=(noteInp?noteInp.value:'').trim();
+      if(!noteTxt){toast('Type a note first');return;}
+      logActivity(noteMob,'client',noteTxt,'');
+      if(noteInp)noteInp.value='';
+      setTimeout(function(){var el3=document.getElementById('client-hist-'+noteMob);if(el3){el3.innerHTML=buildHistoryHtml(noteMob,'client');el3.scrollTop=el3.scrollHeight;}},350);
     }
   };
   // Pull fresh activity
@@ -1679,6 +1711,7 @@ function openAddClient(pre){
   var fields=['name','family','mob','email','country','age','gender','pan','source','referral',
     'aum','potaum','potsip','sipdate','healthins','lifeins','rem'];
   fields.forEach(function(f){var el=document.getElementById('cf-'+f);if(el)el.value='';});
+  _cfFamilyLocked=false; // fresh form — allow auto-fill as the name is typed
   ['dob','sdob','anniversary','review','nextfu','duehealth','duelife'].forEach(function(f){
     var el=document.getElementById('cf-'+f);if(el)el.value='';
   });
@@ -1703,6 +1736,7 @@ function editClientOpen(mob){
 
   function sv(id,val){var el=document.getElementById(id);if(el)el.value=val||'';}
   sv('cf-name', c.name); sv('cf-family', c.familyName); sv('cf-mob', c.mobile);
+  _cfFamilyLocked=!!(c.familyName&&c.familyName.trim()); // already saved — don't auto-overwrite on name edits
   sv('cf-email', c.email); sv('cf-country', c.country);
   sv('cf-age', c.age); sv('cf-gender', c.gender);
   sv('cf-pan', c.pan); sv('cf-dob', c.dob);
@@ -2864,7 +2898,7 @@ function deleteActivityEntry(rowId, mob, clickTs){
       return true;
     });
     saveActivityLog();
-    var el=document.getElementById('fu-hist-'+mob)||document.getElementById('cl-hist-'+mob);
+    var el=document.getElementById('fu-hist-'+mob)||document.getElementById('client-hist-'+mob);
     if(el){el.innerHTML=buildHistoryHtml(mob,_detailOpenType||'lead');el.scrollTop=el.scrollHeight;}
     // Delete from sheet by exact Raw ID — _writePending blocks auto-sync during delete
     if(hasScript()){
@@ -3515,6 +3549,7 @@ function openAddLead(pre){
   var cEl=document.getElementById('lf-country');if(cEl)cEl.value='';
   var gtEl=document.getElementById('lf-geotag');if(gtEl)gtEl.value='';
   var lfFamClr=document.getElementById('lf-family');if(lfFamClr)lfFamClr.value='';
+  _lfFamilyLocked=false; // fresh form — allow auto-fill as the name is typed
   var defNext=(function(){var d=new Date();d.setDate(d.getDate()+7);return d.toISOString().split('T')[0];})();
   var fuEl=document.getElementById('lf-followup');if(fuEl)fuEl.value=defNext;
   document.querySelectorAll('#ov-lead .pt').forEach(function(t){t.classList.remove('on');});
@@ -3529,6 +3564,7 @@ function editLeadOpen(mob){
   document.getElementById('lf-title').textContent='Edit Lead';
   document.getElementById('lf-name').value=l.name||'';
   var lfFamEl=document.getElementById('lf-family');if(lfFamEl)lfFamEl.value=l.familyName||'';
+  _lfFamilyLocked=!!(l.familyName&&l.familyName.trim()); // already saved — don't auto-overwrite on name edits
   document.getElementById('lf-mob').value=l.mobile||'';
   var eEl=document.getElementById('lf-email');if(eEl)eEl.value=l.email||'';
   var cEl=document.getElementById('lf-country');if(cEl)cEl.value=l.country||'';
@@ -4627,6 +4663,25 @@ async function runHealthCheck(){
     var lRes=await sheetWrite({action:'listClientDocuments',clientName:'HEALTHCHECK CLIENT',pan:'',mobile:TMOB2});
     if(lRes&&lRes.success) ok('Document listing works ('+((lRes.files||[]).length)+' files)');
     else wn('Document listing failed');
+
+    // Lead → Client folder continuity: a folder created while someone is still a
+    // lead must be the SAME folder used once they convert — never a duplicate.
+    // Name+mobile carry over verbatim through conversion, so this simulates that.
+    var convName='DIAGCHECK LEADCONVERT', convMob='9000000005';
+    var leadFolderRes=await sheetWrite({action:'createClientFolder',clientName:convName,pan:'',mobile:convMob});
+    if(leadFolderRes&&leadFolderRes.success){
+      await sleep(400);
+      var clientFolderRes=await sheetWrite({action:'createClientFolder',clientName:convName,pan:'',mobile:convMob});
+      if(clientFolderRes&&clientFolderRes.success&&clientFolderRes.folderId===leadFolderRes.folderId){
+        ok('Lead\u2192Client conversion reuses the same Drive folder (no duplicate created)');
+      } else if(clientFolderRes&&clientFolderRes.success){
+        no('Lead\u2192Client conversion created a DIFFERENT folder \u2014 duplicate risk (lead folder: '+leadFolderRes.folderId+', post-conversion: '+clientFolderRes.folderId+')');
+      } else {
+        wn('Could not verify folder continuity \u2014 second folder check failed');
+      }
+    } else {
+      wn('Could not verify folder continuity \u2014 initial folder creation failed');
+    }
   }catch(e){ wn('Folder/doc test error: '+e.message); }
 
   // 7. BACKUP
