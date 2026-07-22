@@ -12,7 +12,7 @@
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <meta name="theme-color" content="#000000">
-<title>Wealth Matrix CRM v3.2.1</title>
+<title>Wealth Matrix CRM v3.2.2</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -370,7 +370,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     </div>
     <div style="display:flex;align-items:center;gap:8px">
       <button onclick="manualSync()" style="background:none;border:none;cursor:pointer;font-size:16px">🔄</button>
-      <span style="font-size:9px;font-weight:700;color:var(--accent);background:var(--accent2);padding:2px 7px;border-radius:999px;border:1px solid var(--accent)">v3.2.1</span>
+      <span style="font-size:9px;font-weight:700;color:var(--accent);background:var(--accent2);padding:2px 7px;border-radius:999px;border:1px solid var(--accent)">v3.2.2</span>
     </div>
   </div>
 
@@ -404,6 +404,12 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     </div>
   </div>
 
+  <!-- Quick Reminders — "Actions Pending" -->
+  <div class="sec" id="dash-actions-pending-wrap" style="display:none">
+    <div class="lbl" style="color:var(--accent)">⏰ Actions Pending</div>
+    <div id="dash-actions-pending"></div>
+  </div>
+
   <!-- Week Follow-up Planner -->
   <div class="sec">
     <div class="lbl" style="color:var(--accent)">📆 This Week's Follow-ups</div>
@@ -420,12 +426,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   <div class="sec" id="dash-reminders-wrap">
     <div class="lbl" style="color:var(--accent)">🧭 Planning Nudges</div>
     <div id="dash-reminders"><div style="font-size:11px;color:var(--t3);text-align:center;padding:8px">Loading...</div></div>
-  </div>
-
-  <!-- Quick Reminders — "Actions Pending" -->
-  <div class="sec" id="dash-actions-pending-wrap" style="display:none">
-    <div class="lbl" style="color:var(--accent)">⏰ Actions Pending</div>
-    <div id="dash-actions-pending"></div>
   </div>
 
   <button onclick="openAddReminder()" style="position:fixed;bottom:80px;right:18px;width:54px;height:54px;border-radius:50%;background:#FFFFFF;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:999;box-shadow:0 4px 16px rgba(255,255,255,0.25)" aria-label="Add reminder">
@@ -558,7 +558,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div class="syc"><button class="btn btn-ghost btn-full" onclick="showSpecialDaysList()">📋 View Upcoming Special Days</button></div>
   </div>
 
-  <div style="text-align:center;padding:20px 0 40px;font-size:10px;color:var(--t3)">Wealth Matrix CRM v3.2.1</div>
+  <div style="text-align:center;padding:20px 0 40px;font-size:10px;color:var(--t3)">Wealth Matrix CRM v3.2.2</div>
 </div>
 </div>
 
