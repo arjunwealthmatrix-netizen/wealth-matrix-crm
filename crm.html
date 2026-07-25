@@ -12,7 +12,7 @@
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <meta name="theme-color" content="#000000">
-<title>Wealth Matrix CRM v3.2.4</title>
+<title>Wealth Matrix CRM v3.2.6</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -370,7 +370,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     </div>
     <div style="display:flex;align-items:center;gap:8px">
       <button onclick="manualSync()" style="background:none;border:none;cursor:pointer;font-size:16px">🔄</button>
-      <span style="font-size:9px;font-weight:700;color:var(--accent);background:var(--accent2);padding:2px 7px;border-radius:999px;border:1px solid var(--accent)">v3.2.4</span>
+      <span style="font-size:9px;font-weight:700;color:var(--accent);background:var(--accent2);padding:2px 7px;border-radius:999px;border:1px solid var(--accent)">v3.2.6</span>
     </div>
   </div>
 
@@ -558,7 +558,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div class="syc"><button class="btn btn-ghost btn-full" onclick="showSpecialDaysList()">📋 View Upcoming Special Days</button></div>
   </div>
 
-  <div style="text-align:center;padding:20px 0 40px;font-size:10px;color:var(--t3)">Wealth Matrix CRM v3.2.4</div>
+  <div style="text-align:center;padding:20px 0 40px;font-size:10px;color:var(--t3)">Wealth Matrix CRM v3.2.6</div>
 </div>
 </div>
 
@@ -4920,6 +4920,56 @@ async function runHealthCheck(){
     } else { wn('Calendar check returned no response'); }
   }catch(e){ wn('Calendar check error: '+e.message); }
 
+  // 12. QUICK REMINDERS — full round trip against the REAL sheet, so any
+  // failure here shows exactly what's actually happening, not a guess.
+  log(''); log('\u2501\u2501 12. Quick Reminders (write \u00B7 read \u00B7 update \u00B7 delete) \u2501\u2501');
+  var testDate=today(), testName='DIAGCHECK REMINDER', testText='Initial test reminder text';
+  try{
+    var addRes=await sheetWrite({action:'addReminder', date:testDate, clientName:testName, reminderText:testText});
+    if(addRes && addRes.success) ok('Write succeeded (addReminder)');
+    else { no('Write failed: '+(addRes&&addRes.error||'unknown \u2014 confirm Code.gs v2.10.2+ is deployed')); throw new Error('stop'); }
+
+    await sleep(500);
+    var readRes=await scriptGet('REMINDERS', 2);
+    var foundRow=readRes && readRes.rows && readRes.rows.slice(1).find(function(r){
+      return String(r[1]||'').trim()===testName && String(r[2]||'').trim()===testText;
+    });
+    if(foundRow) ok('Read back correctly \u2014 row found with matching name and text');
+    else no('Could not find the written row when reading back \u2014 check the REMINDERS tab columns are Date, Client Name, Reminder in that order');
+
+    var updatedText='Updated test reminder text';
+    var updRes=await sheetWrite({action:'updateReminder',
+      oldDate:testDate, oldClientName:testName, oldReminderText:testText,
+      newDate:testDate, newClientName:testName, newReminderText:updatedText});
+    if(updRes && updRes.success) ok('Update call succeeded (updateReminder)');
+    else no('Update call failed: '+(updRes&&updRes.error||'unknown error'));
+
+    await sleep(500);
+    var readRes2=await scriptGet('REMINDERS', 2);
+    var foundUpdated=readRes2 && readRes2.rows && readRes2.rows.slice(1).find(function(r){
+      return String(r[1]||'').trim()===testName && String(r[2]||'').trim()===updatedText;
+    });
+    if(foundUpdated) ok('Update actually landed in the sheet \u2014 row now shows the new text');
+    else no('Update call succeeded but the sheet still shows the OLD text \u2014 this points to a row-matching bug, not a deployment issue');
+
+    var delRes=await sheetWrite({action:'deleteReminder', date:testDate, clientName:testName, reminderText:updatedText});
+    if(delRes && delRes.success) ok('Delete call succeeded (deleteReminder)');
+    else no('Delete call failed: '+(delRes&&delRes.error||'unknown error'));
+
+    await sleep(500);
+    var readRes3=await scriptGet('REMINDERS', 2);
+    var stillThere=readRes3 && readRes3.rows && readRes3.rows.slice(1).some(function(r){
+      return String(r[1]||'').trim()===testName;
+    });
+    if(!stillThere) ok('Delete actually removed the row \u2014 confirmed gone from the sheet');
+    else no('Delete call succeeded but the row is STILL in the sheet \u2014 row-matching bug, not deployment');
+  }catch(e){
+    if(e.message!=='stop') no('Reminders test error: '+e.message);
+    // best-effort cleanup even if something above failed
+    try{ await sheetWrite({action:'deleteReminder', date:testDate, clientName:testName, reminderText:testText}); }catch(e2){}
+    try{ await sheetWrite({action:'deleteReminder', date:testDate, clientName:testName, reminderText:'Updated test reminder text'}); }catch(e2){}
+  }
+
   // SUMMARY
   log(''); log('\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501');
   log('RESULT: '+pass+' passed \u00B7 '+fail+' failed \u00B7 '+warn+' warnings');
@@ -7153,108 +7203,131 @@ function renderTodaysActivity(){
     return d;
   }
 
+  // Each item below is independently wrapped in try/catch — a bad data point
+  // in ONE category (e.g. a malformed date on a single client) must never
+  // silently prevent every category after it from rendering. Any failure is
+  // logged to the console for debugging, and the rest continue normally.
+
   // ── 1. Follow-ups today (leads + clients) ──
-  var fd=parseInt(cfg_.followUpDays)||14;
-  var dueLeads=leads.filter(function(l){
-    if(!['PROSPECT','CONTACTED','IN PROGRESS'].includes((l.status||'').toUpperCase()))return false;
-    if(l.nextFollowUp&&/^\d{4}-\d{2}-\d{2}$/.test(l.nextFollowUp)) return daysUntil(l.nextFollowUp)<=0;
-    return daysAgo(l.modifiedDate||l.createdDate)>=fd;
-  });
-  var dueClients=clients.filter(function(c){
-    return c.nextFollowUp && /^\d{4}-\d{2}-\d{2}$/.test(c.nextFollowUp) && daysUntil(c.nextFollowUp)<=0;
-  });
-  var fuTotal=dueLeads.length+dueClients.length;
-  if(fuTotal>0){
-    items.push({icon:'🔔',color:'var(--accent)',bg:'rgba(255,255,255,.08)',
-      title:fuTotal+' follow-up'+(fuTotal>1?'s':'')+' due today',
-      sub:'Tap to view — prioritised by value',
-      action:'openFuOverlay()'});
-  }
+  try{
+    var fd=parseInt(cfg_.followUpDays)||14;
+    var dueLeads=leads.filter(function(l){
+      if(!['PROSPECT','CONTACTED','IN PROGRESS'].includes((l.status||'').toUpperCase()))return false;
+      if(l.nextFollowUp&&/^\d{4}-\d{2}-\d{2}$/.test(l.nextFollowUp)) return daysUntil(l.nextFollowUp)<=0;
+      return daysAgo(l.modifiedDate||l.createdDate)>=fd;
+    });
+    var dueClients=clients.filter(function(c){
+      return c.nextFollowUp && /^\d{4}-\d{2}-\d{2}$/.test(c.nextFollowUp) && daysUntil(c.nextFollowUp)<=0;
+    });
+    var fuTotal=dueLeads.length+dueClients.length;
+    if(fuTotal>0){
+      items.push({icon:'🔔',color:'var(--accent)',bg:'rgba(255,255,255,.08)',
+        title:fuTotal+' follow-up'+(fuTotal>1?'s':'')+' due today',
+        sub:'Tap to view — prioritised by value',
+        action:'openFuOverlay()'});
+    }
+  }catch(e){ console.warn('Today\'s Activity — Follow-ups section failed:', e.message); }
 
   // ── 2. Special days today ──
-  if(typeof _specialDays !== 'undefined'){
-    var specialToday=_specialDays.filter(function(sd){
-      if(!sd.date) return false;
-      var p=sd.date.split('-'); if(p.length<2) return false;
-      return parseInt(p[0])-1===now.getMonth() && parseInt(p[1])===now.getDate();
-    });
-    if(specialToday.length){
-      items.push({icon:'📅',color:'#8e44ad',bg:'rgba(142,68,173,.08)',
-        title:specialToday.length+' special day'+(specialToday.length>1?'s':'')+' today',
-        sub:specialToday.map(function(sd){return sd.speciality;}).join(' · '),
-        action:'showSpecialDaysList()'});
+  try{
+    if(typeof _specialDays !== 'undefined'){
+      var specialToday=_specialDays.filter(function(sd){
+        if(!sd.date) return false;
+        var p=sd.date.split('-'); if(p.length<2) return false;
+        return parseInt(p[0])-1===now.getMonth() && parseInt(p[1])===now.getDate();
+      });
+      if(specialToday.length){
+        items.push({icon:'📅',color:'#8e44ad',bg:'rgba(142,68,173,.08)',
+          title:specialToday.length+' special day'+(specialToday.length>1?'s':'')+' today',
+          sub:specialToday.map(function(sd){return sd.speciality;}).join(' · '),
+          action:'showSpecialDaysList()'});
+      }
     }
-  }
+  }catch(e){ console.warn('Today\'s Activity — Special days section failed:', e.message); }
 
   // ── 3. Events today (calendar events + calendar-sourced birthdays) ──
-  var todayEvents=calendarEventsOn(todayStr);
-  if(todayEvents.length){
-    var evCount=todayEvents.filter(function(e){return e.type!=='birthday';}).length;
-    var bdayCount=todayEvents.filter(function(e){return e.type==='birthday';}).length;
-    var evLabel=[];
-    if(evCount) evLabel.push(evCount+' event'+(evCount>1?'s':''));
-    if(bdayCount) evLabel.push(bdayCount+' birthday'+(bdayCount>1?'s':''));
-    items.push({icon:'📅',color:'#4FC3F7',bg:'rgba(79,195,247,.08)',
-      title:'Today — '+evLabel.join(', '),
-      sub:todayEvents.map(function(e){return (e.type==='birthday'?'🎂 ':'')+e.title;}).join(' · '),
-      list:todayEvents, listType:'calendarEvents'});
-  }
+  try{
+    var todayEvents=calendarEventsOn(todayStr);
+    if(todayEvents.length){
+      var evCount=todayEvents.filter(function(e){return e.type!=='birthday';}).length;
+      var bdayCount=todayEvents.filter(function(e){return e.type==='birthday';}).length;
+      var evLabel=[];
+      if(evCount) evLabel.push(evCount+' event'+(evCount>1?'s':''));
+      if(bdayCount) evLabel.push(bdayCount+' birthday'+(bdayCount>1?'s':''));
+      items.push({icon:'📅',color:'#4FC3F7',bg:'rgba(79,195,247,.08)',
+        title:'Today — '+evLabel.join(', '),
+        sub:todayEvents.map(function(e){return (e.type==='birthday'?'🎂 ':'')+e.title;}).join(' · '),
+        list:todayEvents, listType:'calendarEvents'});
+    }
+  }catch(e){ console.warn('Today\'s Activity — Events section failed:', e.message); }
 
   // ── 4. SIP due next 5 days ──
-  var sipDue=clients.filter(function(c){return c.sipDate&&daysToSip(c.sipDate)<=5&&daysToSip(c.sipDate)>=0&&!isSipReminderSent(c.mobile);});
-  if(sipDue.length){
-    items.push({icon:'💰',color:'#f39c12',bg:'rgba(243,156,18,.08)',
-      title:'SIP due — '+sipDue.length+' client'+(sipDue.length>1?'s':''),
-      sub:sipDue.map(function(c){return toTitle(c.name)+' ('+c.sipDate+'th)';}).join(' · '),
-      list:sipDue, listType:'sip'});
-  }
+  try{
+    var sipDue=clients.filter(function(c){return c.sipDate&&daysToSip(c.sipDate)<=5&&daysToSip(c.sipDate)>=0&&!isSipReminderSent(c.mobile);});
+    if(sipDue.length){
+      items.push({icon:'💰',color:'#f39c12',bg:'rgba(243,156,18,.08)',
+        title:'SIP due — '+sipDue.length+' client'+(sipDue.length>1?'s':''),
+        sub:sipDue.map(function(c){return toTitle(c.name)+' ('+c.sipDate+'th)';}).join(' · '),
+        list:sipDue, listType:'sip'});
+    }
+  }catch(e){ console.warn('Today\'s Activity — SIP due section failed:', e.message); }
 
   // ── 5. Review due TODAY (forward-looking reviews now live in Planning Nudges, next 14 days) ──
-  var reviewDue=clients.filter(function(c){return daysTo(c.reviewDate)===0;});
-  if(reviewDue.length){
-    items.push({icon:'📊',color:'#9b59b6',bg:'rgba(155,89,182,.08)',
-      title:'Review due today — '+reviewDue.length+' client'+(reviewDue.length>1?'s':''),
-      sub:reviewDue.map(function(c){return toTitle(c.name);}).join(' · '),
-      list:reviewDue, listType:'review'});
-  }
+  try{
+    var reviewDue=clients.filter(function(c){return daysTo(c.reviewDate)===0;});
+    if(reviewDue.length){
+      items.push({icon:'📊',color:'#9b59b6',bg:'rgba(155,89,182,.08)',
+        title:'Review due today — '+reviewDue.length+' client'+(reviewDue.length>1?'s':''),
+        sub:reviewDue.map(function(c){return toTitle(c.name);}).join(' · '),
+        list:reviewDue, listType:'review'});
+    }
+  }catch(e){ console.warn('Today\'s Activity — Review due section failed:', e.message); }
 
   // ── 6. Anniversary today ──
-  var annsToday=clients.filter(function(c){return daysToAnnual(c.anniversary)===0;});
-  if(annsToday.length){
-    items.push({icon:'💑',color:'#3498db',bg:'rgba(52,152,219,.08)',
-      title:'Anniversary today — '+annsToday.length+' client'+(annsToday.length>1?'s':''),
-      sub:annsToday.map(function(c){return toTitle(c.name);}).join(' · '),
-      list:annsToday, listType:'ann'});
-  }
+  try{
+    var annsToday=clients.filter(function(c){return daysToAnnual(c.anniversary)===0;});
+    if(annsToday.length){
+      items.push({icon:'💑',color:'#3498db',bg:'rgba(52,152,219,.08)',
+        title:'Anniversary today — '+annsToday.length+' client'+(annsToday.length>1?'s':''),
+        sub:annsToday.map(function(c){return toTitle(c.name);}).join(' · '),
+        list:annsToday, listType:'ann'});
+    }
+  }catch(e){ console.warn('Today\'s Activity — Anniversary section failed:', e.message); }
 
   // ── 7. Birthdays today ──
-  var bdaysToday=clients.filter(function(c){return daysToAnnual(c.dob)===0;});
-  var sbdaysToday=clients.filter(function(c){return daysToAnnual(c.spouseDob)===0;});
-  var allBdaysToday=bdaysToday.concat(sbdaysToday);
-  if(allBdaysToday.length){
-    items.push({icon:'🎂',color:'#25D366',bg:'rgba(37,211,102,.08)',
-      title:'Birthday today — '+allBdaysToday.length+' client'+(allBdaysToday.length>1?'s':''),
-      sub:allBdaysToday.map(function(c){return toTitle(c.name);}).join(' · '),
-      list:allBdaysToday, listType:'bday'});
-  }
+  try{
+    var bdaysToday=clients.filter(function(c){return daysToAnnual(c.dob)===0;});
+    var sbdaysToday=clients.filter(function(c){return daysToAnnual(c.spouseDob)===0;});
+    var allBdaysToday=bdaysToday.concat(sbdaysToday);
+    if(allBdaysToday.length){
+      items.push({icon:'🎂',color:'#25D366',bg:'rgba(37,211,102,.08)',
+        title:'Birthday today — '+allBdaysToday.length+' client'+(allBdaysToday.length>1?'s':''),
+        sub:allBdaysToday.map(function(c){return toTitle(c.name);}).join(' · '),
+        list:allBdaysToday, listType:'bday'});
+    }
+  }catch(e){ console.warn('Today\'s Activity — Birthdays section failed:', e.message); }
 
   // ── 8. 1st Anniversary today ──
-  var ann1sToday=clients.filter(function(c){return daysToAnnual(c.firstAnniversary)===0;});
-  if(ann1sToday.length){
-    items.push({icon:'🏆',color:'#2ecc71',bg:'rgba(46,204,113,.08)',
-      title:'1 Year Anniversary today — '+ann1sToday.length+' client'+(ann1sToday.length>1?'s':''),
-      sub:ann1sToday.map(function(c){return toTitle(c.name);}).join(' · '),
-      list:ann1sToday, listType:'cas'});
-  }
+  try{
+    var ann1sToday=clients.filter(function(c){return daysToAnnual(c.firstAnniversary)===0;});
+    if(ann1sToday.length){
+      items.push({icon:'🏆',color:'#2ecc71',bg:'rgba(46,204,113,.08)',
+        title:'1 Year Anniversary today — '+ann1sToday.length+' client'+(ann1sToday.length>1?'s':''),
+        sub:ann1sToday.map(function(c){return toTitle(c.name);}).join(' · '),
+        list:ann1sToday, listType:'cas'});
+    }
+  }catch(e){ console.warn('Today\'s Activity — 1st Anniversary section failed:', e.message); }
 
   // ── 9. Clients not contacted in 90+ days ──
-  var stale90=clients.filter(function(c){return clientDaysSinceContact(c)>90;});
-  if(stale90.length){
-    items.push({icon:'\u23F0',color:'#e67e22',bg:'rgba(230,126,34,.08)',
-      title:stale90.length+' client'+(stale90.length>1?'s':'')+' not contacted in 90+ days',
-      sub:stale90.map(function(c){return toTitle(c.name);}).join(' \u00B7 '),
-      list:stale90, listType:'stale90'});
-  }
+  try{
+    var stale90=clients.filter(function(c){return clientDaysSinceContact(c)>90;});
+    if(stale90.length){
+      items.push({icon:'\u23F0',color:'#e67e22',bg:'rgba(230,126,34,.08)',
+        title:stale90.length+' client'+(stale90.length>1?'s':'')+' not contacted in 90+ days',
+        sub:stale90.map(function(c){return toTitle(c.name);}).join(' \u00B7 '),
+        list:stale90, listType:'stale90'});
+    }
+  }catch(e){ console.warn('Today\'s Activity — 90-day stale contacts section failed:', e.message); }
 
   if(!items.length){
     el.innerHTML='<div style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--s1);border-radius:var(--r);border:1px solid var(--border)">'
