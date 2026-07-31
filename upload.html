@@ -94,9 +94,8 @@ var DOC_TYPES = [
   {key:'PAN', label:'PAN'},
   {key:'Aadhaar', label:'Aadhaar'},
   {key:'Passport', label:'Passport (only for NRIs)'},
-  {key:'Resident ID', label:'Resident ID'},
+  {key:'Resident ID', label:'Resident ID (only for NRIs)'},
   {key:'Bank account details', label:'Bank account details'},
-  {key:'Visa', label:'Visa (only for NRIs)'},
   {key:'Others', label:'Others'}
 ];
 
@@ -146,11 +145,22 @@ function renderSlots(){
     + '<div class="slots" id="slotList">'
     + DOC_TYPES.map(function(dt){
         var safeId = dt.key.replace(/\s+/g,'_');
-        return '<div class="slot" id="row-'+safeId+'">'
+        var row = '<div class="slot" id="row-'+safeId+'">'
           + '<div class="l"><div class="t">'+dt.label+'</div><div class="s" id="status-'+safeId+'">Not uploaded</div></div>'
           + '<label class="btn" id="btn-'+safeId+'">Upload'
           + '<input type="file" accept="image/*,.pdf" data-doctype="'+dt.key+'" onchange="handleUpload(this)">'
           + '</label></div>';
+        if(dt.key==='Bank account details'){
+          row += '<div class="form-block" style="margin-top:-6px;margin-bottom:14px">'
+            +   '<div class="nomform-grid">'
+            +     '<div class="fg"><label class="fl">Account Number</label><input class="fi" id="bank-acc" inputmode="numeric" placeholder="Account number" oninput="this.value=this.value.replace(/[^0-9]/g,\'\')"></div>'
+            +     '<div class="fg"><label class="fl">IFSC Code</label><input class="fi" id="bank-ifsc" placeholder="IFSC code" oninput="this.value=this.value.toUpperCase()"></div>'
+            +   '</div>'
+            +   '<button class="savebtn" id="bankSaveBtn" onclick="saveBankDetails()">Save Bank Details</button>'
+            +   '<div class="savemsg" id="bankMsg"></div>'
+            + '</div>';
+        }
+        return row;
       }).join('')
     + '</div>'
     + '<div class="sectionlbl">Nominee Details</div>'
@@ -197,7 +207,7 @@ async function handleUpload(inputEl){
     var ext = file.name.indexOf('.')>=0 ? file.name.split('.').pop() : '';
     var res = await apiPost({
       action:'uploadClientDocument',
-      clientName: client.name, pan: client.pan||'', mobile: client.mobile,
+      clientName: client.name, pan: client.pan||'', mobile: client.mobile, folderId: client.folderId||'',
       docType: docType, fileData: base64, mimeType: file.type, fileExt: ext
     });
     if(res && res.success){
@@ -229,11 +239,32 @@ async function saveNominee(){
   btn.disabled=true; msgEl.textContent='Saving…'; msgEl.className='savemsg';
   var res = await apiPost({
     action:'saveNomineeDetails',
-    clientName: client.name, pan: client.pan||'', mobile: client.mobile,
+    clientName: client.name, pan: client.pan||'', mobile: client.mobile, folderId: client.folderId||'',
     nomineeName: name, nomineeMobile: mobile, nomineeEmail: email
   });
   btn.disabled=false;
   if(res && res.success){ msgEl.textContent='✅ Nominee details saved.'; msgEl.className='savemsg ok'; }
+  else { msgEl.textContent='Could not save — please try again.'; msgEl.className='savemsg err'; }
+}
+
+async function saveBankDetails(){
+  var accNum=(document.getElementById('bank-acc').value||'').trim();
+  var ifsc=(document.getElementById('bank-ifsc').value||'').trim();
+  var msgEl=document.getElementById('bankMsg');
+  var btn=document.getElementById('bankSaveBtn');
+
+  if(!accNum){ msgEl.textContent='Please enter the account number.'; msgEl.className='savemsg err'; return; }
+  if(!ifsc){ msgEl.textContent='Please enter the IFSC code.'; msgEl.className='savemsg err'; return; }
+  if(!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifsc)){ msgEl.textContent='IFSC code looks incorrect — check and try again.'; msgEl.className='savemsg err'; return; }
+
+  btn.disabled=true; msgEl.textContent='Saving…'; msgEl.className='savemsg';
+  var res = await apiPost({
+    action:'saveBankDetails',
+    clientName: client.name, pan: client.pan||'', mobile: client.mobile, folderId: client.folderId||'',
+    accountNumber: accNum, ifscCode: ifsc
+  });
+  btn.disabled=false;
+  if(res && res.success){ msgEl.textContent='✅ Bank details saved.'; msgEl.className='savemsg ok'; }
   else { msgEl.textContent='Could not save — please try again.'; msgEl.className='savemsg err'; }
 }
 
@@ -247,7 +278,7 @@ async function init(){
     var r = await fetch(SCRIPT_URL + '?action=resolveUploadToken&token=' + encodeURIComponent(token) + '&t=' + Date.now());
     var j = await r.json();
     if(j && j.found){
-      client = { name:j.name, mobile:j.mobile, pan:j.pan };
+      client = { name:j.name, mobile:j.mobile, pan:j.pan, folderId:j.folderId||'' };
       renderSlots();
     } else {
       renderError('Link not found', 'This link is invalid or has expired. Please contact your advisor for a new one.');
