@@ -684,7 +684,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       </div>
     </div>
 
-    <div class="acc-section open" id="acc-lf-details">
+    <div class="acc-section" id="acc-lf-details">
       <div class="acc-header" onclick="toggleAccSection('lf-details')">
         <div class="acc-num">2</div>
         <div class="acc-title">Lead Details</div>
@@ -739,7 +739,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       </div>
     </div>
 
-    <div class="acc-section open" id="acc-lf-products">
+    <div class="acc-section" id="acc-lf-products">
       <div class="acc-header" onclick="toggleAccSection('lf-products')">
         <div class="acc-num">3</div>
         <div class="acc-title">Interested Products</div>
@@ -1166,8 +1166,7 @@ var _lfFamilyLocked=false, _cfFamilyLocked=false;
 function deriveFamilyName(nameEl, familyEl, lockedVarName){
   if(window[lockedVarName]) return; // human has taken control — leave it alone
   var raw=(nameEl.value||'').trim();
-  var firstWord=raw.split(/\s+/)[0]||'';
-  familyEl.value = firstWord ? (firstWord.toUpperCase()+' FAMILY') : '';
+  familyEl.value = raw ? (raw.toUpperCase()+' FAMILY') : '';
 }
 
 function ini(n){return (n||'?').split(' ').map(function(w){return w[0]||'';}).join('').toUpperCase().slice(0,2)||'?';}
@@ -1929,7 +1928,49 @@ function logClientNote(mob){
 // existing one; which mode it's in is tracked via window._editingReminder.
 // ═══════════════════════════════════════════════════════════════
 function openAddReminder(){
-  openReminderMenu(null);
+  openReminderListMenu();
+}
+
+// ── Bell icon → shows ALL pending reminders as a tappable list (not just
+// due-today ones — this is a full look-through, unlike the Dashboard's
+// "Actions Pending" section which only surfaces due/overdue items), plus a
+// clear way to add a new one. Tapping an existing reminder opens it for edit. ──
+function openReminderListMenu(){
+  var ov=document.createElement('div');
+  ov.id='reminder-list-ov';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:99999;display:flex;align-items:flex-end;justify-content:center';
+  var todayStr=today();
+  var sorted=reminders
+    .map(function(r,i){ return {r:r, idx:i}; })
+    .sort(function(a,b){ return (a.r.reminderDate||'').localeCompare(b.r.reminderDate||''); });
+  var rows=sorted.map(function(x){
+    var r=x.r;
+    var rd=r.reminderDate||'';
+    var statusTag = !rd ? ''
+      : rd < todayStr ? '<span style="color:#e74c3c;font-weight:700">Overdue \u2014 '+fmt(rd)+'</span>'
+      : rd === todayStr ? '<span style="color:var(--accent);font-weight:700">Due today</span>'
+      : '<span style="color:var(--t3)">Due '+fmt(rd)+'</span>';
+    return '<div onclick="document.getElementById(\'reminder-list-ov\').remove();openReminderMenu(reminders['+x.idx+'])" style="display:flex;align-items:flex-start;gap:8px;padding:10px 12px;background:var(--s1);border:1px solid var(--border);border-radius:10px;margin-bottom:6px;cursor:pointer">'
+      +'<div style="flex:1;min-width:0">'
+      +'<div style="font-size:12px;color:var(--text);line-height:1.4">'+r.reminderText+'</div>'
+      +'<div style="font-size:10px;color:var(--t3);margin-top:3px">'+toTitle(r.clientName)+(statusTag?' \u00B7 '+statusTag:'')+'</div>'
+      +'</div>'
+      +'<span style="font-size:12px;color:var(--t3)">\u203A</span>'
+      +'</div>';
+  }).join('');
+  ov.innerHTML='<div style="background:var(--s1);border-radius:14px 14px 0 0;width:100%;max-width:420px;max-height:78vh;display:flex;flex-direction:column;border:1px solid var(--accent);border-bottom:none">'
+    +'<div style="padding:16px 16px 10px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)">'
+    +'<span style="font-size:15px;font-weight:800;color:var(--accent)">\u23F0 Reminders ('+reminders.length+')</span>'
+    +'<span onclick="document.getElementById(\'reminder-list-ov\').remove()" style="font-size:20px;color:var(--t2);cursor:pointer">\u2715</span>'
+    +'</div>'
+    +'<div style="overflow-y:auto;flex:1;padding:12px 16px 4px">'
+    +(rows||'<div style="text-align:center;padding:24px;color:var(--t3);font-size:12px">No reminders yet — tap below to add one.</div>')
+    +'</div>'
+    +'<div style="padding:12px 16px 20px">'
+    +'<button class="btn btn-gold btn-full" onclick="document.getElementById(\'reminder-list-ov\').remove();openReminderMenu(null)">+ New Reminder</button>'
+    +'</div></div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('click',function(e){ if(e.target===ov) ov.remove(); });
 }
 
 function openReminderMenu(existing){
@@ -4055,10 +4096,10 @@ function openAddLead(pre){
   var defNext=(function(){var d=new Date();d.setDate(d.getDate()+7);return d.toISOString().split('T')[0];})();
   var fuEl=document.getElementById('lf-followup');if(fuEl)fuEl.value=defNext;
   document.querySelectorAll('#ov-lead .pt').forEach(function(t){t.classList.remove('on');});
-  // Reset accordion to default state matching the reference design: Identity,
-  // Lead Details, and Interested Products open; Remarks closed for quick entry.
-  ['lf-identity','lf-details','lf-products'].forEach(function(id){setAccSection(id,true);});
-  setAccSection('lf-remarks',false);
+  // Reset accordion to default state: only Identity open; Lead Details,
+  // Interested Products, and Remarks all minimized — matches the Clients form.
+  setAccSection('lf-identity',true);
+  ['lf-details','lf-products','lf-remarks'].forEach(function(id){setAccSection(id,false);});
   document.getElementById('ov-lead').classList.add('open');
   setupAutocomplete('lf-name','lf-ac-list','lead');
 }
@@ -4089,9 +4130,9 @@ function editLeadOpen(mob){
   var fuEl=document.getElementById('lf-followup');if(fuEl)fuEl.value=l.nextFollowUp||defNext;
   document.querySelectorAll('#ov-lead .pt').forEach(function(t){t.classList.toggle('on',!!(l.products&&l.products.toUpperCase().includes(t.dataset.p)));});
   var remEl=document.getElementById('lf-rem');if(remEl)remEl.value=l.remarks||'';
-  // Same default accordion state as Add New — Identity, Details, Products open; Remarks closed
-  ['lf-identity','lf-details','lf-products'].forEach(function(id){setAccSection(id,true);});
-  setAccSection('lf-remarks',false);
+  // Same default accordion state as Add New — only Identity open; rest minimized
+  setAccSection('lf-identity',true);
+  ['lf-details','lf-products','lf-remarks'].forEach(function(id){setAccSection(id,false);});
   document.getElementById('ov-lead').classList.add('open');
 }
 
@@ -4152,31 +4193,53 @@ async function saveLead(){
     editLead=null;
   }else{
     if(leads.find(function(x){return x.mobile===mob&&(x.name||'').toUpperCase().trim()===name.toUpperCase().trim();})){toast('A lead with this exact name and mobile already exists');return;}
-    var newLead={name:name,mobile:mob,email:email,country:country,age:age,gender:gender,
-      status:status,source:source,referral:referral,products:prods,potentialSip:aum,potentialAum:potentialAum,
-      contactMode:contactMode,nextFollowUp:nextFU,remarks:remarks,geoTag:geoTag,familyName:familyName,notes:[],
-      createdDate:today(),modifiedDate:''};
-    leads.push(newLead);saveL();
-    renderAll();
-    closeOv('ov-lead');
-    if(status==='CONVERTED'){
-      // Convert immediately — autoConvert handles sheet sync
-      autoConvert(newLead);
+    // Mobile matches an existing lead under a DIFFERENT name — could be a genuine
+    // second person sharing a phone (family), or it could be the same person typed
+    // slightly differently (extra space, added middle name, etc). Warn, don't block.
+    var mobileMatch=leads.find(function(x){return x.mobile===mob;});
+    function finishAddNewLead(){
+      var newLead={name:name,mobile:mob,email:email,country:country,age:age,gender:gender,
+        status:status,source:source,referral:referral,products:prods,potentialSip:aum,potentialAum:potentialAum,
+        contactMode:contactMode,nextFollowUp:nextFU,remarks:remarks,geoTag:geoTag,familyName:familyName,notes:[],
+        createdDate:today(),modifiedDate:''};
+      leads.push(newLead);saveL();
+      renderAll();
+      closeOv('ov-lead');
+      if(status==='CONVERTED'){
+        // Convert immediately — autoConvert handles sheet sync
+        autoConvert(newLead);
+      } else {
+        syncLead(newLead, 'add').then(function(res){
+          // Capture the server-assigned Record ID (L1, L2...) immediately, so
+          // this lead can be opened/edited/deleted correctly even if two leads
+          // share a mobile number, without waiting for the next full reload.
+          if(res && res.recordId){
+            newLead.recordId=res.recordId;
+            var nIdx=leads.indexOf(newLead);
+            if(nIdx>=0) leads[nIdx].recordId=res.recordId;
+            saveL();
+          }
+        });
+        toast('✅ Lead added');
+        logAnalytics(2,1); // Lead Entries
+        logAnalytics(3,1); // Prospects (new leads default to PROSPECT)
+      }
+    }
+    if(mobileMatch){
+      var ov3=document.createElement('div');
+      ov3.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+      ov3.innerHTML='<div style="background:var(--s1);border-radius:12px;width:100%;max-width:340px;overflow:hidden">'
+        +'<div style="padding:16px;font-size:14px;font-weight:800;border-bottom:1px solid var(--border)">Same mobile number already exists</div>'
+        +'<div style="padding:12px 16px;font-size:12px;color:var(--t2);line-height:1.5">'+toTitle(mobileMatch.name)+' already has this mobile number on file. Is '+name+' a different person (e.g. family member), or is this the same lead being re-entered?</div>'
+        +'<div style="display:flex;flex-direction:column;border-top:1px solid var(--border)">'
+        +'<button id="dup-add" style="padding:12px;border:none;background:none;color:var(--accent);font-weight:700;cursor:pointer;border-bottom:1px solid var(--border)">Different person — add anyway</button>'
+        +'<button id="dup-cancel" style="padding:12px;border:none;background:none;color:var(--t2);cursor:pointer">Cancel — this is the same lead</button>'
+        +'</div></div>';
+      document.body.appendChild(ov3);
+      document.getElementById('dup-add').onclick=function(){ov3.remove();finishAddNewLead();};
+      document.getElementById('dup-cancel').onclick=function(){ov3.remove();};
     } else {
-      syncLead(newLead, 'add').then(function(res){
-        // Capture the server-assigned Record ID (L1, L2...) immediately, so
-        // this lead can be opened/edited/deleted correctly even if two leads
-        // share a mobile number, without waiting for the next full reload.
-        if(res && res.recordId){
-          newLead.recordId=res.recordId;
-          var nIdx=leads.indexOf(newLead);
-          if(nIdx>=0) leads[nIdx].recordId=res.recordId;
-          saveL();
-        }
-      });
-      toast('✅ Lead added');
-      logAnalytics(2,1); // Lead Entries
-      logAnalytics(3,1); // Prospects (new leads default to PROSPECT)
+      finishAddNewLead();
     }
   }
 }
