@@ -1837,7 +1837,7 @@ function openDetail(mob,type,nameHint){
   document.getElementById('detail-sh').onclick = function(e){
     var btn = e.target.closest('[data-action]'); if(!btn) return;
     var action = btn.dataset.action;
-    if(action==='close-client-detail'||action==='close-client') closeOv('ov-detail');
+    if(action==='close-client-detail'||action==='close-client') closeClientDetailWithPrompt();
     if(action==='edit-client'){
       closeOv('ov-detail'); // close chip window first
       editClientOpen(btn.dataset.mob||mob);
@@ -2777,21 +2777,18 @@ function askClientLastContactedThenClose(mob, doClose){
 
 function closeOv(id){
   document.getElementById(id).classList.remove('open');
-  var wasLeadDetail = (id==='ov-detail'&&_detailOpenMobile&&_detailOpenType==='lead');
-  var wasClientDetail = (id==='ov-detail'&&_detailOpenMobile&&_detailOpenType==='client');
-  var mobToAsk = _detailOpenMobile;
-  function finishCloseOv(){
-    editLead=null;
-    if(id==='ov-client') editClient=null; // only clear editClient when the client form closes
-    _detailOpenMobile=null;_detailOpenType=null;_detailModified=false;_detailOpenRecord=null;
-  }
-  if(wasLeadDetail){
-    askLastContactedThenClose(mobToAsk, finishCloseOv);
-  } else if(wasClientDetail){
-    askClientLastContactedThenClose(mobToAsk, finishCloseOv);
-  } else {
-    finishCloseOv();
-  }
+  editLead=null;
+  if(id==='ov-client') editClient=null; // only clear editClient when the client form closes
+  _detailOpenMobile=null;_detailOpenType=null;_detailModified=false;_detailOpenRecord=null;
+}
+
+// ── Fires ONLY from the client detail's explicit ✕ button — asks about last
+// contacted, then performs the actual close. Every other path that closes the
+// client detail (Modify, Delete, Revert, or opening a different record) goes
+// through plain closeOv() above and never prompts. ──
+function closeClientDetailWithPrompt(){
+  var mobToAsk=_detailOpenMobile;
+  askClientLastContactedThenClose(mobToAsk, function(){ closeOv('ov-detail'); });
 }
 document.querySelectorAll('.ov').forEach(function(o){o.addEventListener('click',function(e){if(e.target===o){if(o.id==='ov-fu-detail')closeFuDetail();else closeOv(o.id);}});});
 function fabAdd(){var activePage=document.querySelector('.page.active');if(activePage&&activePage.id==='pg-clients')openAddClient();else openAddLead();}
