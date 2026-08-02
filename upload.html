@@ -36,7 +36,7 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,B
 .slot .l{flex:1;min-width:0}
 .slot .l .t{font-size:14px;font-weight:700}
 .slot .l .s{font-size:11px;color:var(--t3);margin-top:3px}
-.slot .btn{font-size:12px;font-weight:700;color:#fff;background:var(--accent);padding:9px 14px;border-radius:var(--r2);cursor:pointer;flex-shrink:0;text-align:center}
+.slot .btn{display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff !important;background:var(--accent);padding:9px 14px;border-radius:var(--r2);cursor:pointer;flex-shrink:0;text-align:center;border:none;-webkit-appearance:none;appearance:none;line-height:normal;min-width:64px}
 .slot.done{border-color:var(--green)}
 .slot.done .s{color:var(--green)}
 .slot.err .s{color:#e74c3c}
@@ -96,6 +96,8 @@ var DOC_TYPES = [
   {key:'Passport', label:'Passport (only for NRIs)'},
   {key:'Resident ID', label:'Resident ID (only for NRIs)'},
   {key:'Bank account details', label:'Bank account details'},
+  {key:'Health Insurance Policy', label:'Health Insurance Policy Copy'},
+  {key:'Life Insurance Policy', label:'Life Insurance Policy Copy'},
   {key:'Others', label:'Others'}
 ];
 
@@ -184,6 +186,37 @@ function renderSlots(){
   app.innerHTML = html;
 }
 
+// Checks the client's Drive folder for documents already uploaded — even from
+// a previous visit to this same link — and marks those slots as done on load,
+// so it's immediately clear which documents are still missing versus already in.
+async function markExistingUploads(){
+  if(!client || !client.folderId) return; // no folder yet means nothing could be uploaded yet
+  try{
+    var res = await apiPost({
+      action:'listClientDocuments',
+      clientName: client.name, pan: client.pan||'', mobile: client.mobile, folderId: client.folderId
+    });
+    if(!res || !res.success || !res.files) return;
+    var uploadedTypes = {};
+    res.files.forEach(function(f){ uploadedTypes[f.docType]=true; });
+    DOC_TYPES.concat([{key:'Nominee KYC'}]).forEach(function(dt){
+      if(!uploadedTypes[dt.key]) return; // not uploaded — leave the slot as "Not uploaded"
+      var safeId = dt.key.replace(/\s+/g,'_');
+      var statusEl = document.getElementById('status-'+safeId);
+      var rowEl = document.getElementById('row-'+safeId);
+      var btnEl = document.getElementById('btn-'+safeId);
+      if(statusEl) statusEl.textContent = '✅ Uploaded';
+      if(rowEl) rowEl.className = 'slot done';
+      if(btnEl){
+        var inputEl = btnEl.querySelector('input[type=file]');
+        btnEl.textContent = 'Replace';
+        btnEl.className = 'btn done';
+        if(inputEl) btnEl.appendChild(inputEl);
+      }
+    });
+  }catch(e){ /* non-fatal — worst case, slots just show "Not uploaded" until re-checked */ }
+}
+
 async function handleUpload(inputEl){
   var docType = inputEl.dataset.doctype;
   var file = inputEl.files[0];
@@ -214,6 +247,17 @@ async function handleUpload(inputEl){
       if(statusEl) statusEl.textContent = '✅ Uploaded';
       if(rowEl) rowEl.className = 'slot done';
       if(btnEl){ btnEl.textContent = 'Replace'; btnEl.className='btn done'; btnEl.appendChild(inputEl); }
+      // The backend either found an existing folder (matched by Name+Mobile) or
+      // created a fresh one — either way, persist that folder ID back to the
+      // sheet immediately (matched by Record ID, or mobile as fallback for leads/
+      // legacy rows), so it's tagged right away rather than relying on the
+      // advisor's app to discover and tag it on a later visit. Cheap and safe to
+      // call even if it was already tagged — it just overwrites with the same value.
+      if(res.folderId && res.folderId !== client.folderId){
+        client.folderId = res.folderId;
+        var tagAction = client.recordType==='lead' ? 'tagLeadFolder' : 'tagClientFolder';
+        apiPost({ action: tagAction, mobile: client.mobile, recordId: client.recordId||'', folderId: res.folderId }).catch(function(){});
+      }
     } else {
       if(statusEl) statusEl.textContent = 'Upload failed — please try again';
       if(rowEl) rowEl.className = 'slot err';
@@ -278,8 +322,9 @@ async function init(){
     var r = await fetch(SCRIPT_URL + '?action=resolveUploadToken&token=' + encodeURIComponent(token) + '&t=' + Date.now());
     var j = await r.json();
     if(j && j.found){
-      client = { name:j.name, mobile:j.mobile, pan:j.pan, folderId:j.folderId||'' };
+      client = { name:j.name, mobile:j.mobile, pan:j.pan, folderId:j.folderId||'', recordId:j.recordId||'', recordType:j.recordType||'client' };
       renderSlots();
+      markExistingUploads();
     } else {
       renderError('Link not found', 'This link is invalid or has expired. Please contact your advisor for a new one.');
     }

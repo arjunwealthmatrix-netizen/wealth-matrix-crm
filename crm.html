@@ -12,7 +12,7 @@
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <meta name="theme-color" content="#000000">
-<title>Wealth Matrix CRM v4.10.0</title>
+<title>Wealth Matrix CRM v5.0.0</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -381,7 +381,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     </div>
     <div style="display:flex;align-items:center;gap:8px">
       <button onclick="manualSync()" style="background:none;border:none;cursor:pointer;font-size:16px">🔄</button>
-      <span style="font-size:9px;font-weight:700;color:var(--accent);background:var(--accent2);padding:2px 7px;border-radius:999px;border:1px solid var(--accent)">v4.10.0</span>
+      <span style="font-size:9px;font-weight:700;color:var(--accent);background:var(--accent2);padding:2px 7px;border-radius:999px;border:1px solid var(--accent)">v5.0.0</span>
     </div>
   </div>
 
@@ -560,6 +560,14 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div class="syc"><pre id="clients-diag-result" style="font-size:10px;background:var(--s2);border-radius:8px;padding:10px;white-space:pre-wrap;max-height:340px;overflow-y:auto;margin:0"></pre></div>
   </div>
 
+  <!-- Folder Check Only -->
+  <div style="padding:0 12px;margin-bottom:7px;margin-top:14px" class="lbl">📁 Client Folder Check</div>
+  <div class="sg">
+    <div class="si" style="font-size:10px;color:var(--t3)"><span>Quick check only — does every client have a Drive folder, correctly matched? No test data written, just a read-only scan.</span></div>
+    <div class="syc"><button class="btn btn-ghost btn-full" style="font-weight:700;border-color:var(--accent);color:var(--accent)" onclick="runFolderCheckOnly()">📁 Check All Client Folders</button></div>
+    <div class="syc"><pre id="folder-check-result" style="font-size:10px;background:var(--s2);border-radius:8px;padding:10px;white-space:pre-wrap;max-height:340px;overflow-y:auto;margin:0"></pre></div>
+  </div>
+
   <!-- Special Days -->
   <div style="padding:0 12px;margin-bottom:7px;margin-top:14px" class="lbl">📅 Special Days</div>
   <div class="sg">
@@ -575,7 +583,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div class="syc"><button class="btn btn-ghost btn-full" onclick="showSpecialDaysList()">📋 View Upcoming Special Days</button></div>
   </div>
 
-  <div style="text-align:center;padding:20px 0 40px;font-size:10px;color:var(--t3)">Wealth Matrix CRM v4.10.0</div>
+  <div style="text-align:center;padding:20px 0 40px;font-size:10px;color:var(--t3)">Wealth Matrix CRM v5.0.0</div>
 </div>
 </div>
 
@@ -673,7 +681,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         <div class="fg"><label class="fl">Name *</label><input class="fi" id="lf-name" placeholder="Full name" autocomplete="off" oninput="autoCaps(this);deriveFamilyName(this,document.getElementById('lf-family'),'_lfFamilyLocked')"><div class="ac-list" id="lf-ac-list"></div></div>
         <div class="fg"><label class="fl">Family Name</label><input class="fi" id="lf-family" list="familyname-suggestions" placeholder="e.g. Nair Family" oninput="autoCaps(this);_lfFamilyLocked=true"></div>
       </div>
-      <div class="fg"><label class="fl">Mobile *</label><input class="fi" id="lf-mob" type="tel" inputmode="numeric" placeholder="9847012345" required maxlength="10" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)"></div>
+      <div class="fg"><label class="fl">Mobile *</label><input class="fi" id="lf-mob" type="tel" inputmode="numeric" placeholder="9847012345" required oninput="this.value=normalizeMobileInput(this.value)"></div>
       <div class="frow">
         <div class="fg"><label class="fl">Email</label><input class="fi" id="lf-email" type="email" autocomplete="off"></div>
         <div class="fg"><label class="fl">Age</label><input class="fi" id="lf-age" type="number" placeholder="35"></div>
@@ -796,7 +804,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         <div class="fg"><label class="fl">Name *</label><input class="fi" id="cf-name" placeholder="Full name" oninput="autoCaps(this);deriveFamilyName(this,document.getElementById('cf-family'),'_cfFamilyLocked')"><div class="ac-list" id="cf-ac-list"></div></div>
         <div class="fg"><label class="fl">Family Name</label><input class="fi" id="cf-family" list="familyname-suggestions" placeholder="e.g. Nair Family" oninput="autoCaps(this);_cfFamilyLocked=true"></div>
       </div>
-      <div class="fg"><label class="fl">Mobile *</label><input class="fi" id="cf-mob" type="tel" placeholder="9847012345"></div>
+      <div class="fg"><label class="fl">Mobile *</label><input class="fi" id="cf-mob" type="tel" inputmode="numeric" placeholder="9847012345" oninput="this.value=normalizeMobileInput(this.value)"></div>
       <div class="frow">
         <div class="fg"><label class="fl">Email</label><input class="fi" id="cf-email" type="email"></div>
         <div class="fg"><label class="fl">Age</label><input class="fi" id="cf-age" type="number"></div>
@@ -893,12 +901,18 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         <div class="fg"><label class="fl">Health Insurance</label>
           <select class="fi fi-sel" id="cf-healthins"><option value="">Select</option><option value="YES">Yes</option><option value="NO">No</option></select>
         </div>
+        <div class="fg"><label class="fl">Health Coverage Amount</label><input class="fi" id="cf-healthcov" placeholder="e.g. 5 Lakhs, 10 Lakhs"></div>
+      </div>
+      <div class="frow">
         <div class="fg"><label class="fl">Due Date Health</label><input class="fi" id="cf-duehealth" type="date"></div>
       </div>
-      <div class="frow" style="margin-bottom:0">
-        <div class="fg" style="margin-bottom:0"><label class="fl">Life Insurance</label>
+      <div class="frow">
+        <div class="fg"><label class="fl">Life Insurance</label>
           <select class="fi fi-sel" id="cf-lifeins"><option value="">Select</option><option value="YES">Yes</option><option value="NO">No</option></select>
         </div>
+        <div class="fg"><label class="fl">Life Coverage Amount</label><input class="fi" id="cf-lifecov" placeholder="e.g. 5 Lakhs, 10 Lakhs"></div>
+      </div>
+      <div class="frow" style="margin-bottom:0">
         <div class="fg" style="margin-bottom:0"><label class="fl">Due Date Life</label><input class="fi" id="cf-duelife" type="date"></div>
       </div>
       </div>
@@ -954,6 +968,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         <div class="pt" data-p="LIFE INSURANCE" onclick="tp(this)">🛡️ Life Ins.</div>
         <div class="pt" data-p="HEALTH INSURANCE" onclick="tp(this)">🏥 Health Ins.</div>
         <div class="pt" data-p="WILL" onclick="tp(this)">📜 WILL</div>
+        <div class="pt" data-p="AIF" onclick="tp(this)">🏛️ AIF</div>
+        <div class="pt" data-p="PMS" onclick="tp(this)">💼 PMS</div>
       </div>
       </div>
     </div>
@@ -1163,6 +1179,18 @@ function autoCaps(el){var p=el.selectionStart;el.value=el.value.toUpperCase();tr
 // either by typing into it, or because it already held a saved value when the
 // form opened. Once "locked", typing in Name never overwrites it again. ──
 var _lfFamilyLocked=false, _cfFamilyLocked=false;
+// Handles pasted numbers that include a country code or leading 0 (common when
+// copying from phone contacts, e.g. "+91 98470 12345" or "098470 12345") — strips
+// all non-digits, then trims a leading "91" (12 digits total) or leading "0" (11
+// digits total) down to a clean 10-digit number. Anything else is left as typed,
+// up to a generous 15-digit cap for genuinely international numbers.
+function normalizeMobileInput(v){
+  var d=(v||'').replace(/[^0-9]/g,'');
+  if(d.length===12 && d.indexOf('91')===0) d=d.slice(2);
+  else if(d.length===11 && d.indexOf('0')===0) d=d.slice(1);
+  return d.slice(0,15);
+}
+
 function deriveFamilyName(nameEl, familyEl, lockedVarName){
   if(window[lockedVarName]) return; // human has taken control — leave it alone
   var raw=(nameEl.value||'').trim();
@@ -1760,6 +1788,10 @@ function openDetail(mob,type,nameHint){
     + '<div style="font-size:16px;font-weight:800;color:var(--text)">'+toTitle(c.name)+(c.familyName?' <span style="font-weight:700;color:var(--t2)">- '+c.familyName+'</span>':'')+'</div>'
     + '<button class="sh-x" data-action="close-client">✕</button>'
     + '</div>'
+    + '<div style="display:flex;gap:6px;margin-top:5px">'
+    + '<span id="doc-status-badge-'+mob+'" style="font-size:9px;font-weight:800;padding:2px 8px;border-radius:999px;background:rgba(79,195,247,.15);color:#4FC3F7;border:1px solid rgba(79,195,247,.35)">📁 Documents</span>'
+    + '<span id="data-status-badge-'+mob+'" style="font-size:9px;font-weight:800;padding:2px 8px;border-radius:999px;background:rgba(79,195,247,.15);color:#4FC3F7;border:1px solid rgba(79,195,247,.35)">📝 Data</span>'
+    + '</div>'
     + (c.remarks?'<div style="font-size:12px;color:var(--t2);line-height:1.5;margin-top:6px">📝 '+c.remarks.split('\n').slice(-3).join('<br>')+'</div>':'')
     + '<div style="text-align:center;padding:8px 0 2px">'
     + '<div style="font-size:28px;font-weight:900;color:var(--green);line-height:1">'+clientD+'</div>'
@@ -1784,8 +1816,8 @@ function openDetail(mob,type,nameHint){
     + '<div style="color:var(--t3)">Products</div><div style="color:var(--text);text-align:right">'+(c.products||'—')+'</div>'
     + '<div style="color:var(--t3)">AUM</div><div style="color:var(--text);text-align:right">'+(c.aum||'—')+'</div>'
     + '<div style="color:var(--t3)">SIP Date</div><div style="color:var(--text);text-align:right">'+(c.sipDate?c.sipDate+'th':'—')+(c.sipDate2?' & '+c.sipDate2+'th':'')+'</div>'
-    + '<div style="color:var(--t3)">Health Ins.</div><div style="color:var(--text);text-align:right">'+(c.healthInsurance||'—')+'</div>'
-    + '<div style="color:var(--t3)">Life Ins.</div><div style="color:var(--text);text-align:right">'+(c.lifeInsurance||'—')+'</div>'
+    + '<div style="color:var(--t3)">Health Ins.</div><div style="color:var(--text);text-align:right">'+(c.healthInsurance||'—')+(c.healthInsuranceCoverage?' ('+c.healthInsuranceCoverage+')':'')+'</div>'
+    + '<div style="color:var(--t3)">Life Ins.</div><div style="color:var(--text);text-align:right">'+(c.lifeInsurance||'—')+(c.lifeInsuranceCoverage?' ('+c.lifeInsuranceCoverage+')':'')+'</div>'
     + '<div style="color:var(--t3)">App Installed</div><div style="color:'+(c.appInstalled?'#25D366':'#e74c3c')+';text-align:right;font-weight:700">'+(c.appInstalled?'✓ Yes':'✗ No')+'</div>'
     + '<div style="color:var(--t3)">Welcome Sent</div><div style="color:'+(c.welcomeSent?'#25D366':'#e74c3c')+';text-align:right;font-weight:700">'+(c.welcomeSent?'✓ Yes':'✗ No')+'</div>'
     + '<div style="color:var(--t3)">Broadcast</div><div style="color:'+(c.broadcastAdded?'#25D366':'#e74c3c')+';text-align:right;font-weight:700">'+(c.broadcastAdded?'✓ Yes':'✗ No')+'</div>'
@@ -1798,6 +1830,13 @@ function openDetail(mob,type,nameHint){
     + '<div id="chip-docs-body" style="display:none;padding-top:6px"></div>'
     + '</div>'
     + '<div style="padding:0 14px 8px">'
+    + '<div onclick="toggleChipData(\''+mob+'\')" style="background:var(--s2);border-radius:9px;padding:10px 12px;cursor:pointer;display:flex;justify-content:space-between;align-items:center">'
+    + '<span style="font-size:9px;color:var(--accent);font-weight:700;letter-spacing:.5px">📝 DATA GATHERED</span>'
+    + '<span id="chip-data-arrow" style="font-size:11px;color:var(--t3)">▾</span>'
+    + '</div>'
+    + '<div id="chip-data-body" style="display:none;padding-top:6px"></div>'
+    + '</div>'
+    + '<div style="padding:0 14px 8px">'
     + '<div style="font-size:9px;color:var(--t3);font-weight:700;letter-spacing:.5px;margin-bottom:6px">QUICK WHATSAPP</div>'
     + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'
     + '<button data-waq="app" data-wanum="'+waNum+'" data-mob="'+mob+'" class="qwa-btn qwa-green"><span class="qwa-ico">📲</span><span class="qwa-lbl">App Link</span></button>'
@@ -1807,8 +1846,9 @@ function openDetail(mob,type,nameHint){
     + '<button data-waq="welcome" data-wanum="'+waNum+'" data-mob="'+mob+'" class="qwa-btn qwa-green" style="padding:8px 4px"><span class="qwa-ico">👋</span><span class="qwa-lbl">Welcome<br>Message</span></button>'
     + '<button data-uploadlink="'+mob+'" class="qwa-btn qwa-amber" style="padding:8px 4px"><span class="qwa-ico">📤</span><span class="qwa-lbl">Upload<br>Link</span></button>'
     + '</div>'
-    + '<div style="display:grid;grid-template-columns:1fr;gap:6px;margin-top:6px">'
-    + '<button onclick="startMeetingInsight(\''+mob+'\')" class="qwa-btn" style="padding:8px 4px;border-color:#9b59b6;color:#9b59b6"><span class="qwa-ico">🧠</span><span class="qwa-lbl">Meeting Insights</span></button>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px">'
+    + '<button onclick="startMeetingInsight(\''+mob+'\')" class="qwa-btn" style="padding:8px 4px;border-color:#9b59b6;color:#9b59b6"><span class="qwa-ico">🧠</span><span class="qwa-lbl">Meeting<br>Insights</span></button>'
+    + '<button onclick="sendGatherInfoLinkWA(\''+mob+'\')" class="qwa-btn" style="padding:8px 4px;border-color:#16a085;color:#16a085"><span class="qwa-ico">📝</span><span class="qwa-lbl">Gather<br>Info</span></button>'
     + '</div>'
     + '<div id="meeting-insight-body-'+mob+'" style="display:none;padding-top:8px"></div>'
     + '</div>'
@@ -1831,7 +1871,11 @@ function openDetail(mob,type,nameHint){
   document.getElementById('detail-sh').innerHTML = html;  // ← was missing!
   document.getElementById('ov-detail').classList.add('open');
   checkClientDocsComplete(c); // background check — pops up if required documents are missing
-  checkAndTagClientFolder(c); // background check — finds/tags the client's Drive folder permanently
+  updateDataStatusBadge(mob, c); // synchronous — Gather Info fields already in memory
+  (async function(){
+    await checkAndTagClientFolder(c); // finds/tags the client's Drive folder permanently, if one exists
+    updateDocStatusBadge(mob, c); // runs AFTER tagging completes, so c.folderId is up to date
+  })();
   // Event delegation for client popup
   document.getElementById('detail-sh').onclick = function(e){
     var btn = e.target.closest('[data-action]'); if(!btn) return;
@@ -2141,7 +2185,7 @@ function openAddClient(pre){
   populateFamilyNameSuggestions();
   document.getElementById('cf-title').textContent='New Client';
   var fields=['name','family','mob','email','country','age','gender','pan','source','referral',
-    'aum','potaum','potsip','sipdate','sipdate2','healthins','lifeins','rem'];
+    'aum','potaum','potsip','sipdate','sipdate2','healthins','healthcov','lifeins','lifecov','rem'];
   fields.forEach(function(f){var el=document.getElementById('cf-'+f);if(el)el.value='';});
   _cfFamilyLocked=false; // fresh form — allow auto-fill as the name is typed
   ['dob','sdob','anniversary','review','nextfu','duehealth','duelife'].forEach(function(f){
@@ -2182,8 +2226,8 @@ function editClientOpen(mob){
   sv('cf-aum', c.aum); sv('cf-potaum', c.potentialAum); sv('cf-potsip', c.potentialSip);
   sv('cf-sipdate', c.sipDate); sv('cf-sipdate2', c.sipDate2); sv('cf-review', c.reviewDate);
   sv('cf-nextfu', c.nextFollowUp);
-  sv('cf-healthins', c.healthInsurance); sv('cf-duehealth', c.dueDateHealth);
-  sv('cf-lifeins', c.lifeInsurance); sv('cf-duelife', c.dueDateLife);
+  sv('cf-healthins', c.healthInsurance); sv('cf-healthcov', c.healthInsuranceCoverage); sv('cf-duehealth', c.dueDateHealth);
+  sv('cf-lifeins', c.lifeInsurance); sv('cf-lifecov', c.lifeInsuranceCoverage); sv('cf-duelife', c.dueDateLife);
   sv('cf-sdob', c.spouseDob); sv('cf-anniversary', c.anniversary);
   sv('cf-cdate', c.convertedDate); sv('cf-firstann', c.firstAnniversary);
   sv('cf-rem', c.remarks);
@@ -2225,7 +2269,7 @@ async function saveClient(){
   _lastSaveClientTs=Date.now();
   var name=caps(document.getElementById('cf-name').value);
   var familyName=caps((document.getElementById('cf-family')?document.getElementById('cf-family').value:'').trim());
-  var mob=document.getElementById('cf-mob').value.trim();
+  var mob=normalizeMobileInput(document.getElementById('cf-mob').value.trim());
   if(!name||!mob){toast('Name and mobile required');return;}
 
   function gv(id){var el=document.getElementById(id);return el?el.value.trim():'';}
@@ -2245,8 +2289,8 @@ async function saveClient(){
     aum:gv('cf-aum'), potentialAum:gv('cf-potaum'), potentialSip:gv('cf-potsip'), familyName:familyName,
     sipDate:gv('cf-sipdate'), sipDate2:gv('cf-sipdate2'), reviewDate:gv('cf-review'),
     nextFollowUp:gv('cf-nextfu'),
-    healthInsurance:gv('cf-healthins'), dueDateHealth:gv('cf-duehealth'),
-    lifeInsurance:gv('cf-lifeins'), dueDateLife:gv('cf-duelife'),
+    healthInsurance:gv('cf-healthins'), healthInsuranceCoverage:gv('cf-healthcov'), dueDateHealth:gv('cf-duehealth'),
+    lifeInsurance:gv('cf-lifeins'), lifeInsuranceCoverage:gv('cf-lifecov'), dueDateLife:gv('cf-duelife'),
     spouseDob:gv('cf-sdob'), anniversary:gv('cf-anniversary'),
     convertedDate:convertedDate, firstAnniversary:firstAnn,
     appInstalled:gtog('appInstalled'), broadcastAdded:gtog('broadcastAdded'),
@@ -3708,7 +3752,7 @@ function renderFuDetailInner(mob,nameHint){
 
 
 // Version marker
-var APP_VERSION='1.7';
+var APP_VERSION='5.0.0';
 
 
 
@@ -4141,14 +4185,14 @@ async function saveLead(){
   _lastSaveLeadTs=Date.now();
   var name=caps(document.getElementById('lf-name').value);
   var familyName=caps((document.getElementById('lf-family')?document.getElementById('lf-family').value:'').trim());
-  var mob=document.getElementById('lf-mob').value.trim();
-  if(!name || !mob || mob.length<10){
+  var mob=normalizeMobileInput(document.getElementById('lf-mob').value.trim());
+  if(!name || !mob){
     setAccSection('lf-identity', true); // surface the Identity section even if the user collapsed it
     if(!name){
       toast('Name is required');
       document.getElementById('lf-name').focus();
     } else {
-      toast(mob?'Mobile number must be 10 digits':'Mobile number is required');
+      toast('Mobile number is required');
       document.getElementById('lf-mob').focus();
     }
     return;
@@ -4857,6 +4901,87 @@ var EXPECTED_BACKEND_VERSION = '2.17.0';
 // Once a client has a tagged folder (client.folderId holds the Drive folder ID —
 // NOT client.recordId, which is now the sequential Client ID like "C5"), this is
 // a no-op fast path forever after — no repeated searching or asking. ──
+// ── Header status badges — "Documents" and "Data". Blue by default; turns
+// green once the corresponding thing is confirmed present. Neither requires
+// EVERYTHING to be complete — per explicit instruction, some documents/some
+// gathered fields is enough to count as green. ──
+function setStatusBadgeGreen(el){
+  if(!el) return;
+  el.style.background='rgba(46,204,113,.15)';
+  el.style.color='#2ecc71';
+  el.style.borderColor='rgba(46,204,113,.4)';
+}
+function setStatusBadgeBlue(el){
+  if(!el) return;
+  el.style.background='rgba(79,195,247,.15)';
+  el.style.color='#4FC3F7';
+  el.style.borderColor='rgba(79,195,247,.35)';
+}
+function setStatusBadgeAmber(el){
+  if(!el) return;
+  el.style.background='rgba(243,156,18,.15)';
+  el.style.color='#f39c12';
+  el.style.borderColor='rgba(243,156,18,.35)';
+}
+// 3-tier coloring for the fraction badges: 0 filled = blue, partial = amber, all = green
+function setBadgeTier(el, filled, total){
+  if(!el) return;
+  if(filled<=0) setStatusBadgeBlue(el);
+  else if(filled<total) setStatusBadgeAmber(el);
+  else setStatusBadgeGreen(el);
+}
+
+// Core document types every client needs; Passport/Resident ID only count for
+// NRIs (country not blank and not India) — otherwise a domestic client would
+// never be able to reach "complete" since those two never apply to them.
+var CORE_DOC_TYPES = ['PAN','Aadhaar','Bank account details'];
+var NRI_DOC_TYPES = ['Passport','Resident ID'];
+function requiredDocTypesFor(c){
+  var country = (c.country||'').trim().toUpperCase();
+  var isNRI = country && country!=='INDIA';
+  return isNRI ? CORE_DOC_TYPES.concat(NRI_DOC_TYPES) : CORE_DOC_TYPES;
+}
+
+// The 4 Gather Info fields tracked for the Data badge
+var DATA_FIELD_DEFS = [
+  {key:'healthInsurance', label:'Health Insurance'},
+  {key:'lifeInsurance', label:'Life Insurance'},
+  {key:'appInstalled', label:'App Installed'},
+  {key:'products', label:'Products'}
+];
+
+// "Data" badge — simple blue/green, no fraction. Green if Health Insurance or
+// Life Insurance has any value, blue otherwise. App Installed and Products are
+// still visible in the expandable checklist below, just don't drive the badge.
+function updateDataStatusBadge(mob, c){
+  var el=document.getElementById('data-status-badge-'+mob);
+  if(!el) return;
+  el.textContent = '📝 Data';
+  el.onclick = function(){ toggleChipData(mob); };
+  el.style.cursor = 'pointer';
+  var gathered = !!(c.healthInsurance || c.lifeInsurance);
+  if(gathered) setStatusBadgeGreen(el); else setStatusBadgeBlue(el);
+}
+
+// "Documents" badge — needs a live Drive check against the required doc-type
+// list (NRI-aware). Shows a filled/total fraction, blue→amber→green.
+async function updateDocStatusBadge(mob, c){
+  var el=document.getElementById('doc-status-badge-'+mob);
+  if(!el) return;
+  var required = requiredDocTypesFor(c);
+  el.onclick = function(){ toggleChipDocs(mob); };
+  el.style.cursor = 'pointer';
+  if(!c.folderId){ el.textContent='📁 Documents 0/'+required.length; setBadgeTier(el,0,required.length); return; }
+  if(!hasScript()) return;
+  try{
+    var res=await sheetWrite({action:'listClientDocuments', clientName:c.name, pan:c.pan||'', mobile:c.mobile, folderId:c.folderId});
+    var uploadedTypes = (res && res.success && res.files) ? res.files.map(function(f){return f.docType;}) : [];
+    var filled = required.filter(function(dt){ return uploadedTypes.indexOf(dt)>=0; }).length;
+    el.textContent = '📁 Documents '+filled+'/'+required.length;
+    setBadgeTier(el, filled, required.length);
+  }catch(e){ /* leave as last-known state on failure — non-fatal, just a status indicator */ }
+}
+
 async function checkAndTagClientFolder(client){
   if(!hasScript() || !client || !client.mobile) return;
   if(client.folderId && client.folderId.trim()) return; // already tagged
@@ -5123,6 +5248,41 @@ function _afResolveClick(idx){
 // CLIENTS DIAGNOSTIC CHECK — focused on real client data (not synthetic
 // test rows for everything): field sync + Drive folder existence.
 // ═══════════════════════════════════════════════════════════════
+// ── Standalone folder check — read-only, no test client written/deleted.
+// Reuses the same checkAllClientFolders backend action as the full diagnostic,
+// but on its own so it's fast and safe to run any time. ──
+async function runFolderCheckOnly(){
+  var el=document.getElementById('folder-check-result');
+  if(el) el.textContent='';
+  function log(m){ if(el){ el.textContent+=m+'\n'; el.scrollTop=el.scrollHeight; } }
+  if(!hasScript()){ log('❌ No Apps Script URL set (Sync tab). Cannot run.'); return; }
+  if(clients.length===0){ log('No clients yet — nothing to check.'); return; }
+  log('Checking '+clients.length+' client'+(clients.length!==1?'s':'')+' against Drive…');
+  try{
+    var payload=clients.map(function(c){return {name:c.name, mobile:c.mobile};});
+    var res=await sheetWrite({action:'checkAllClientFolders', clients:payload});
+    if(res && res.success){
+      log('Checked '+res.totalChecked+' clients against '+res.totalFoldersFound+' existing Drive folders.');
+      log('');
+      if(res.missing && res.missing.length){
+        log('⚠️ '+res.missing.length+' client(s) have NO folder at all:');
+        res.missing.forEach(function(c){ log('   • '+toTitle(c.name)); });
+        showMissingFoldersPrompt(res.missing);
+      }
+      if(res.ambiguous && res.ambiguous.length){
+        log('⚠️ '+res.ambiguous.length+' client(s) have a similarly-named folder needing review:');
+        res.ambiguous.forEach(function(c){ log('   • '+toTitle(c.name)); });
+        showAmbiguousFoldersList(res.ambiguous);
+      }
+      if((!res.missing||!res.missing.length) && (!res.ambiguous||!res.ambiguous.length)){
+        log('✅ Every client already has a correctly-matched Drive folder.');
+      }
+    } else {
+      log('❌ Folder check failed: '+(res&&res.error||'unknown error'));
+    }
+  }catch(e){ log('❌ Folder check error: '+e.message); }
+}
+
 async function runClientsDiagnostic(){
   var el=document.getElementById('clients-diag-result');
   var pass=0, fail=0, warn=0;
@@ -6681,12 +6841,12 @@ var CLIENT_COLS = ['name','mobile','email','country','source','referral','nextFo
   'age','gender','remarks','createdDate','pan','dob','spouseDob','anniversary',
   'convertedDate','reviewDate','firstAnniversary','appInstalled','broadcastAdded',
   'sipDate','healthInsurance','lifeInsurance','willDone','dueDateHealth','dueDateLife',
-  'aum','potentialAum','welcomeSent','products','lastContacted','stage','uploadToken','potentialSip','folderId','familyName','recordId','sipDate2','modifiedDate'];
+  'aum','potentialAum','welcomeSent','products','lastContacted','stage','uploadToken','potentialSip','folderId','familyName','recordId','sipDate2','modifiedDate','healthInsuranceCoverage','lifeInsuranceCoverage'];
 var CLIENT_HDRS = ['Name','Mobile','Email','Country','Source','Referred By','Next Follow up date',
   'Age','Gender','Remarks','Created date','PAN','DOB','Spouse DOB','Anniversary',
   'Converted Date','Review Date','1st Anniversary','App Installed','Broadcast Added',
   'SIP date','Health insurance','Life insurance','WILL','Due date Health','Due date Life',
-  'AUM','Potential AUM','Welcome Message send','Products','Last Contacted','Stage','Upload Token','Potential SIP','Record ID','Family Name','Client ID','SIP date 2','Modified Date'];
+  'AUM','Potential AUM','Welcome Message send','Products','Last Contacted','Stage','Upload Token','Potential SIP','Record ID','Family Name','Client ID','SIP date 2','Modified Date','Health Insurance Coverage','Life Insurance Coverage'];
 
 // ── Client lifecycle stages (single current stage, sequential) ──
 var CLIENT_STAGES = ['KYC PENDING','DOCUMENT PENDING','PROFILE CREATION PENDING','MANDATE PENDING','INVESTMENT PENDING','GRATITUDE CALL PENDING'];
@@ -7595,7 +7755,8 @@ function parseClientsFromRows(rows){
     welcome:cci(['welcome']),  products:cci(['product']),
     lastContacted:cci(['last contact']), stage:cci(['stage']), uploadToken:cci(['upload token']),
     potentialSip:cci(['potential sip']), folderId:cci(['record id']), familyName:cci(['family']),
-    recordId:cci(['client id']), sipDate2:cci(['sip date 2']), modifiedDate:cci(['modified date'])
+    recordId:cci(['client id']), sipDate2:cci(['sip date 2']), modifiedDate:cci(['modified date']),
+    healthInsuranceCoverage:cci(['health insurance coverage']), lifeInsuranceCoverage:cci(['life insurance coverage'])
   };
   function gcc(r,k){var i=CC2[k];return(i>=0&&i<r.length)?String(r[i]||''):'';}
   var out=[];
@@ -7626,7 +7787,8 @@ function parseClientsFromRows(rows){
       stage:caps(gcc(r,'stage')),
       uploadToken:gcc(r,'uploadToken'), potentialSip:gcc(r,'potentialSip'),
       folderId:gcc(r,'folderId'), familyName:caps(gcc(r,'familyName')),
-      recordId:gcc(r,'recordId'), sipDate2:gcc(r,'sipDate2'), modifiedDate:gcc(r,'modifiedDate')
+      recordId:gcc(r,'recordId'), sipDate2:gcc(r,'sipDate2'), modifiedDate:gcc(r,'modifiedDate'),
+      healthInsuranceCoverage:gcc(r,'healthInsuranceCoverage'), lifeInsuranceCoverage:gcc(r,'lifeInsuranceCoverage')
     });
   });
   return out;
@@ -8027,6 +8189,13 @@ function buildUploadLink(token){
   var base=location.href.replace(/[^\/]*$/, '');
   return base+'upload.html?id='+encodeURIComponent(token);
 }
+function buildGatherInfoLink(token){
+  // gatherinfo.html must sit in the SAME folder as this file (crm.html) — same
+  // pattern as upload.html. Reuses the SAME token, so one link generation
+  // mechanism covers both pages for a given client.
+  var base=location.href.replace(/[^\/]*$/, '');
+  return base+'gatherinfo.html?id='+encodeURIComponent(token);
+}
 async function sendUploadLinkWA(mob){
   var c=clients.find(function(x){return x.recordId===mob||x.mobile===mob;});
   if(!c){ toast('Client not found'); return; }
@@ -8045,6 +8214,29 @@ async function sendUploadLinkWA(mob){
     +'\nWealth Matrix Finserv LLP';
   window.open('https://wa.me/'+waNum+'?text='+encodeURIComponent(msg),'_blank');
   logActivity(mob,'client','Upload link sent via WhatsApp','');
+}
+
+// ── Gather Info link — same token as the document upload link, but points
+// clients to gatherinfo.html to update Spouse DOB, Anniversary, Health
+// Insurance, Life Insurance, and App Installed status directly. ──
+async function sendGatherInfoLinkWA(mob){
+  var c=clients.find(function(x){return x.recordId===mob||x.mobile===mob;});
+  if(!c){ toast('Client not found'); return; }
+  toast('Preparing link...');
+  var token=await getOrCreateUploadToken(mob);
+  if(!token){ toast('Could not generate link'); return; }
+  var link=buildGatherInfoLink(token);
+  var digits=(c.mobile||'').replace(/\D/g,'');
+  var waNum=digits.length===10?'91'+digits:digits;
+  var msg='Hi '+toTitle(c.name)+','
+    +'\n\nCould you help us keep your records up to date? Please fill in a few quick details using the secure link below:'
+    +'\n\n'+link
+    +'\n\nTakes under a minute, works right from your phone \u2014 no login needed.'
+    +'\n\nRegards'
+    +'\nArjun K T M'
+    +'\nWealth Matrix Finserv LLP';
+  window.open('https://wa.me/'+waNum+'?text='+encodeURIComponent(msg),'_blank');
+  logActivity(mob,'client','Gather Info link sent via WhatsApp','');
 }
 
 // ── Same upload-link mechanism, for Leads (pre-conversion) — uses the LEADS 'Upload Token' column (col U) ──
@@ -8132,20 +8324,73 @@ async function toggleChipDocs(mob){
 
   try{
     var res=await apiFetch({action:'listClientDocuments', clientName:c.name, pan:c.pan, mobile:c.mobile, folderId:c.folderId||''});
-    if(!res||!res.success||!res.files||!res.files.length){
-      body.innerHTML='<div style="text-align:center;padding:10px;font-size:11px;color:var(--t3)">No documents uploaded yet</div>';
-      return;
-    }
-    body.innerHTML=res.files.map(function(f){
+    var files = (res && res.success && res.files) ? res.files : [];
+    var fileByType = {};
+    files.forEach(function(f){ fileByType[f.docType]=f; });
+    var required = requiredDocTypesFor(c);
+    // Checklist: every required type shown, green+link if uploaded, blue+"missing" if not
+    var rows = required.map(function(dt){
+      var f = fileByType[dt];
+      if(f){
+        return '<a href="'+f.url+'" target="_blank" style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--s2);border-radius:7px;margin-bottom:5px;text-decoration:none">'
+          +'<span style="font-size:13px;color:#2ecc71">●</span>'
+          +'<span style="font-size:12px;font-weight:700;color:var(--text);flex:1">'+dt+'</span>'
+          +'<span style="font-size:10px;color:var(--accent)">Open ›</span>'
+          +'</a>';
+      }
+      return '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--s2);border-radius:7px;margin-bottom:5px;opacity:.6">'
+        +'<span style="font-size:13px;color:#4FC3F7">●</span>'
+        +'<span style="font-size:12px;font-weight:600;color:var(--t2);flex:1">'+dt+'</span>'
+        +'<span style="font-size:10px;color:var(--t3)">Missing</span>'
+        +'</div>';
+    }).join('');
+    // Any extra uploaded files not in the required list (e.g. "Others") still shown, just not counted
+    var extra = files.filter(function(f){ return required.indexOf(f.docType)<0; });
+    var extraRows = extra.map(function(f){
       return '<a href="'+f.url+'" target="_blank" style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--s2);border-radius:7px;margin-bottom:5px;text-decoration:none">'
-        +'<span style="font-size:14px">📄</span>'
+        +'<span style="font-size:13px;color:#2ecc71">●</span>'
         +'<span style="font-size:12px;font-weight:700;color:var(--text);flex:1">'+f.docType+'</span>'
         +'<span style="font-size:10px;color:var(--accent)">Open ›</span>'
         +'</a>';
     }).join('');
+    body.innerHTML = rows + extraRows;
   }catch(e){
     body.innerHTML='<div style="text-align:center;padding:10px;font-size:11px;color:#e74c3c">Failed to load documents</div>';
   }
+}
+
+// Mirrors toggleChipDocs — shows the 4 Gather Info fields as a checklist,
+// green+value if filled, blue+"Not gathered" if not.
+function toggleChipData(mob){
+  var body=document.getElementById('chip-data-body');
+  var arrow=document.getElementById('chip-data-arrow');
+  if(!body) return;
+  var isOpen=body.style.display==='block';
+  if(isOpen){
+    body.style.display='none';
+    if(arrow) arrow.textContent='▾';
+    return;
+  }
+  var c=clients.find(function(x){return x.recordId===mob||x.mobile===mob;});
+  if(!c){ return; }
+  body.style.display='block';
+  if(arrow) arrow.textContent='▴';
+  body.innerHTML = DATA_FIELD_DEFS.map(function(f){
+    var v = c[f.key];
+    if(v){
+      var display = (f.key==='appInstalled') ? 'Yes' : v;
+      return '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--s2);border-radius:7px;margin-bottom:5px">'
+        +'<span style="font-size:13px;color:#2ecc71">●</span>'
+        +'<span style="font-size:12px;font-weight:700;color:var(--text);flex:1">'+f.label+'</span>'
+        +'<span style="font-size:10px;color:var(--t2)">'+display+'</span>'
+        +'</div>';
+    }
+    return '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--s2);border-radius:7px;margin-bottom:5px;opacity:.6">'
+      +'<span style="font-size:13px;color:#4FC3F7">●</span>'
+      +'<span style="font-size:12px;font-weight:600;color:var(--t2);flex:1">'+f.label+'</span>'
+      +'<span style="font-size:10px;color:var(--t3)">Not gathered</span>'
+      +'</div>';
+  }).join('');
 }
 
 
