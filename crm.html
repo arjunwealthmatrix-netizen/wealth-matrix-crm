@@ -146,6 +146,51 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .acc-body{padding:0 14px 14px;display:none}
 .acc-section.open .acc-body{display:block}
 .acc-header:active{opacity:.8}
+
+/* ═══════════════════════════════════════════════
+   FLOATING CAPSULE THEME — Add/Edit Lead & Add/Edit Client forms ONLY.
+   Scoped entirely under #ov-lead / #ov-client so nothing else in the app is
+   touched. Light blue/white capsules float on the existing dark sheet
+   background (unchanged elsewhere) — genuine "floating" contrast rather than
+   inverting the whole app to light mode. All text colors below are chosen
+   for solid contrast against their own background (dark navy/black text on
+   white/light-blue; white text only on solid blue fills).
+   ═══════════════════════════════════════════════ */
+#ov-lead .acc-section, #ov-client .acc-section{
+  background:#FFFFFF; border:1px solid #D7E6FA; border-radius:16px;
+  box-shadow:0 6px 18px rgba(15,50,120,.16), 0 1px 3px rgba(15,50,120,.10);
+}
+#ov-lead .acc-header, #ov-client .acc-header{
+  background:#EAF3FE; border-radius:16px 16px 0 0; padding:13px 14px;
+}
+#ov-lead .acc-section:not(.open) .acc-header, #ov-client .acc-section:not(.open) .acc-header{
+  border-radius:16px; /* fully rounded when collapsed — no body below to square off against */
+}
+#ov-lead .acc-num, #ov-client .acc-num{ background:#1D6FE0; color:#FFFFFF; }
+#ov-lead .acc-title, #ov-client .acc-title{ color:#0B1E3D; }
+#ov-lead .acc-chevron, #ov-client .acc-chevron{ color:#1D6FE0; font-weight:700; }
+#ov-lead .acc-body, #ov-client .acc-body{ background:#FFFFFF; border-radius:0 0 16px 16px; padding-top:12px; }
+
+/* Labels — dark navy, readable on white */
+#ov-lead .fl, #ov-client .fl{ color:#3A557A; }
+/* Inputs/selects/textarea — white/light-blue field on the white capsule, dark text */
+#ov-lead .fi, #ov-client .fi{
+  background:#F5F9FE; border:1.5px solid #C7DCF5; color:#0B1E3D;
+}
+#ov-lead .fi:focus, #ov-client .fi:focus{ border-color:#1D6FE0; background:#FFFFFF; }
+#ov-lead .fi::placeholder, #ov-client .fi::placeholder{ color:#8FA5C4; }
+/* Product/status toggle chips */
+#ov-lead .pt, #ov-client .pt{ background:#F5F9FE; border:1.5px solid #C7DCF5; color:#3A557A; }
+#ov-lead .pt.on, #ov-client .pt.on{ background:#1D6FE0; border-color:#1D6FE0; color:#FFFFFF; }
+/* Save buttons — blue, black text for max contrast (keeps the app's existing
+   gold/red accent untouched everywhere else) */
+#ov-lead .btn-gold, #ov-client .btn-gold{ background:#1D6FE0; color:#000000; font-weight:800; }
+/* Delete button stays a clear red — status color, not brand color, left alone */
+
+@media (min-width:700px){
+  #ov-lead .acc-section, #ov-client .acc-section{ border-radius:18px; }
+}
+
 .dt-hdr{padding:12px;display:flex;gap:10px;align-items:flex-start}
 .dt-av{width:44px;height:44px;min-width:44px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;color:var(--accent)}
 .dt-name{font-size:17px;font-weight:800}
@@ -1699,10 +1744,24 @@ function renderClients(){
   // Alternating card backgrounds
   var cardBg=['#0F1D2E','#0A1622'];
 
+  // Stage → color group, per confirmed mapping. Shown as a thick top border on
+  // each capsule so the list reads as a color-coded wall when scrolling — no
+  // need to open a card to see roughly where each client stands.
+  function stageColor(stage){
+    var s=(stage||'').toUpperCase();
+    if(s==='KYC PENDING'||s==='DOCUMENT PENDING') return '#e74c3c';
+    if(s==='PROFILE CREATION PENDING'||s==='MANDATE PENDING') return '#f1c40f';
+    if(s==='INVESTMENT PENDING'||s==='GRATITUDE CALL PENDING') return '#3498db';
+    if(s==='COMPLETED') return '#2ecc71';
+    return '#3A4A5E'; // no stage set — neutral, matches the card's own border tone
+  }
+  var STAGE_OPTIONS=['KYC PENDING','DOCUMENT PENDING','PROFILE CREATION PENDING','MANDATE PENDING','INVESTMENT PENDING','GRATITUDE CALL PENDING','COMPLETED'];
+
   cl.innerHTML=arr.map(function(c,i){
     var ac=avatarColors[i%avatarColors.length];
     var bg=cardBg[i%2];
     var borderColor=i%2===0?'#1C2B3E':'#162333';
+    var stageCol=stageColor(c.stage);
     var sel=selectedClients.has(c.mobile);
     var cId=c.recordId||c.mobile;
     var clickFn=clientBulkMode?'toggleClientSelect(\''+c.mobile+'\')':'openDetail(\''+cId+'\',\'client\',\''+encodeURIComponent(c.name||'')+'\')';
@@ -1710,13 +1769,15 @@ function renderClients(){
     var sinceDate=c.convertedDate?fmt(c.convertedDate):'';
     var prods=(c.products||'').trim();
 
-    return '<div onclick="'+clickFn+'" style="background:'+bg+';border:1px solid '+borderColor+';border-radius:14px;padding:12px 14px;display:flex;gap:12px;align-items:flex-start;cursor:pointer;margin-bottom:8px;transition:opacity .15s">'
+    return '<div onclick="'+clickFn+'" style="background:'+bg+';border:1px solid '+borderColor+';border-top:4px solid '+stageCol+';border-radius:14px;padding:12px 14px;display:flex;gap:12px;align-items:flex-start;cursor:pointer;margin-bottom:8px;transition:opacity .15s">'
       +(clientBulkMode?'<div style="width:22px;height:22px;border-radius:50%;border:2px solid var(--accent);background:'+(sel?'var(--accent)':'transparent')+';display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:9px">'+(sel?'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>':'')+'</div>':'')
       +'<div style="width:42px;height:42px;border-radius:50%;background:'+ac.bg+';border:1.5px solid '+ac.border+';display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:'+ac.text+';flex-shrink:0">'+initials+'</div>'
       +'<div style="flex:1;min-width:0">'
         +'<div style="display:flex;justify-content:space-between;align-items:center;gap:6px">'
           +'<span style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+toTitle(c.name)+(c.familyName?' <span style="font-size:9px;color:var(--t2);background:var(--s2);border:1px solid var(--border);border-radius:999px;padding:1px 6px;font-weight:600">👪 '+c.familyName+'</span>':'')+'</span>'
-          +'<span style="font-size:9px;color:#25D366;background:rgba(37,211,102,.08);border:1px solid rgba(37,211,102,.3);border-radius:99px;padding:2px 7px;white-space:nowrap;flex-shrink:0">✅ CLIENT</span>'
+          +'<select onclick="event.stopPropagation()" onchange="event.stopPropagation();updateClientField(\''+cId+'\',\'stage\',this.value);this.blur();" style="font-size:9px;font-weight:700;color:'+stageCol+';background:var(--bg);border:1px solid '+stageCol+';border-radius:99px;padding:2px 6px;white-space:nowrap;flex-shrink:0;max-width:118px">'
+            +STAGE_OPTIONS.map(function(s){return '<option value="'+s+'"'+((c.stage||'').toUpperCase()===s?' selected':'')+'>'+s+'</option>';}).join('')
+          +'</select>'
         +'</div>'
         +'<div style="font-size:11px;color:var(--t3);margin-top:3px">'+(c.mobile||'')+(c.country?' · 🌍 '+toTitle(c.country):'')+'</div>'
         +'<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:4px">'
@@ -1803,13 +1864,6 @@ function openDetail(mob,type,nameHint){
     + '<div data-meet="'+mob+'" class="cd-btn cd-meet"><span class="cd-icon">🎥</span><span>Meet</span></div>'
     + '<div data-mail="'+(c.email||'')+'" data-mailname="'+toTitle(c.name)+'" class="cd-btn cd-mail"><span class="cd-icon">✉️</span><span>Email</span></div>'
     + '</div>'
-    + '<div style="padding:0 14px 8px"><div style="background:var(--s2);border-radius:9px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between">'
-    + '<div><div style="font-size:10px;color:var(--t3);margin-bottom:2px">\uD83C\uDFAF Stage</div>'
-    + '<div style="font-size:13px;font-weight:700;color:var(--text)">'+(c.stage||'Not set')+'</div></div>'
-    + '<select data-clientstage="'+mob+'" style="background:var(--s1);border:1px solid var(--accent);border-radius:6px;color:var(--accent);padding:4px 6px;font-size:11px;font-weight:700;max-width:155px">'
-    + ['','KYC PENDING','DOCUMENT PENDING','PROFILE CREATION PENDING','MANDATE PENDING','INVESTMENT PENDING','GRATITUDE CALL PENDING','COMPLETED'].map(function(s){return '<option value="'+s+'"'+((c.stage||'').toUpperCase()===s?' selected':'')+'>'+(s||'Select')+'</option>';}).join('')
-    + '</select>'
-    + '</div></div>'
     + '<div style="padding:0 14px 8px"><div style="background:var(--s2);border-radius:9px;padding:10px 12px">'
     + '<div style="font-size:9px;color:var(--accent);font-weight:700;letter-spacing:.5px;margin-bottom:7px">DETAILS</div>'
     + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px 10px;font-size:11px">'
@@ -2201,10 +2255,10 @@ function openAddClient(pre){
   if(origEl2) origEl2.value=''; // empty = new client
   var delBtn2=document.getElementById('cf-delete-btn');
   if(delBtn2) delBtn2.style.display='none'; // hide delete — this is add-new mode
-  // Reset accordion to default state: Identity + Remarks open, everything else closed —
-  // keeps quick entry fast while still surfacing the one field advisors jot on the spot.
-  ['cf-identity','cf-remarks'].forEach(function(id){setAccSection(id,true);});
-  ['cf-source','cf-lifecycle','cf-financial','cf-insurance','cf-dates','cf-toggles','cf-products'].forEach(function(id){setAccSection(id,false);});
+  // Reset accordion to default state: only Identity open — matches the single-open
+  // accordion behavior now used throughout (opening any section auto-closes the rest).
+  setAccSection('cf-identity',true);
+  ['cf-source','cf-lifecycle','cf-financial','cf-insurance','cf-dates','cf-toggles','cf-products','cf-remarks'].forEach(function(id){setAccSection(id,false);});
   document.getElementById('ov-client').classList.add('open');
   setupAutocomplete('cf-name','cf-ac-list','client');
 }
@@ -2259,9 +2313,9 @@ function editClientOpen(mob){
   if(docsBody) docsBody.style.display='none';
   if(docsArrow) docsArrow.style.transform='rotate(0deg)';
   _docsListCache=[];
-  // Same default accordion state as Add New — Identity + Remarks open, rest closed
-  ['cf-identity','cf-remarks'].forEach(function(id){setAccSection(id,true);});
-  ['cf-source','cf-lifecycle','cf-financial','cf-insurance','cf-dates','cf-toggles','cf-products'].forEach(function(id){setAccSection(id,false);});
+  // Same default accordion state as Add New — only Identity open
+  setAccSection('cf-identity',true);
+  ['cf-source','cf-lifecycle','cf-financial','cf-insurance','cf-dates','cf-toggles','cf-products','cf-remarks'].forEach(function(id){setAccSection(id,false);});
   document.getElementById('ov-client').classList.add('open');
 }
 async function saveClient(){
@@ -6249,13 +6303,6 @@ document.getElementById('ov-detail').addEventListener('click',function(e){
   if(e.target.dataset.delclient) deleteClient(e.target.dataset.delclient);
 });
 
-document.getElementById('ov-detail').addEventListener('change',function(e){
-  if(e.target.dataset.clientstage){
-    updateClientField(e.target.dataset.clientstage,'stage',(e.target.value||'').toUpperCase());
-    toast('Stage updated'); renderDash();
-  }
-});
-
 
 // Ask before stamping today's date as Last Contacted (always confirm, per requirement)
 function promptUpdateLastContacted(mob, via){
@@ -8050,10 +8097,35 @@ function promptSetupPin(){
 // Simple open/close toggle — no lazy-loading needed, all fields already exist
 // in the DOM (unlike Documents, which fetches from Drive on open).
 // ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════════
+// FORM ACCORDION SECTIONS (Add Lead / Add Client)
+// toggleAccSection = user tapping a header: enforces single-open (opening one
+// auto-closes every other section in the same form) and scrolls the newly
+// opened section into a comfortable, centered viewing position.
+// setAccSection = programmatic default-state setter (used on form open/reset)
+// — stays a plain setter, since some defaults may legitimately want more than
+// one section open at once.
+// ═══════════════════════════════════════════════
 function toggleAccSection(id){
   var el=document.getElementById('acc-'+id);
   if(!el) return;
-  el.classList.toggle('open');
+  var willOpen = !el.classList.contains('open');
+  if(willOpen){
+    var container = el.closest('.ov');
+    if(container){
+      container.querySelectorAll('.acc-section.open').forEach(function(other){
+        if(other!==el) other.classList.remove('open');
+      });
+    }
+    el.classList.add('open');
+    // Slight delay lets the newly-revealed content lay out first, so the
+    // scroll lands on its final position rather than a pre-expansion estimate.
+    setTimeout(function(){
+      el.scrollIntoView({behavior:'smooth', block:'center'});
+    }, 60);
+  } else {
+    el.classList.remove('open');
+  }
 }
 function setAccSection(id, open){
   var el=document.getElementById('acc-'+id);
