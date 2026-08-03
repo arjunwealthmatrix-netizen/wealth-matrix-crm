@@ -315,6 +315,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   .ov{align-items:center}
   .sh{border-radius:16px;max-height:88vh}
   .ana-grid{grid-template-columns:repeat(4,1fr)}
+  #lead-list, #client-list{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;align-items:start}
+  #lead-list > div, #client-list > div{margin-bottom:0!important} /* grid gap replaces per-card margin */
 }
 </style>
 <style>
@@ -8883,6 +8885,52 @@ initLeadSwipe();
 //   (2) the manual "Sync Now" button (manualSync()) —
 // both already use the correct, complete parseLeadsFromRows/parseClientsFromRows.
 setTimeout(flushWriteQueue, 4000); // retry pending writes after 4s
+
+// ── Desktop adaptation for ad-hoc popups ──
+// Many confirm/prompt dialogs throughout this app are built as one-off
+// full-screen overlays (position:fixed;inset:0;...align-items:flex-end),
+// designed to look like a native mobile bottom sheet. On a desktop-width
+// screen, a panel pinned to the very bottom of a tall window looks broken,
+// not "native." Rather than editing each of these ~20 call sites individually
+// (fragile, easy to miss one, breaks on the next new popup added later), this
+// watches for any such overlay being added to the page and — desktop widths
+// only — re-anchors it to the center, matching how the rest of the app's
+// dialogs already adapt at the 1024px breakpoint. Mobile is completely
+// untouched: below 1024px this never fires.
+(function(){
+  function isDesktop(){ return window.innerWidth >= 1024; }
+  function centerIfNeeded(el){
+    if(!isDesktop()) return;
+    if(!el.style || el.dataset.wmCentered) return; // already handled, or not an element with inline style
+    var cs=getComputedStyle(el);
+    var looksLikeFullScreenOverlay = cs.position==='fixed' && cs.top==='0px' && cs.left==='0px' && cs.right==='0px' && cs.bottom==='0px';
+    if(looksLikeFullScreenOverlay && cs.alignItems==='flex-end'){
+      el.style.alignItems='center';
+      el.dataset.wmCentered='1';
+      // The visible panel is normally the overlay's first element child — if its
+      // top corners are rounded but bottom corners are square (the "attached to
+      // the bottom edge" look), round the bottom corners to match now that it's
+      // floating in the middle of the screen instead.
+      var panel=el.firstElementChild;
+      if(panel){
+        var pcs=getComputedStyle(panel);
+        var topRadius=pcs.borderTopLeftRadius;
+        if(topRadius && topRadius!=='0px' && (pcs.borderBottomLeftRadius==='0px')){
+          panel.style.borderRadius=topRadius;
+        }
+      }
+    }
+  }
+  var mo=new MutationObserver(function(mutations){
+    if(!isDesktop()) return;
+    mutations.forEach(function(m){
+      m.addedNodes.forEach(function(node){
+        if(node.nodeType===1) centerIfNeeded(node);
+      });
+    });
+  });
+  mo.observe(document.body, { childList:true });
+})();
 
 </script>
 </body>
