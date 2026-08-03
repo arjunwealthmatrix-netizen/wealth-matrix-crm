@@ -6666,7 +6666,7 @@ function confirmCasFileSelection(){
 
 async function runCasAnalysis(c, fileIds){
   toast('📧 Reading CAS document(s) and drafting…');
-  var res2=await sheetWrite({action:'draftCasEmailInsight', clientName:c.name, pan:c.pan||'', fileIds:fileIds});
+  var res2=await sheetWrite({action:'draftCasEmailInsight', clientName:c.name, mobile:c.mobile||'', pan:c.pan||'', fileIds:fileIds});
   if(!res2 || !res2.success){
     toast('❌ Could not draft email: '+(res2&&res2.error||'unknown error — check backend is deployed and CLAUDE_API_KEY is set'));
     return;

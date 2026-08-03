@@ -27,6 +27,12 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,B
 .greet .name{font-size:17px;font-weight:800}
 .greet .sub{font-size:11px;color:var(--t2);margin-top:4px;line-height:1.5}
 .notice{margin:0 14px 14px;background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px}
+.consent-box{margin:0 14px 16px;background:var(--s1);border:1px solid var(--accent);border-radius:var(--r);padding:16px}
+.consent-box .t{font-size:13px;font-weight:800;color:var(--accent);margin-bottom:8px;line-height:1.4}
+.consent-box p{font-size:12px;color:var(--t2);line-height:1.7;margin:0 0 12px}
+.consent-check{display:flex;align-items:flex-start;gap:10px;cursor:pointer;-webkit-user-select:none;user-select:none}
+.consent-check input[type=checkbox]{width:20px;height:20px;min-width:20px;margin-top:1px;accent-color:var(--accent);cursor:pointer}
+.consent-check span{font-size:13px;font-weight:700;color:var(--text);line-height:1.4}
 .notice .t{font-size:12px;font-weight:800;color:var(--accent);margin-bottom:5px;display:flex;align-items:center;gap:6px}
 .notice p{font-size:11px;color:var(--t2);line-height:1.6;margin:0 0 8px}
 .notice p:last-child{margin-bottom:0}
@@ -140,11 +146,18 @@ function renderSlots(){
     + '<div class="notice">'
     +   '<div class="t">📋 Why we need these documents</div>'
     +   '<p>As per regulatory (KYC) requirements, please upload the documents below to complete your onboarding.</p>'
-    +   '<div class="t" style="margin-top:10px">🔒 Your Privacy Matters</div>'
-    +   '<p>In accordance with India\'s Digital Personal Data Protection Act, 2023 (DPDP Act), the documents and information you share here are collected solely to complete your KYC and service your investments. They are stored securely and will not be shared with any third party without your explicit consent, except where required by law. We value your privacy and are committed to protecting your personal data.</p>'
+    + '</div>'
+    + '<div class="consent-box" id="consentBox">'
+    +   '<div class="t">To help us serve you faster and keep your account secure, please confirm below.</div>'
+    +   '<p>I agree to let Wealth Matrix Finserv LLP collect, store, and use the documents I upload here — such as my PAN, Aadhaar, bank details, and insurance policy copies — to complete my KYC, service my investment account, and, if I choose to use it, review my insurance coverage and share observations with me. This may include using AI-assisted tools — including a third-party AI service located outside India — to review documents such as my Consolidated Account Statement, using my PAN only to correctly match my own holdings. My information will be handled as described in the <a href="privacy-policy.html" target="_blank">Privacy Policy</a>, kept secure, and never sold. I can withdraw this consent anytime by contacting my advisor.</p>'
+    +   '<label class="consent-check" id="consentCheckLabel">'
+    +     '<input type="checkbox" id="consentCheckbox" onchange="handleConsentChange(this)">'
+    +     '<span>I have read and agree to the above</span>'
+    +   '</label>'
+    +   '<div class="savemsg" id="consentMsg"></div>'
     + '</div>'
     + '<div class="sectionlbl">Documents</div>'
-    + '<div class="slots" id="slotList">'
+    + '<div class="slots" id="slotList" style="opacity:.4;pointer-events:none">'
     + DOC_TYPES.map(function(dt){
         var safeId = dt.key.replace(/\s+/g,'_');
         var row = '<div class="slot" id="row-'+safeId+'">'
@@ -215,6 +228,38 @@ async function markExistingUploads(){
       }
     });
   }catch(e){ /* non-fatal — worst case, slots just show "Not uploaded" until re-checked */ }
+}
+
+// Exact wording shown to the client — this exact string is what gets logged
+// as their consent record (column C of DPDP Consents), so it stays in sync
+// with whatever's rendered above even if the wording is edited later.
+var CONSENT_TEXT = 'I agree to let Wealth Matrix Finserv LLP collect, store, and use the documents I upload here — such as my PAN, Aadhaar, bank details, and insurance policy copies — to complete my KYC, service my investment account, and, if I choose to use it, review my insurance coverage and share observations with me. This may include using AI-assisted tools — including a third-party AI service located outside India — to review documents such as my Consolidated Account Statement, using my PAN only to correctly match my own holdings. My information will be handled as described in the Privacy Policy, kept secure, and never sold. I can withdraw this consent anytime by contacting my advisor.';
+
+async function handleConsentChange(checkboxEl){
+  var msgEl = document.getElementById('consentMsg');
+  var slotList = document.getElementById('slotList');
+  if(!checkboxEl.checked){
+    // Unchecking re-locks the form — consent must be active, not just a one-time click
+    if(slotList){ slotList.style.opacity='.4'; slotList.style.pointerEvents='none'; }
+    if(msgEl){ msgEl.textContent=''; msgEl.className='savemsg'; }
+    return;
+  }
+  checkboxEl.disabled = true; // prevent double-submission while logging
+  if(msgEl){ msgEl.textContent='Saving your consent…'; msgEl.className='savemsg'; }
+  var res = await apiPost({
+    action: 'logDpdpConsent',
+    name: client.name || '',
+    mobile: client.mobile || '',
+    consentText: CONSENT_TEXT
+  });
+  checkboxEl.disabled = false;
+  if(res && res.success){
+    if(slotList){ slotList.style.opacity='1'; slotList.style.pointerEvents='auto'; }
+    if(msgEl){ msgEl.textContent='✅ Thank you — you can now upload your documents below.'; msgEl.className='savemsg ok'; }
+  } else {
+    checkboxEl.checked = false; // don't silently unlock if logging failed
+    if(msgEl){ msgEl.textContent='Could not save your consent — please try again.'; msgEl.className='savemsg err'; }
+  }
 }
 
 async function handleUpload(inputEl){

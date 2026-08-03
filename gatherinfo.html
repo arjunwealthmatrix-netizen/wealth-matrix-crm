@@ -27,6 +27,12 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,B
 .greet .name{font-size:17px;font-weight:800}
 .greet .sub{font-size:11px;color:var(--t2);margin-top:4px;line-height:1.5}
 .notice{margin:0 14px 14px;background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px}
+.consent-box{margin:0 14px 16px;background:var(--s1);border:1px solid var(--accent);border-radius:var(--r);padding:16px}
+.consent-box .t{font-size:13px;font-weight:800;color:var(--accent);margin-bottom:8px;line-height:1.4}
+.consent-box p{font-size:12px;color:var(--t2);line-height:1.7;margin:0 0 12px}
+.consent-check{display:flex;align-items:flex-start;gap:10px;cursor:pointer;-webkit-user-select:none;user-select:none}
+.consent-check input[type=checkbox]{width:20px;height:20px;min-width:20px;margin-top:1px;accent-color:var(--accent);cursor:pointer}
+.consent-check span{font-size:13px;font-weight:700;color:var(--text);line-height:1.4}
 .notice .t{font-size:12px;font-weight:800;color:var(--accent);margin-bottom:5px;display:flex;align-items:center;gap:6px}
 .notice p{font-size:11px;color:var(--t2);line-height:1.6;margin:0 0 8px}
 .notice p:last-child{margin-bottom:0}
@@ -158,6 +164,17 @@ function renderForm(){
   var html = '<div class="greet"><div class="name">Hi '+esc(client.name||'there')+'</div>'
     + '<div class="sub">To serve you better, we\u2019d like to understand your protection needs and preferences a little better. A few quick questions \u2014 takes under 2 minutes.</div></div>'
 
+    + '<div class="consent-box" id="consentBox">'
+    +   '<div class="t">Before we begin, please confirm below.</div>'
+    +   '<p>I agree to share my insurance status, coverage details, and product preferences with Wealth Matrix Finserv LLP, so they can better understand my protection needs and reach out with relevant guidance. My information will be handled as described in the <a href="privacy-policy.html" target="_blank">Privacy Policy</a>, kept secure, and never sold. I can withdraw this consent anytime by contacting my advisor.</p>'
+    +   '<label class="consent-check" id="consentCheckLabel">'
+    +     '<input type="checkbox" id="consentCheckbox" onchange="handleConsentChange(this)">'
+    +     '<span>I have read and agree to the above</span>'
+    +   '</label>'
+    +   '<div class="savemsg" id="consentMsg"></div>'
+    + '</div>'
+
+    + '<div id="gatheredFields" style="opacity:.4;pointer-events:none">'
     + '<div class="form-block">'
     +   yn3Block('healthInsurance', 'Do you have Health Insurance for your Family?', '(Other than employer coverage)', 'Not Sure', true)
     +   yn3Block('lifeInsurance', 'Do you have a Term Life Insurance policy?', '(Not insurance investment schemes)', 'Don\u2019t Know', true)
@@ -185,6 +202,7 @@ function renderForm(){
 
     + '<button class="savebtn" id="saveBtn" onclick="saveInfo()">Save Details</button>'
     + '<div class="savemsg" id="saveMsg"></div>'
+    + '</div>'
 
     + '<a class="uploadlink" id="insUploadLink" href="#" onclick="return false;">'
     +   '<div class="t">📄 Want us to review your insurance policy?</div>'
@@ -192,16 +210,40 @@ function renderForm(){
     +   '<span class="cta">Upload Policy Copy</span>'
     + '</a>'
 
-    + '<div class="notice">'
-    +   '<div class="t">🔒 Your Privacy Matters</div>'
-    +   '<p>In accordance with India\'s Digital Personal Data Protection Act, 2023 (DPDP Act), the information you share here is collected solely to understand your protection needs and serve you better. It is stored securely and will not be shared with any third party without your explicit consent, except where required by law. We value your privacy and are committed to protecting your personal data.</p>'
-    + '</div>'
-
     + '<div class="footer-note">🔒 Your details are sent directly and securely to your advisor. No account or login needed.</div>';
   app.innerHTML = html;
 
   var linkEl = document.getElementById('insUploadLink');
   if(linkEl) linkEl.href = 'upload.html?id='+encodeURIComponent(token);
+}
+
+// Exact wording shown above — logged as-is to the DPDP Consents sheet.
+var CONSENT_TEXT = 'I agree to share my insurance status, coverage details, and product preferences with Wealth Matrix Finserv LLP, so they can better understand my protection needs and reach out with relevant guidance. My information will be handled as described in the Privacy Policy, kept secure, and never sold. I can withdraw this consent anytime by contacting my advisor.';
+
+async function handleConsentChange(checkboxEl){
+  var msgEl = document.getElementById('consentMsg');
+  var fields = document.getElementById('gatheredFields');
+  if(!checkboxEl.checked){
+    if(fields){ fields.style.opacity='.4'; fields.style.pointerEvents='none'; }
+    if(msgEl){ msgEl.textContent=''; msgEl.className='savemsg'; }
+    return;
+  }
+  checkboxEl.disabled = true;
+  if(msgEl){ msgEl.textContent='Saving your consent…'; msgEl.className='savemsg'; }
+  var res = await apiPost({
+    action: 'logDpdpConsent',
+    name: client.name || '',
+    mobile: client.mobile || '',
+    consentText: CONSENT_TEXT
+  });
+  checkboxEl.disabled = false;
+  if(res && res.success){
+    if(fields){ fields.style.opacity='1'; fields.style.pointerEvents='auto'; }
+    if(msgEl){ msgEl.textContent='✅ Thank you — please go ahead below.'; msgEl.className='savemsg ok'; }
+  } else {
+    checkboxEl.checked = false;
+    if(msgEl){ msgEl.textContent='Could not save your consent — please try again.'; msgEl.className='savemsg err'; }
+  }
 }
 
 async function saveInfo(){
