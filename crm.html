@@ -62,6 +62,31 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .sec{padding:0 12px;margin-bottom:14px}
 .lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--t3);margin-bottom:7px}
 .card{background:var(--s1);border-radius:var(--r);border:1px solid var(--border);overflow:hidden}
+/* Insights page — floating 3D icon boxes (Productivity / Engagement) */
+#pg-analytics .insight-box-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 12px 4px}
+#pg-analytics .insight-icon-box{
+  aspect-ratio:1;background:linear-gradient(150deg,#204264,#132A40 65%);
+  border:1px solid #2E5680;border-radius:16px;
+  box-shadow:0 10px 22px rgba(0,0,0,.4),0 2px 5px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.07);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+  cursor:pointer;transition:transform .12s,box-shadow .12s;-webkit-user-select:none;user-select:none;padding:10px
+}
+#pg-analytics .insight-icon-box:active{transform:scale(.96);box-shadow:0 4px 10px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.05)}
+#pg-analytics .insight-icon-box .ib-ico{font-size:26px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.4))}
+#pg-analytics .insight-icon-box .ib-label{font-size:11px;font-weight:800;color:#DCEBFA;text-align:center;line-height:1.25}
+#pg-analytics .insight-icon-box .ib-hint{font-size:8px;color:#7FA5C9;text-transform:uppercase;letter-spacing:.4px}
+#pg-analytics .card{box-shadow:0 4px 14px rgba(0,0,0,.25)}
+/* Task page */
+.task-filter-chip{flex-shrink:0;padding:7px 13px;border-radius:999px;border:1.5px solid var(--border);background:var(--s1);color:var(--t2);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap}
+.task-filter-chip.active{border-color:var(--accent);background:var(--accent2);color:var(--accent)}
+.task-card{background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:12px 14px;margin-bottom:8px;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.2)}
+.task-card.status-due{border-top:4px solid #e74c3c}
+.task-card.status-open{border-top:4px solid #4FC3F7}
+.task-card.status-finished{border-top:4px solid #2ecc71;opacity:.6}
+.task-card .tc-name{font-size:15px;font-weight:800;color:var(--text)}
+.task-card .tc-details{font-size:12px;color:var(--t2);margin-top:3px;line-height:1.4}
+.task-card .tc-meta{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+.task-card .tc-tag{font-size:9px;font-weight:700;padding:2px 7px;border-radius:999px;background:var(--s2);color:var(--t3)}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:10px 16px;border-radius:var(--r2);border:none;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .12s,transform .08s;text-decoration:none;white-space:nowrap}
 .btn:active{transform:scale(.97)}
 .btn-gold{background:var(--accent);color:#000000}
@@ -485,10 +510,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div class="lbl" style="color:var(--accent)">🧭 Planning Nudges</div>
     <div id="dash-reminders"><div style="font-size:11px;color:var(--t3);text-align:center;padding:8px">Loading...</div></div>
   </div>
-
-  <button onclick="openAddReminder()" style="position:fixed;bottom:80px;right:18px;width:54px;height:54px;border-radius:50%;background:#FFFFFF;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:999;box-shadow:0 4px 16px rgba(255,255,255,0.25)" aria-label="Add reminder">
-    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-  </button>
 </div>
 
   
@@ -649,6 +670,22 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   <div style="padding:0 14px 100px">
 
     <div class="sec">
+      <div class="lbl" style="color:var(--accent)">⚡ Quick Insights</div>
+      <div class="insight-box-grid">
+        <div class="insight-icon-box" id="ib-productivity" onclick="runQuickInsight('productivity')">
+          <span class="ib-ico">📊</span>
+          <span class="ib-label">Productivity</span>
+          <span class="ib-hint">Tap to analyze</span>
+        </div>
+        <div class="insight-icon-box" id="ib-engagement" onclick="runQuickInsight('engagement')">
+          <span class="ib-ico">🤝</span>
+          <span class="ib-label">Leads Engagement</span>
+          <span class="ib-hint">Tap to analyze</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec">
       <div class="lbl" style="color:var(--accent)">⏰ Weekly Automation</div>
       <div class="card" style="padding:12px 14px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
@@ -675,6 +712,23 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   </div>
 </div>
 
+<!-- TASKS -->
+<div class="page" id="pg-tasks">
+  <div class="ph" style="padding-bottom:8px">
+    <div><h1>Task</h1><div class="sub" id="tasks-sub"></div></div>
+  </div>
+  <div style="display:flex;gap:6px;padding:0 12px 10px;overflow-x:auto">
+    <button class="task-filter-chip active" data-filter="ALL" onclick="setTaskFilter('ALL')">All</button>
+    <button class="task-filter-chip" data-filter="DUE" onclick="setTaskFilter('DUE')">🔴 Due</button>
+    <button class="task-filter-chip" data-filter="OPEN" onclick="setTaskFilter('OPEN')">🔵 Open</button>
+    <button class="task-filter-chip" data-filter="FINISHED" onclick="setTaskFilter('FINISHED')">✅ Finished</button>
+  </div>
+  <div id="task-list" style="padding:4px 12px 100px"></div>
+  <button onclick="openAddTask()" style="position:fixed;bottom:80px;right:18px;width:54px;height:54px;border-radius:50%;background:#FFFFFF;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:999;box-shadow:0 4px 16px rgba(255,255,255,0.25)" aria-label="Add task">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+  </button>
+</div>
+
   
   <div id="client-bulk-bar" style="display:none;padding:8px 12px;background:rgba(255,255,255,.08);border-bottom:1px solid var(--border);justify-content:space-between">
     <span id="client-sel-count" style="font-size:12px;font-weight:700;color:var(--accent)">0 selected</span>
@@ -696,6 +750,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 <nav id="nav">
   <button class="nb" onclick="nav('leads',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>Leads</button>
   <button class="nb active" onclick="nav('dash',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dash</button>
+  <button class="nb" onclick="nav('tasks',this)" id="nav-tasks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>Task</button>
   <button class="nb" onclick="nav('analytics',this)" id="nav-analytics"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 00-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0012 2z"/></svg>Insights</button>
   <button class="nb" onclick="nav('clients',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Clients</button>
 
@@ -2022,189 +2077,231 @@ function logClientNote(mob){
 // ═══════════════════════════════════════════════════════════════
 // QUICK REMINDERS
 // ═══════════════════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════════════════
-// QUICK REMINDERS — matches the sheet exactly: Date, Client Name, Reminder.
-// One popup handles both adding a new reminder and viewing/editing an
-// existing one; which mode it's in is tracked via window._editingReminder.
-// ═══════════════════════════════════════════════════════════════
-function openAddReminder(){
-  openReminderListMenu();
+// ═══════════════════════════════════════════════
+// TASKS — capsule-style list page, Task ID based CRUD
+// ═══════════════════════════════════════════════
+var _taskFilter='ALL';
+function setTaskFilter(f){
+  _taskFilter=f;
+  document.querySelectorAll('.task-filter-chip').forEach(function(c){c.classList.toggle('active', c.dataset.filter===f);});
+  renderTasks();
 }
 
-// ── Bell icon → shows ALL pending reminders as a tappable list (not just
-// due-today ones — this is a full look-through, unlike the Dashboard's
-// "Actions Pending" section which only surfaces due/overdue items), plus a
-// clear way to add a new one. Tapping an existing reminder opens it for edit. ──
-function openReminderListMenu(){
-  var ov=document.createElement('div');
-  ov.id='reminder-list-ov';
-  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:99999;display:flex;align-items:flex-end;justify-content:center';
-  var todayStr=today();
-  var sorted=reminders
-    .map(function(r,i){ return {r:r, idx:i}; })
-    .sort(function(a,b){ return (a.r.reminderDate||'').localeCompare(b.r.reminderDate||''); });
-  var rows=sorted.map(function(x){
-    var r=x.r;
-    var rd=r.reminderDate||'';
-    var statusTag = !rd ? ''
-      : rd < todayStr ? '<span style="color:#e74c3c;font-weight:700">Overdue \u2014 '+fmt(rd)+'</span>'
-      : rd === todayStr ? '<span style="color:var(--accent);font-weight:700">Due today</span>'
-      : '<span style="color:var(--t3)">Due '+fmt(rd)+'</span>';
-    return '<div onclick="document.getElementById(\'reminder-list-ov\').remove();openReminderMenu(reminders['+x.idx+'])" style="display:flex;align-items:flex-start;gap:8px;padding:10px 12px;background:var(--s1);border:1px solid var(--border);border-radius:10px;margin-bottom:6px;cursor:pointer">'
-      +'<div style="flex:1;min-width:0">'
-      +'<div style="font-size:12px;color:var(--text);line-height:1.4">'+r.reminderText+'</div>'
-      +'<div style="font-size:10px;color:var(--t3);margin-top:3px">'+toTitle(r.clientName)+(statusTag?' \u00B7 '+statusTag:'')+'</div>'
-      +'</div>'
-      +'<span style="font-size:12px;color:var(--t3)">\u203A</span>'
-      +'</div>';
+function effectiveTaskStatus(t){
+  var s=(t.status||'').toUpperCase();
+  if(s==='FINISHED') return 'FINISHED';
+  if(t.dueDate && t.dueDate<=today()) return 'DUE';
+  return 'OPEN';
+}
+
+function renderTasks(){
+  var list=document.getElementById('task-list');
+  var subEl=document.getElementById('tasks-sub');
+  if(!list) return;
+  var withStatus=tasks.map(function(t){ return {t:t, eff:effectiveTaskStatus(t)}; });
+  var dueCount=withStatus.filter(function(x){return x.eff==='DUE';}).length;
+  var openCount=withStatus.filter(function(x){return x.eff==='OPEN';}).length;
+  var finCount=withStatus.filter(function(x){return x.eff==='FINISHED';}).length;
+  if(subEl) subEl.textContent=dueCount+' due · '+openCount+' open · '+finCount+' finished';
+
+  var filtered=withStatus.filter(function(x){ return _taskFilter==='ALL' || x.eff===_taskFilter; });
+  // Sort: Due first, then Open (soonest due date first), then Finished last
+  filtered.sort(function(a,b){
+    var order={DUE:0,OPEN:1,FINISHED:2};
+    if(order[a.eff]!==order[b.eff]) return order[a.eff]-order[b.eff];
+    return (a.t.dueDate||'').localeCompare(b.t.dueDate||'');
+  });
+
+  if(!filtered.length){
+    list.innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--t3);font-size:12px">No tasks '+(_taskFilter==='ALL'?'yet':'in this filter')+'. Tap + to add one.</div>';
+    return;
+  }
+
+  list.innerHTML=filtered.map(function(x){
+    var t=x.t, eff=x.eff;
+    var statusCls=eff==='DUE'?'status-due':eff==='FINISHED'?'status-finished':'status-open';
+    var forTag=(t.taskFor||'OTHERS').toUpperCase();
+    var forLabel=forTag==='CLIENT'?'👤 Client':forTag==='LEAD'?'🎯 Lead':'📌 Other';
+    var dueLabel=t.dueDate?fmt(t.dueDate):'No due date';
+    return '<div class="task-card '+statusCls+'" onclick="openTaskDetail(\''+t.taskId+'\')">'
+      +'<div class="tc-name">'+(t.name?toTitle(t.name):(t.taskDetails?t.taskDetails.slice(0,40):'Task'))+'</div>'
+      +(t.name&&t.taskDetails?'<div class="tc-details">'+t.taskDetails+'</div>':'')
+      +'<div class="tc-meta">'
+      +'<span class="tc-tag">'+forLabel+'</span>'
+      +'<span class="tc-tag">📅 '+dueLabel+'</span>'
+      +'<span class="tc-tag">'+(eff==='DUE'?'🔴 Due':eff==='FINISHED'?'✅ Finished':'🔵 Open')+'</span>'
+      +'</div></div>';
   }).join('');
-  ov.innerHTML='<div style="background:var(--s1);border-radius:14px 14px 0 0;width:100%;max-width:420px;max-height:78vh;display:flex;flex-direction:column;border:1px solid var(--accent);border-bottom:none">'
-    +'<div style="padding:16px 16px 10px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)">'
-    +'<span style="font-size:15px;font-weight:800;color:var(--accent)">\u23F0 Reminders ('+reminders.length+')</span>'
-    +'<span onclick="document.getElementById(\'reminder-list-ov\').remove()" style="font-size:20px;color:var(--t2);cursor:pointer">\u2715</span>'
-    +'</div>'
-    +'<div style="overflow-y:auto;flex:1;padding:12px 16px 4px">'
-    +(rows||'<div style="text-align:center;padding:24px;color:var(--t3);font-size:12px">No reminders yet — tap below to add one.</div>')
-    +'</div>'
-    +'<div style="padding:12px 16px 20px">'
-    +'<button class="btn btn-gold btn-full" onclick="document.getElementById(\'reminder-list-ov\').remove();openReminderMenu(null)">+ New Reminder</button>'
-    +'</div></div>';
+}
+
+// ── Add new task ──
+function openAddTask(){
+  window._editingTaskId=null;
+  window._taskForType='OTHERS';
+  window._taskLinkedRecordId='';
+  var ov=document.createElement('div');
+  ov.id='task-form-ov';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:99999;display:flex;align-items:flex-end;justify-content:center';
+  ov.innerHTML=taskFormHtml(null);
   document.body.appendChild(ov);
   ov.addEventListener('click',function(e){ if(e.target===ov) ov.remove(); });
+  wireTaskForm(null);
 }
 
-function openReminderMenu(existing){
-  var isEdit = !!existing;
-  window._editingReminder = existing; // null for Add mode, the original row's values for Edit mode
+// ── Existing task tapped — Delete / Finish / Save flow ──
+function openTaskDetail(taskId){
+  var t=tasks.find(function(x){return x.taskId===taskId;});
+  if(!t) return;
+  window._editingTaskId=taskId;
+  window._taskForType=(t.taskFor||'OTHERS').toUpperCase();
+  window._taskLinkedRecordId=t.linkedRecordId||'';
   var ov=document.createElement('div');
-  ov.id='add-reminder-ov';
+  ov.id='task-form-ov';
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:99999;display:flex;align-items:flex-end;justify-content:center';
-  var dateDisplay = fmt(existing ? existing.date : today());
-  ov.innerHTML='<div style="background:var(--s1);border-radius:14px 14px 0 0;width:100%;max-width:420px;overflow:hidden;border:1px solid var(--accent);border-bottom:none">'
-    +'<div style="padding:16px 16px 4px;display:flex;justify-content:space-between;align-items:center">'
-    +'<span style="font-size:15px;font-weight:800;color:var(--accent)">\u23F0 '+(isEdit?'Reminder':'New Reminder')+'</span>'
-    +'<span onclick="document.getElementById(\'add-reminder-ov\').remove()" style="font-size:20px;color:var(--t2);cursor:pointer">\u2715</span>'
-    +'</div>'
-    +'<div style="padding:10px 16px 4px">'
-    +'<label class="fl">Date</label>'
-    +'<div style="padding:9px 12px;background:var(--s2);border:1px solid var(--border);border-radius:8px;color:var(--t2);font-size:13px">\uD83D\uDD12 '+dateDisplay+'</div>'
-    +'</div>'
-    +'<div style="padding:10px 16px 4px">'
-    +'<label class="fl">Remind me on</label>'
-    +'<input class="fi" id="rem-date" type="date" value="'+(existing&&existing.reminderDate?existing.reminderDate:today())+'">'
-    +'</div>'
-    +'<div style="padding:10px 16px 4px;position:relative">'
-    +'<label class="fl">Client / Lead Name</label>'
-    +'<input class="fi" id="rem-name-search" placeholder="Search leads or clients\u2026" autocomplete="off" value="'+(existing?toTitle(existing.clientName):'')+'">'
-    +'<div class="ac-list" id="rem-ac-list"></div>'
-    +'</div>'
-    +'<div style="padding:10px 16px 4px">'
-    +'<label class="fl">Reminder</label>'
-    +'<textarea class="fi" id="rem-text" placeholder="What do you want to be reminded about?" style="min-height:70px;resize:vertical">'+(existing?existing.reminderText:'')+'</textarea>'
-    +'</div>'
-    +'<div style="display:flex;gap:8px;padding:12px 16px 20px">'
-    +(isEdit
-      ? '<button class="btn btn-ghost btn-full" style="border-color:#e74c3c;color:#e74c3c" onclick="deleteReminderNow()">\uD83D\uDDD1 Delete</button><button class="btn btn-gold btn-full" onclick="saveReminderNow()">Save</button>'
-      : '<button class="btn btn-ghost btn-full" onclick="document.getElementById(\'add-reminder-ov\').remove()">Finished</button><button class="btn btn-gold btn-full" onclick="saveReminderNow()">Save</button>')
-    +'</div></div>';
+  ov.innerHTML=taskFormHtml(t);
   document.body.appendChild(ov);
-  setupCombinedAutocomplete('rem-name-search','rem-ac-list',function(rec,type){
-    var nameEl=document.getElementById('rem-name-search');
-    if(nameEl) nameEl.value = toTitle(rec.name);
+  ov.addEventListener('click',function(e){ if(e.target===ov) ov.remove(); });
+  wireTaskForm(t);
+}
+
+function taskForTypeButtons(activeType){
+  return ['CLIENT','LEAD','OTHERS'].map(function(ty){
+    var lbl=ty==='CLIENT'?'👤 Client':ty==='LEAD'?'🎯 Lead':'📌 Other';
+    var isActive=activeType===ty;
+    return '<button type="button" data-tasktype="'+ty+'" onclick="setTaskForType(\''+ty+'\')" style="flex:1;padding:9px 4px;font-size:11px;font-weight:700;border-radius:8px;border:1.5px solid '+(isActive?'var(--accent)':'var(--border)')+';background:'+(isActive?'var(--accent2)':'transparent')+';color:'+(isActive?'var(--accent)':'var(--t2)')+';cursor:pointer">'+lbl+'</button>';
+  }).join('');
+}
+
+function taskFormHtml(existing){
+  var isEdit=!!existing;
+  var forType=isEdit?(existing.taskFor||'OTHERS').toUpperCase():'OTHERS';
+  var showNameField=forType!=='OTHERS';
+  return '<div style="background:var(--s1);border-radius:14px 14px 0 0;width:100%;max-width:420px;overflow:hidden;border:1px solid var(--accent);border-bottom:none;max-height:88vh;display:flex;flex-direction:column">'
+    +'<div style="padding:16px 16px 4px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">'
+    +'<span style="font-size:15px;font-weight:800;color:var(--accent)">📝 '+(isEdit?'Task':'New Task')+'</span>'
+    +'<span onclick="document.getElementById(\'task-form-ov\').remove()" style="font-size:20px;color:var(--t2);cursor:pointer">✕</span>'
+    +'</div>'
+    +'<div style="overflow-y:auto;padding-bottom:4px">'
+    +'<div style="padding:10px 16px 4px">'
+    +'<label class="fl">Task For</label>'
+    +'<div id="task-for-buttons" style="display:flex;gap:6px">'+taskForTypeButtons(forType)+'</div>'
+    +'</div>'
+    +'<div id="task-name-field-wrap" style="padding:10px 16px 4px;position:relative;display:'+(showNameField?'block':'none')+'">'
+    +'<label class="fl">Client / Lead Name</label>'
+    +'<input class="fi" id="task-name-search" placeholder="Search leads or clients…" autocomplete="off" value="'+(isEdit&&existing.name?toTitle(existing.name):'')+'">'
+    +'<div class="ac-list" id="task-ac-list"></div>'
+    +'</div>'
+    +'<div style="padding:10px 16px 4px">'
+    +'<label class="fl">Due Date</label>'
+    +'<input class="fi" id="task-due-date" type="date" value="'+(isEdit&&existing.dueDate?existing.dueDate:today())+'">'
+    +'</div>'
+    +'<div style="padding:10px 16px 4px">'
+    +'<label class="fl">Task Details</label>'
+    +'<textarea class="fi" id="task-details" placeholder="What needs to be done?" style="min-height:70px;resize:vertical">'+(isEdit?existing.taskDetails:'')+'</textarea>'
+    +'</div>'
+    +'</div>'
+    +'<div style="display:flex;gap:8px;padding:12px 16px 20px;flex-shrink:0">'
+    +(isEdit
+      ? '<button class="btn btn-ghost" style="flex:1;border-color:#e74c3c;color:#e74c3c" onclick="deleteTaskNow()">🗑 Delete</button>'
+        +'<button class="btn btn-ghost" style="flex:1;border-color:#2ecc71;color:#2ecc71" onclick="finishTaskNow()">✅ Finish</button>'
+        +'<button class="btn btn-gold" style="flex:1" onclick="saveTaskNow()">Save</button>'
+      : '<button class="btn btn-gold btn-full" onclick="saveTaskNow()">Save Task</button>')
+    +'</div></div>';
+}
+
+function setTaskForType(ty){
+  window._taskForType=ty;
+  document.querySelectorAll('#task-for-buttons [data-tasktype]').forEach(function(b){
+    var isActive=b.dataset.tasktype===ty;
+    b.style.borderColor=isActive?'var(--accent)':'var(--border)';
+    b.style.background=isActive?'var(--accent2)':'transparent';
+    b.style.color=isActive?'var(--accent)':'var(--t2)';
+  });
+  var wrap=document.getElementById('task-name-field-wrap');
+  if(wrap) wrap.style.display=(ty==='OTHERS')?'none':'block';
+  if(ty==='OTHERS') window._taskLinkedRecordId='';
+}
+
+function wireTaskForm(existing){
+  setupCombinedAutocomplete('task-name-search','task-ac-list',function(rec,type){
+    var nameEl=document.getElementById('task-name-search');
+    if(nameEl) nameEl.value=toTitle(rec.name);
+    window._taskLinkedRecordId=rec.recordId||'';
+    setTaskForType(type==='lead'?'LEAD':'CLIENT');
   });
 }
 
-// Searches BOTH leads and clients together — distinct from setupAutocomplete,
-// which only searches one list at a time.
-function setupCombinedAutocomplete(inputId,listId,onSelect){
-  var input=document.getElementById(inputId);
-  var list=document.getElementById(listId);
-  if(!input||!list)return;
-  input.addEventListener('input',function(){
-    var q=(input.value||'').toLowerCase().trim();
-    if(q.length<2){list.classList.remove('show');return;}
-    var leadMatches=leads.filter(function(x){return x.name.toLowerCase().includes(q);}).slice(0,4).map(function(x){return {rec:x,type:'lead'};});
-    var clientMatches=clients.filter(function(x){return x.name.toLowerCase().includes(q);}).slice(0,4).map(function(x){return {rec:x,type:'client'};});
-    var all=leadMatches.concat(clientMatches);
-    if(!all.length){list.classList.remove('show');return;}
-    list.innerHTML=all.map(function(m,i){
-      return '<div class="ac-item" data-idx="'+i+'">'
-        +'<div>'+toTitle(m.rec.name)+' <span style="font-size:9px;color:'+(m.type==='lead'?'#f39c12':'#25D366')+'">'+(m.type==='lead'?'LEAD':'CLIENT')+'</span></div>'
-        +'<div class="ac-sub">'+m.rec.mobile+'</div>'
-        +'</div>';
-    }).join('');
-    list.classList.add('show');
-    list.querySelectorAll('.ac-item').forEach(function(item,i){
-      item.onclick=function(){
-        var m=all[i];
-        list.classList.remove('show');
-        if(onSelect) onSelect(m.rec, m.type);
-      };
-    });
-  });
-  document.addEventListener('click',function(e){if(!input.contains(e.target)&&!list.contains(e.target))list.classList.remove('show');});
-}
-
-async function saveReminderNow(){
-  var nameEl=document.getElementById('rem-name-search');
-  var textEl=document.getElementById('rem-text');
-  var remDateEl=document.getElementById('rem-date');
-  var name=(nameEl?nameEl.value:'').trim();
-  var text=(textEl?textEl.value:'').trim();
-  var remindOn=(remDateEl?remDateEl.value:'').trim() || today();
-  if(!name){ toast('Enter or select a name'); return; }
-  if(!text){ toast('Type what you want to be reminded about'); return; }
-  var existing=window._editingReminder;
-  var dateVal=existing?existing.date:today();
+async function saveTaskNow(){
+  var forType=window._taskForType||'OTHERS';
+  var nameEl=document.getElementById('task-name-search');
+  var name=forType!=='OTHERS'?(nameEl?nameEl.value.trim():''):'';
+  var details=(document.getElementById('task-details')||{}).value||'';
+  details=details.trim();
+  var dueDate=(document.getElementById('task-due-date')||{}).value||today();
+  if(forType!=='OTHERS' && !name){ toast('Select a Client or Lead, or switch to Others'); return; }
+  if(!details){ toast('Type the task details'); return; }
   if(!hasScript()){ toast('⚠️ No Apps Script connected — set this up in Sync settings first'); return; }
-  if(existing){
-    var idx=reminders.findIndex(function(r){
-      return r.date===existing.date && r.clientName===existing.clientName && r.reminderText===existing.reminderText && r.reminderDate===existing.reminderDate;
-    });
-    var res=await sheetWrite({action:'updateReminder',
-      oldDate:existing.date, oldClientName:existing.clientName, oldReminderText:existing.reminderText, oldReminderDate:existing.reminderDate,
-      newDate:dateVal, newClientName:caps(name), newReminderText:text, newReminderDate:remindOn});
+
+  var existingId=window._editingTaskId;
+  if(existingId){
+    var t=tasks.find(function(x){return x.taskId===existingId;});
+    if(!t) return;
+    var res=await sheetWrite({action:'updateTask', taskId:existingId,
+      name:name, taskDetails:details, dueDate:dueDate, taskFor:forType, linkedRecordId:window._taskLinkedRecordId||''});
     if(res && res.success){
-      if(idx>=0) reminders[idx]={date:dateVal, clientName:caps(name), reminderText:text, reminderDate:remindOn};
-      saveReminders();
-      toast('✅ Reminder updated');
+      t.name=name; t.taskDetails=details; t.dueDate=dueDate; t.taskFor=forType; t.linkedRecordId=window._taskLinkedRecordId||'';
+      saveTasks(); renderTasks();
+      toast('✅ Task updated');
     } else {
-      toast('❌ Could not update in the sheet: '+(res&&res.error||'unknown error — check backend is deployed'));
-      return; // don't close the popup or touch local state if the sheet write failed
+      toast('❌ Could not update: '+(res&&res.error||'unknown error')); return;
     }
   } else {
-    var r={date:dateVal, clientName:caps(name), reminderText:text, reminderDate:remindOn};
-    var res2=await sheetWrite({action:'addReminder', date:r.date, clientName:r.clientName, reminderText:r.reminderText, reminderDate:r.reminderDate});
+    var newTask={createdDate:today(), name:name, taskDetails:details, dueDate:dueDate, status:'Open', taskFor:forType, linkedRecordId:window._taskLinkedRecordId||'', assignedTo:''};
+    var res2=await sheetWrite({action:'addTask', createdDate:newTask.createdDate, name:newTask.name, taskDetails:newTask.taskDetails, dueDate:newTask.dueDate, status:newTask.status, taskFor:newTask.taskFor, linkedRecordId:newTask.linkedRecordId, assignedTo:''});
     if(res2 && res2.success){
-      reminders.unshift(r);
-      saveReminders();
-      toast('✅ Reminder saved');
+      newTask.taskId=res2.taskId;
+      tasks.unshift(newTask);
+      saveTasks(); renderTasks();
+      toast('✅ Task saved');
     } else {
-      toast('❌ Could not save to the sheet: '+(res2&&res2.error||'unknown error — check backend is deployed'));
-      return;
+      toast('❌ Could not save: '+(res2&&res2.error||'unknown error')); return;
     }
   }
-  renderRemindersPending();
-  var ov=document.getElementById('add-reminder-ov'); if(ov) ov.remove();
-  window._editingReminder=null;
+  var ov=document.getElementById('task-form-ov'); if(ov) ov.remove();
+  window._editingTaskId=null;
 }
 
-async function deleteReminderNow(){
-  var existing=window._editingReminder;
-  if(!existing) return;
-  if(!hasScript()){ toast('⚠️ No Apps Script connected — set this up in Sync settings first'); return; }
-  var res=await sheetWrite({action:'deleteReminder', date:existing.date, clientName:existing.clientName, reminderText:existing.reminderText, reminderDate:existing.reminderDate});
+async function finishTaskNow(){
+  var taskId=window._editingTaskId;
+  if(!taskId) return;
+  if(!hasScript()){ toast('⚠️ No Apps Script connected'); return; }
+  var t=tasks.find(function(x){return x.taskId===taskId;});
+  if(!t) return;
+  var res=await sheetWrite({action:'updateTask', taskId:taskId, status:'Finished'});
   if(res && res.success){
-    reminders=reminders.filter(function(r){
-      return !(r.date===existing.date && r.clientName===existing.clientName && r.reminderText===existing.reminderText && r.reminderDate===existing.reminderDate);
-    });
-    saveReminders();
-    renderRemindersPending();
-    var ov=document.getElementById('add-reminder-ov'); if(ov) ov.remove();
-    window._editingReminder=null;
-    toast('Reminder deleted');
+    t.status='Finished';
+    saveTasks(); renderTasks();
+    var ov=document.getElementById('task-form-ov'); if(ov) ov.remove();
+    window._editingTaskId=null;
+    toast('✅ Task finished');
   } else {
-    toast('❌ Could not delete from the sheet: '+(res&&res.error||'unknown error — check backend is deployed'));
+    toast('❌ Could not update: '+(res&&res.error||'unknown error'));
+  }
+}
+
+async function deleteTaskNow(){
+  var taskId=window._editingTaskId;
+  if(!taskId) return;
+  if(!hasScript()){ toast('⚠️ No Apps Script connected'); return; }
+  var res=await sheetWrite({action:'deleteTask', taskId:taskId});
+  if(res && res.success){
+    tasks=tasks.filter(function(x){return x.taskId!==taskId;});
+    saveTasks(); renderTasks();
+    var ov=document.getElementById('task-form-ov'); if(ov) ov.remove();
+    window._editingTaskId=null;
+    toast('Task deleted');
+  } else {
+    toast('❌ Could not delete: '+(res&&res.error||'unknown error'));
   }
 }
 
@@ -2213,27 +2310,25 @@ function renderRemindersPending(){
   var el=document.getElementById('dash-actions-pending');
   if(!wrap||!el) return;
   var todayStr=today();
-  // Only show reminders whose "remind me on" date has arrived (today or earlier) —
-  // that's the whole point of the field. Keep original array indices so tapping
-  // an item opens the correct one even after filtering/sorting.
-  var due=reminders
-    .map(function(r,i){ return {r:r, idx:i}; })
-    .filter(function(x){ return (x.r.reminderDate||x.r.date||'') <= todayStr; })
-    .sort(function(a,b){ return (a.r.reminderDate||'').localeCompare(b.r.reminderDate||''); });
+  // Due/overdue tasks only — the full interactive list now lives on the
+  // dedicated Task page; this is just a lightweight "you have X due" pointer.
+  var due=tasks.filter(function(t){
+    return (t.status||'').toUpperCase()!=='FINISHED' && (t.dueDate||'') && t.dueDate<=todayStr;
+  }).sort(function(a,b){ return (a.dueDate||'').localeCompare(b.dueDate||''); });
   if(!due.length){ wrap.style.display='none'; return; }
   wrap.style.display='block';
-  el.innerHTML=due.map(function(x){
-    var r=x.r;
-    var overdueTag = r.reminderDate && r.reminderDate < todayStr
-      ? '<span style="color:#e74c3c;font-weight:700">Overdue \u2014 '+fmt(r.reminderDate)+'</span>'
+  el.innerHTML=due.slice(0,4).map(function(t){
+    var overdueTag = t.dueDate < todayStr
+      ? '<span style="color:#e74c3c;font-weight:700">Overdue \u2014 '+fmt(t.dueDate)+'</span>'
       : 'Due today';
-    return '<div onclick="openReminderMenu(reminders['+x.idx+'])" style="display:flex;align-items:flex-start;gap:8px;padding:10px 12px;background:var(--s1);border:1px solid var(--border);border-radius:10px;margin-bottom:6px;cursor:pointer">'
+    return '<div onclick="nav(\'tasks\',document.getElementById(\'nav-tasks\'))" style="display:flex;align-items:flex-start;gap:8px;padding:10px 12px;background:var(--s1);border:1px solid var(--border);border-radius:10px;margin-bottom:6px;cursor:pointer">'
       +'<div style="flex:1;min-width:0">'
-      +'<div style="font-size:12px;color:var(--text);line-height:1.4">'+r.reminderText+'</div>'
-      +'<div style="font-size:10px;color:var(--t3);margin-top:3px">'+toTitle(r.clientName)+' \u00B7 '+overdueTag+'</div>'
+      +'<div style="font-size:12px;color:var(--text);line-height:1.4">'+(t.name?toTitle(t.name):t.taskDetails.slice(0,40))+'</div>'
+      +'<div style="font-size:10px;color:var(--t3);margin-top:3px">'+(t.name?t.taskDetails:'')+' \u00B7 '+overdueTag+'</div>'
       +'</div>'
       +'</div>';
-  }).join('');
+  }).join('')
+  +(due.length>4?'<div onclick="nav(\'tasks\',document.getElementById(\'nav-tasks\'))" style="text-align:center;padding:8px;font-size:11px;color:var(--accent);cursor:pointer;font-weight:700">View all '+due.length+' in Task menu \u203A</div>':'');
 }
 
 function openAddClient(pre){
@@ -2961,6 +3056,11 @@ function nav(name,btn){
     var sb5=document.getElementById('shared-search-bar'); if(sb5) sb5.style.display='none';
     loadSettings();
     renderLockSettingsStatus();
+  }
+  if(name==='tasks'){
+    var sb6=document.getElementById('shared-search-bar'); if(sb6) sb6.style.display='none';
+    renderTasks();
+    syncOverdueTasksSilently();
   }
   if(name==='dash'){
     var sb3=document.getElementById('shared-search-bar'); if(sb3) sb3.style.display='none';
@@ -4599,7 +4699,7 @@ async function bootSequenceV17(){
     // Analytics + Special Days + Calendar — AWAITED (not fire-and-forget) so the
     // dashboard's first real render is guaranteed to already include calendar
     // events and analytics data, instead of racing a background update in later.
-    await Promise.all([pullAnalytics(),pullSpecialDays(),pullCalendarEvents(),pullReminders()]);
+    await Promise.all([pullAnalytics(),pullSpecialDays(),pullCalendarEvents(),pullTasks()]);
     checkForNewInsight(); // shows an in-app popup if a new AI insight has been generated since last seen
 
     // Seed Special Days sheet if empty (one-time, background — genuinely OK to
@@ -5558,6 +5658,60 @@ async function toggleInsightsTrigger(){
   }
   checkInsightsStatus();
 }
+// ── Quick Insights (Productivity / Engagement) — tap a floating icon box,
+// get a focused AI-written briefing in a copyable/shareable text pop-up.
+// Uses the same ad-hoc-overlay pattern as the rest of the app, so it
+// automatically benefits from the desktop centering fix. ──
+async function runQuickInsight(type){
+  var box=document.getElementById(type==='productivity'?'ib-productivity':'ib-engagement');
+  var label=type==='productivity'?'Productivity':'Leads Engagement';
+  if(!hasScript()){ toast('Add Apps Script URL first'); return; }
+  var origHtml=box?box.innerHTML:'';
+  if(box) box.innerHTML='<span class="ib-ico">⏳</span><span class="ib-label">Analyzing…</span>';
+  try{
+    var res=await sheetWrite({action:type==='productivity'?'generateProductivityInsight':'generateEngagementInsight'});
+    if(box) box.innerHTML=origHtml;
+    if(res && res.success){
+      showQuickInsightPopup(label, res.insight);
+    } else {
+      toast('❌ '+(res&&res.error||'Could not generate insight'));
+    }
+  }catch(e){
+    if(box) box.innerHTML=origHtml;
+    toast('❌ '+e.message);
+  }
+}
+
+function showQuickInsightPopup(label, text){
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:99999;display:flex;align-items:flex-end;justify-content:center;padding:0';
+  var textId='qi-text-'+Date.now();
+  ov.innerHTML='<div style="background:var(--s1);border-radius:16px 16px 0 0;width:100%;max-width:480px;max-height:82vh;display:flex;flex-direction:column;border:1px solid #2E5680">'
+    +'<div style="padding:14px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)">'
+    +'<span style="font-size:14px;font-weight:800;color:#DCEBFA">'+(label==='Productivity'?'📊':'🤝')+' '+label+' Insight</span>'
+    +'<span onclick="this.closest(\'div[style*=fixed]\').remove()" style="font-size:20px;color:var(--t2);cursor:pointer;padding:0 4px">✕</span>'
+    +'</div>'
+    +'<div id="'+textId+'" style="font-size:12px;color:var(--text);line-height:1.7;white-space:pre-wrap;padding:16px;overflow-y:auto;flex:1">'+text+'</div>'
+    +'<div style="display:flex;gap:8px;padding:12px 16px 20px">'
+    +'<button class="btn btn-ghost" style="font-size:12px;flex:1" onclick="copyInsightText(\''+textId+'\')">📋 Copy</button>'
+    +'<button class="btn btn-ghost" style="font-size:12px;flex:1" onclick="shareQuickInsight(\''+textId+'\',\''+label+'\')">📤 Share</button>'
+    +'</div></div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('click',function(e){ if(e.target===ov) ov.remove(); });
+}
+
+function shareQuickInsight(textId, label){
+  var el=document.getElementById(textId);
+  if(!el) return;
+  var text=el.textContent;
+  if(navigator.share){
+    navigator.share({title:label+' Insight', text:text}).catch(function(){});
+  } else {
+    copyInsightText(textId);
+    toast('Sharing not supported here — copied instead');
+  }
+}
+
 async function runInsightsNow(){
   var resultEl=document.getElementById('insights-result');
   if(!hasScript()){ toast('Add Apps Script URL first'); return; }
@@ -7707,30 +7861,46 @@ async function deleteClientFromForm(){
 // ── Google Calendar events — cached, pulled during boot ──
 var _calendarEvents = []; // [{date:'YYYY-MM-DD', title, time}, ...]
 
-// ── Quick Reminders — matches the sheet exactly: date, client name, reminder text.
-// No unique ID column exists, so a reminder is identified by its exact
-// (date, clientName, reminderText, reminderDate) combination — reliable enough for a personal list. ──
-var reminders = []; // [{date, clientName, reminderText, reminderDate}, ...]
-function loadReminders(){
-  try{ reminders = JSON.parse(localStorage.getItem('wm_reminders') || '[]'); }
-  catch(e){ reminders = []; }
+// ── Tasks (formerly Quick Reminders) — proper unique Task ID, type-aware
+// linking to a Client, Lead, or a free-standing "Others" task. ──
+var tasks = []; // [{taskId, createdDate, name, taskDetails, dueDate, status, taskFor, linkedRecordId, assignedTo}, ...]
+function loadTasks(){
+  try{ tasks = JSON.parse(localStorage.getItem('wm_tasks') || '[]'); }
+  catch(e){ tasks = []; }
 }
-function saveReminders(){
-  try{ localStorage.setItem('wm_reminders', JSON.stringify(reminders)); }catch(e){}
+function saveTasks(){
+  try{ localStorage.setItem('wm_tasks', JSON.stringify(tasks)); }catch(e){}
 }
-async function pullReminders(){
+async function pullTasks(){
   if(!hasScript()) return;
   try{
-    var res = await scriptGet('REMINDERS', 1);
+    var res = await scriptGet('TASKS', 1);
     if(res && res.rows && res.rows.length > 1){
       var rows = res.rows.slice(1); // skip header
-      reminders = rows.map(function(r){
-        return { date: r[0]||'', clientName: r[1]||'', reminderText: r[2]||'', reminderDate: r[3]||'' };
-      }).filter(function(r){ return r.clientName || r.reminderText; });
-      saveReminders();
+      tasks = rows.map(function(r){
+        return { createdDate:r[0]||'', name:r[1]||'', taskDetails:r[2]||'', dueDate:r[3]||'', status:r[4]||'Open', taskFor:r[5]||'OTHERS', taskId:r[6]||'', linkedRecordId:r[7]||'', assignedTo:r[8]||'' };
+      }).filter(function(t){ return t.taskId; });
+      saveTasks();
       if(typeof renderRemindersPending==='function') renderRemindersPending();
+      if(document.getElementById('pg-tasks') && document.getElementById('pg-tasks').classList.contains('active')) renderTasks();
     }
-  }catch(e){ console.warn('pullReminders failed:', e.message); }
+  }catch(e){ console.warn('pullTasks failed:', e.message); }
+}
+
+// Fire-and-forget: silently flips any overdue "Open" task to "Due" in the
+// sheet, so the sheet itself reflects it for manual review — runs whenever
+// the Task page opens, no scheduled trigger needed.
+async function syncOverdueTasksSilently(){
+  if(!hasScript()) return;
+  var todayStr=today();
+  var changed=false;
+  tasks.forEach(function(t){
+    if((t.status||'').toUpperCase()==='OPEN' && t.dueDate && t.dueDate<=todayStr){
+      t.status='Due'; changed=true;
+    }
+  });
+  if(changed){ saveTasks(); renderTasks(); }
+  try{ await sheetWrite({action:'syncOverdueTasks'}); }catch(e){ /* non-fatal, local display already updated */ }
 }
 
 
@@ -8868,7 +9038,7 @@ try{var _sd=localStorage.getItem('wm_specialdays');if(_sd){var _sdo=JSON.parse(_
 try{_calendarEvents=JSON.parse(localStorage.getItem('wm_calendar_events')||'[]');}catch(e){_calendarEvents=[];}
 // Show lock screen FIRST if app lock is enabled — blocks the app until unlocked
 if(isLockEnabled()){ showLockScreen(); }
-load();loadActivityLog();loadReminders();bootSequenceV17();
+load();loadActivityLog();loadTasks();bootSequenceV17();
 // Load cached analytics
 try{_analyticsData=JSON.parse(localStorage.getItem('wm_analytics')||'[]');}catch(e){_analyticsData=[];}
 checkURLParams();
