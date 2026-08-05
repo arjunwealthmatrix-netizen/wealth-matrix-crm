@@ -50,17 +50,17 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 #app{display:flex;flex-direction:column;height:100dvh;height:100vh;max-width:var(--shell-w);margin:0 auto;position:relative;overflow-x:hidden}
 #content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:calc(72px + env(safe-area-inset-bottom, 10px))}
 #nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:calc(100% - 24px);max-width:calc(var(--shell-w) - 24px);background:rgba(12,20,32,.97);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--border);border-radius:14px 14px 0 0;display:flex;justify-content:center;z-index:100;padding:6px 16px env(safe-area-inset-bottom,8px);min-height:60px;gap:2px}
-.nb{flex:1;max-width:68px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 2px;font-size:10px;font-weight:700;color:var(--t3);cursor:pointer;border:none;background:none;gap:3px;transition:color .2s}
-.nb.active{color:var(--accent)}
+.nb{flex:1;max-width:68px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 2px;font-size:10px;font-weight:700;color:var(--t3);cursor:pointer;border:none;background:none;gap:3px;transition:color .2s,background .2s;border-radius:14px}
+.nb.active{color:var(--accent);background:var(--s2)}
 .nb svg{width:23px;height:23px;flex-shrink:0}
 .nb-badge{position:absolute;top:4px;right:calc(50% - 14px);background:var(--red);color:#fff;font-size:9px;font-weight:800;min-width:16px;height:16px;border-radius:999px;display:flex;align-items:center;justify-content:center;padding:0 3px}
 .page{display:none}
 .page.active{display:block}
-.ph{padding:14px 14px 8px;display:flex;align-items:center;justify-content:space-between}
-.ph h1{font-size:20px;font-weight:900;letter-spacing:-.5px}
+.ph{padding:16px 16px 10px;display:flex;align-items:center;justify-content:space-between}
+.ph h1{font-size:26px;font-weight:900;letter-spacing:-.5px}
 .ph .sub{font-size:10px;color:var(--t2);margin-top:1px}
 .sec{padding:0 12px;margin-bottom:14px}
-.lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--t3);margin-bottom:7px}
+.lbl{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin-bottom:8px}
 .card{background:var(--s1);border-radius:var(--r);border:1px solid var(--border);overflow:hidden}
 /* Insights page — floating 3D icon boxes (Productivity / Engagement) */
 #pg-analytics .insight-box-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 12px 4px}
@@ -77,7 +77,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 #pg-analytics .insight-icon-box .ib-hint{font-size:8px;color:#7FA5C9;text-transform:uppercase;letter-spacing:.4px}
 #pg-analytics .card{box-shadow:0 4px 14px rgba(0,0,0,.25)}
 /* Task page */
-.task-filter-chip{flex-shrink:0;padding:7px 13px;border-radius:999px;border:1.5px solid var(--border);background:var(--s1);color:var(--t2);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap}
+.task-filter-chip{flex-shrink:0;padding:7px 15px;border-radius:999px;border:1.5px solid var(--border);background:var(--s1);color:var(--t2);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
 .task-filter-chip.active{border-color:var(--accent);background:var(--accent2);color:var(--accent)}
 .task-card{background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:12px 14px;margin-bottom:8px;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.2)}
 .task-card.status-due{border-top:4px solid #e74c3c}
@@ -106,15 +106,15 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .sbox:focus{border-color:var(--accent)}
 .chips{display:flex;gap:6px;padding:0 12px 9px;overflow-x:auto;scrollbar-width:none}
 .chips::-webkit-scrollbar{display:none}
-.chip{flex-shrink:0;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;border:1px solid var(--border);background:var(--s1);color:var(--t2);cursor:pointer;white-space:nowrap}
+.chip{flex-shrink:0;padding:7px 15px;border-radius:999px;font-size:12px;font-weight:700;border:1px solid var(--border);background:var(--s1);color:var(--t2);cursor:pointer;white-space:nowrap}
 .chip.active{background:var(--accent);color:#000000;border-color:var(--accent)}
-.li{padding:11px 12px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:10px;cursor:pointer;transition:background .1s}
+.li{padding:13px 14px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:12px;cursor:pointer;transition:background .1s}
 .li:active{background:var(--s2)}
 .li.selected{background:var(--bdim);border-left:3px solid var(--blue)}
-.av{width:36px;height:36px;min-width:36px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:var(--accent)}
+.av{width:46px;height:46px;min-width:46px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;color:var(--accent)}
 .li-info{flex:1;min-width:0}
-.li-name{font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.li-meta{font-size:11px;color:var(--t2);margin-top:1px}
+.li-name{font-weight:800;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.li-meta{font-size:12px;color:var(--t2);margin-top:2px}
 .li-prod{font-size:10px;color:var(--blue);margin-top:1px}
 .li-right{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0}
 .days{font-size:10px;color:var(--t3);font-weight:600}
@@ -232,8 +232,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .sm{margin:0 12px 9px;padding:10px 12px;border-radius:var(--r2);font-size:12px;font-weight:600}
 .sm-ok{background:var(--gdim);color:var(--green);border:1px solid rgba(34,197,94,.2)}
 .sm-err{background:var(--rdim);color:var(--red);border:1px solid rgba(239,68,68,.2)}
-.sg{background:var(--s1);border-radius:var(--r);border:1px solid var(--border);margin:0 12px 10px;overflow:hidden}
-.si{display:flex;align-items:center;justify-content:space-between;padding:11px 12px;border-bottom:1px solid var(--border)}
+.sg{background:var(--s1);border-radius:14px;border:1px solid var(--border);margin:0 12px 12px;overflow:hidden;box-shadow:0 3px 10px rgba(0,0,0,.2)}
+.si{display:flex;align-items:center;justify-content:space-between;padding:13px 14px;border-bottom:1px solid var(--border);font-size:13px}
 .si:last-child{border-bottom:none}
 .empty{text-align:center;padding:40px 18px}
 .empty-ico{font-size:32px;margin-bottom:9px}
@@ -335,14 +335,35 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   .ptoggle-grid{grid-template-columns:repeat(3,1fr)}
 }
 @media (min-width:1024px){
-  :root{ --shell-w:920px; }
-  #app{border-left:1px solid var(--border);border-right:1px solid var(--border)}
+  :root{ --shell-w:920px; --sidebar-w:230px; }
+  #app{border-left:1px solid var(--border);border-right:1px solid var(--border);margin-left:var(--sidebar-w);margin-right:auto}
   .ov{align-items:center}
   .sh{border-radius:16px;max-height:88vh}
   .ana-grid{grid-template-columns:repeat(4,1fr)}
   #lead-list, #client-list{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;align-items:start}
   #lead-list > div, #client-list > div{margin-bottom:0!important} /* grid gap replaces per-card margin */
+
+  /* Sidebar nav replaces the bottom nav bar on desktop widths */
+  #nav{display:none}
+  #sidebar{
+    display:flex;flex-direction:column;position:fixed;left:0;top:0;bottom:0;width:var(--sidebar-w);
+    background:var(--s1);border-right:1px solid var(--border);padding:18px 12px;gap:3px;overflow-y:auto;z-index:200
+  }
+  .sidebar-brand{display:flex;align-items:center;gap:10px;padding:6px 10px 20px}
+  .sidebar-nb{
+    flex-direction:row!important;justify-content:flex-start!important;gap:12px!important;
+    padding:11px 12px!important;border-radius:10px!important;max-width:none!important;width:100%;
+    font-size:13px!important;text-align:left
+  }
+  .sidebar-nb svg{width:20px;height:20px}
+  .sidebar-nb.active{background:var(--accent2)}
+  /* Dashboard: multi-column layout instead of one stacked column */
+  #pg-dash .dash-grid-2col{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start;padding:0 14px}
+  #pg-dash .dash-grid-2col .sec{padding:0;margin-bottom:0}
+  #pg-dash > div[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:repeat(4,1fr)!important}
+  #pg-dash .dash-funnel-sec{display:block!important}
 }
+#sidebar{display:none}
 </style>
 <style>
 /* ── AUTOCOMPLETE ── */
@@ -419,10 +440,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   <div class="ph">
     <div><h1>Leads</h1><div class="sub" id="leads-sub"></div></div>
     <div style="display:flex;gap:7px;align-items:center">
-      <button class="mic" id="mic-btn" onclick="voiceAdd()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
-      <button class="btn btn-ghost" style="padding:7px 10px;font-size:11px" onclick="toggleBulk()" id="bulk-toggle-btn">☑️</button>
-      
-      
+      <button class="btn btn-ghost" style="width:40px;height:40px;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center" onclick="toggleSharedSearchBar()" aria-label="Search">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
     </div>
   </div>
 
@@ -478,6 +498,13 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     </div>
   </div>
 
+  <div class="dash-grid-2col">
+  <!-- Lead Pipeline Funnel — desktop only, built from the same lead-status counts as the stat tiles above -->
+  <div class="sec dash-funnel-sec" style="display:none">
+    <div class="lbl" style="color:var(--accent)">🔻 Pipeline Overview</div>
+    <div id="dash-funnel" style="background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:14px"></div>
+  </div>
+
   <!-- Today's Activity — follow-ups, events, SIP/review/anniversary/birthdays due today, all clubbed. Made visually prominent: bordered accent card, bigger than the sections below. -->
   <div class="sec">
     <div style="background:var(--accent2);border:1.5px solid var(--accent);border-radius:14px;padding:14px 12px 10px">
@@ -510,6 +537,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div class="lbl" style="color:var(--accent)">🧭 Planning Nudges</div>
     <div id="dash-reminders"><div style="font-size:11px;color:var(--t3);text-align:center;padding:8px">Loading...</div></div>
   </div>
+  </div>
 </div>
 
   
@@ -518,7 +546,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 <div class="page" id="pg-clients">
   <div class="ph" style="padding-bottom:8px">
     <div><h1>Clients</h1><div class="sub" id="clients-sub"></div></div>
-    <button class="btn btn-ghost" style="padding:6px 10px;font-size:11px" onclick="toggleClientBulk()" id="client-select-btn">☑️</button>
+    <button class="btn btn-ghost" style="width:40px;height:40px;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center" onclick="toggleSharedSearchBar()" aria-label="Search">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </button>
   </div>
   <div style="display:flex;gap:6px;padding:0 12px 8px">
     <button id="sort-aum-btn" onclick="setClientSort('aum')" style="flex:1;padding:7px 4px;font-size:11px;font-weight:700;border-radius:8px;border:1.5px solid var(--accent);background:var(--accent);color:#000;cursor:pointer">💰 AUM ↓</button>
@@ -542,6 +572,15 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 <!-- SETTINGS -->
 <div class="page" id="pg-settings">
   <div class="ph"><h1>Settings</h1></div>
+
+  <!-- Profile header -->
+  <div style="display:flex;flex-direction:column;align-items:center;padding:8px 20px 22px;text-align:center">
+    <div style="width:88px;height:88px;border-radius:50%;background:var(--s2);border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:38px;margin-bottom:12px">🔒</div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span style="font-size:20px;font-weight:800;color:var(--text)">Wealth Matrix CRM</span>
+    </div>
+    <div style="font-size:12px;color:var(--t3);margin-top:3px">v5.0.0 · Advisor workspace</div>
+  </div>
 
   <!-- App Lock -->
   <div style="padding:0 12px;margin-bottom:7px" class="lbl">🔒 App Lock</div>
@@ -746,6 +785,19 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 
   
 </div>
+
+<aside id="sidebar">
+  <div class="sidebar-brand">
+    <div style="width:34px;height:34px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span style="font-size:13px;font-weight:900;color:#000">WM</span></div>
+    <div><div style="font-size:14px;font-weight:900;color:var(--text)">Wealth Matrix</div><div style="font-size:9px;color:var(--t3);letter-spacing:.5px">CRM</div></div>
+  </div>
+  <button class="nb sidebar-nb" onclick="nav('dash',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Dashboard</span></button>
+  <button class="nb sidebar-nb" onclick="nav('leads',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg><span>Leads</span></button>
+  <button class="nb sidebar-nb" onclick="nav('clients',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Clients</span></button>
+  <button class="nb sidebar-nb" onclick="nav('tasks',this)" id="sidebar-nav-tasks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg><span>Task</span></button>
+  <button class="nb sidebar-nb" onclick="nav('analytics',this)" id="sidebar-nav-analytics"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 00-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0012 2z"/></svg><span>Insights</span></button>
+  <button class="nb sidebar-nb" onclick="nav('settings',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg><span>Settings</span></button>
+</aside>
 
 <nav id="nav">
   <button class="nb" onclick="nav('leads',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>Leads</button>
@@ -1828,10 +1880,10 @@ function renderClients(){
 
     return '<div onclick="'+clickFn+'" style="background:'+bg+';border:1px solid '+borderColor+';border-top:4px solid '+stageCol+';border-radius:14px;padding:12px 14px;display:flex;gap:12px;align-items:flex-start;cursor:pointer;margin-bottom:8px;transition:opacity .15s">'
       +(clientBulkMode?'<div style="width:22px;height:22px;border-radius:50%;border:2px solid var(--accent);background:'+(sel?'var(--accent)':'transparent')+';display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:9px">'+(sel?'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>':'')+'</div>':'')
-      +'<div style="width:42px;height:42px;border-radius:50%;background:'+ac.bg+';border:1.5px solid '+ac.border+';display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:'+ac.text+';flex-shrink:0">'+initials+'</div>'
+      +'<div style="width:46px;height:46px;border-radius:50%;background:'+ac.bg+';border:1.5px solid '+ac.border+';display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:'+ac.text+';flex-shrink:0">'+initials+'</div>'
       +'<div style="flex:1;min-width:0">'
         +'<div style="display:flex;justify-content:space-between;align-items:center;gap:6px">'
-          +'<span style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+toTitle(c.name)+(c.familyName?' <span style="font-size:9px;color:var(--t2);background:var(--s2);border:1px solid var(--border);border-radius:999px;padding:1px 6px;font-weight:600">👪 '+c.familyName+'</span>':'')+'</span>'
+          +'<span style="font-size:15px;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+toTitle(c.name)+(c.familyName?' <span style="font-size:9px;color:var(--t2);background:var(--s2);border:1px solid var(--border);border-radius:999px;padding:1px 6px;font-weight:600">👪 '+c.familyName+'</span>':'')+'</span>'
           +'<select onclick="event.stopPropagation()" onchange="event.stopPropagation();updateClientField(\''+cId+'\',\'stage\',this.value);this.blur();" style="font-size:9px;font-weight:700;color:'+stageCol+';background:var(--bg);border:1px solid '+stageCol+';border-radius:99px;padding:2px 6px;white-space:nowrap;flex-shrink:0;max-width:118px">'
             +STAGE_OPTIONS.map(function(s){return '<option value="'+s+'"'+((c.stage||'').toUpperCase()===s?' selected':'')+'>'+s+'</option>';}).join('')
           +'</select>'
@@ -2098,6 +2150,11 @@ function renderTasks(){
   var list=document.getElementById('task-list');
   var subEl=document.getElementById('tasks-sub');
   if(!list) return;
+  // Belt-and-suspenders scroll reset — nav() already resets this on every page
+  // switch, but this guarantees it specifically whenever Task content re-renders.
+  var contentElT=document.getElementById('content');
+  if(contentElT) contentElT.scrollTop=0;
+  window.scrollTo(0,0);
   var withStatus=tasks.map(function(t){ return {t:t, eff:effectiveTaskStatus(t)}; });
   var dueCount=withStatus.filter(function(x){return x.eff==='DUE';}).length;
   var openCount=withStatus.filter(function(x){return x.eff==='OPEN';}).length;
@@ -2682,9 +2739,9 @@ function retagClientAsLead(mob,status){
 // ═══════════════════════════════════════════════
 // BULK
 // ═══════════════════════════════════════════════
-function toggleBulk(){bulkMode=!bulkMode;selectedLeads.clear();document.getElementById('bulk-toggle-btn').textContent=bulkMode?'✕':'☑️';document.getElementById('bulk-bar').classList.toggle('show',bulkMode);renderLeads();}
+function toggleBulk(){bulkMode=!bulkMode;selectedLeads.clear();var btb=document.getElementById('bulk-toggle-btn');if(btb)btb.textContent=bulkMode?'✕':'☑️';document.getElementById('bulk-bar').classList.toggle('show',bulkMode);renderLeads();}
 function toggleSelect(mob){if(selectedLeads.has(mob))selectedLeads.delete(mob);else selectedLeads.add(mob);document.getElementById('bulk-count').textContent=selectedLeads.size+' selected';document.getElementById('bulk-bar').classList.toggle('show',selectedLeads.size>0||bulkMode);renderLeads();}
-function clearBulk(){bulkMode=false;selectedLeads.clear();document.getElementById('bulk-toggle-btn').textContent='☑️';document.getElementById('bulk-bar').classList.remove('show');renderLeads();}
+function clearBulk(){bulkMode=false;selectedLeads.clear();var btb2=document.getElementById('bulk-toggle-btn');if(btb2)btb2.textContent='☑️';document.getElementById('bulk-bar').classList.remove('show');renderLeads();}
 function bulkChangeStatus(){if(selectedLeads.size===0){toast('Select leads first');return;}document.getElementById('ov-bulk').classList.add('open');}
 function applyBulkStatus(status){selectedLeads.forEach(function(mob){var l=leads.find(function(x){return x.recordId===mob||x.mobile===mob;});if(l){var prev=l.status;l.status=status;if(status==='CONVERTED'&&prev!=='CONVERTED')autoConvert(l);}});saveL();pushLeads();closeOv('ov-bulk');clearBulk();renderLeads();renderDash();}
 async function bulkDelete(){if(selectedLeads.size===0)return;if(!confirm('Delete '+selectedLeads.size+' leads?'))return;leads=leads.filter(function(l){return !selectedLeads.has(l.mobile);});saveL();clearBulk();renderLeads();renderDash();pushLeads();}
@@ -2717,7 +2774,7 @@ function addReviewToCalendar(mob){
 // VOICE
 // ═══════════════════════════════════════════════
 var recog=null;
-function voiceAdd(){var SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){toast('Voice not available');return;}var btn=document.getElementById('mic-btn');if(recog){recog.stop();return;}recog=new SR();recog.lang='en-IN';recog.interimResults=false;btn.classList.add('on');toast('🎤 Listening…',30000);recog.onresult=function(e){var t=e.results[0][0].transcript;openAddLead(parseVoice(t));toast('Review and save');};recog.onerror=function(){toast('Mic error');};recog.onend=function(){btn.classList.remove('on');recog=null;};recog.start();}
+function voiceAdd(){var SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){toast('Voice not available');return;}var btn=document.getElementById('mic-btn');if(!btn)return;if(recog){recog.stop();return;}recog=new SR();recog.lang='en-IN';recog.interimResults=false;btn.classList.add('on');toast('🎤 Listening…',30000);recog.onresult=function(e){var t=e.results[0][0].transcript;openAddLead(parseVoice(t));toast('Review and save');};recog.onerror=function(){toast('Mic error');};recog.onend=function(){btn.classList.remove('on');recog=null;};recog.start();}
 function parseVoice(t){var lo=t.toLowerCase();var p={name:'',mob:'',email:'',country:'',age:'',gender:'',status:'PROSPECT',source:'',products:'',nextFollowUp:''};var dm=t.replace(/[^0-9]/g,'').match(/(\d{10,12})/);if(dm)p.mob=dm[1].slice(-10);if(lo.includes('female'))p.gender='FEMALE';else if(lo.includes('male'))p.gender='MALE';if(lo.includes('converted'))p.status='CONVERTED';else if(lo.includes('in progress'))p.status='IN PROGRESS';else if(lo.includes('contacted'))p.status='CONTACTED';return p;}
 
 // ═══════════════════════════════════════════════
@@ -3039,7 +3096,17 @@ function nav(name,btn){
   document.querySelectorAll('.nb').forEach(function(b){b.classList.remove('active');});
   var pg=document.getElementById('pg-'+name);
   if(pg) pg.classList.add('active');
+  // Activate every nav button for this page — bottom nav AND sidebar — not
+  // just whichever one was actually clicked, so both stay in sync even when
+  // navigation happens indirectly (e.g. a "view all" link elsewhere).
+  document.querySelectorAll('.nb[onclick*="nav(\''+name+'\'"]').forEach(function(b){b.classList.add('active');});
   if(btn) btn.classList.add('active');
+  // Reset scroll to top on every page switch — otherwise a page you scrolled
+  // deep into (e.g. a long Dashboard) leaves that same scroll offset applied
+  // to whatever page you switch to next, which can make a shorter page look
+  // like its content starts near the bottom instead of at the top.
+  var contentEl=document.getElementById('content');
+  if(contentEl) contentEl.scrollTop=0;
   // Render on page switch
   if(name==='analytics'){
     var sb4=document.getElementById('shared-search-bar'); if(sb4) sb4.style.display='none';
@@ -3048,7 +3115,7 @@ function nav(name,btn){
   }
   if(name==='clients'){
     var sb2=document.getElementById('shared-search-bar');
-    if(sb2){sb2.style.display='block';var si2=document.getElementById('shared-search');if(si2){si2.value='';si2.placeholder='Search clients…';}}
+    if(sb2){sb2.style.display='none';var si2=document.getElementById('shared-search');if(si2){si2.value='';si2.placeholder='Search clients…';}}
     renderClients(); setTimeout(addSearchClose,100);
     setTimeout(checkStaleAumPopup, 400); // potential-AUM stale contact alert
   }
@@ -3068,10 +3135,27 @@ function nav(name,btn){
   }
   if(name==='leads'){
     var sb=document.getElementById('shared-search-bar');
-    if(sb){sb.style.display='block';var si=document.getElementById('shared-search');if(si){si.value='';si.placeholder='Search leads…';}}
+    if(sb){sb.style.display='none';var si=document.getElementById('shared-search');if(si){si.value='';si.placeholder='Search leads…';}}
     setTimeout(addSearchClose,100); initLeadSwipe();
   }
   if(name==='clients') setTimeout(addSearchClose,100);
+}
+
+// Search bar is hidden by default on every page — tapping the search icon in
+// the header reveals it inline; tapping again (or the icon a second time)
+// hides it. Focuses the input automatically when revealed.
+function toggleSharedSearchBar(){
+  var sb=document.getElementById('shared-search-bar');
+  if(!sb) return;
+  var showing=sb.style.display==='block';
+  sb.style.display=showing?'none':'block';
+  if(!showing){
+    var si=document.getElementById('shared-search');
+    if(si){ si.value=''; setTimeout(function(){si.focus();},50); }
+  } else {
+    var si2=document.getElementById('shared-search');
+    if(si2 && si2.value){ si2.value=''; onSharedSearch(); } // clear any active filter when closing
+  }
 }
 
 // ═══════════════════════════════════════════════
@@ -4052,6 +4136,7 @@ function renderDash(){
   updateFUBadge();
   renderReminders(); // build reminders section in dashboard
   renderStageTable(); // client lifecycle stage pipeline
+  renderPipelineFunnel(); // desktop-only lead pipeline funnel (no-op cost on mobile, just hidden)
   renderWeekCalendar(); // 7-day follow-up planning strip
   // Show popup for leads/clients not physically met in 1+ year
   checkPhysicalMeetReminder();
@@ -7551,6 +7636,43 @@ function isSipReminderSent(mob){ return !!localStorage.getItem(sipReminderKey(mo
 
 
 // Show clickable list when a dash tile is tapped
+// ── Lead pipeline funnel — desktop-only visual, built from the same lead
+// status counts as the stat tiles above it. Plain SVG, no chart library
+// dependency (the app doesn't load one, and this is simple enough not to need it). ──
+function renderPipelineFunnel(){
+  var el=document.getElementById('dash-funnel');
+  if(!el) return;
+  var stages=[
+    {label:'Prospect', color:'#4FC3F7', n:leads.filter(function(l){return (l.status||'').toUpperCase()==='PROSPECT';}).length},
+    {label:'Contacted', color:'#2ecc71', n:leads.filter(function(l){return (l.status||'').toUpperCase()==='CONTACTED';}).length},
+    {label:'In Progress', color:'#f39c12', n:leads.filter(function(l){return (l.status||'').toUpperCase()==='IN PROGRESS';}).length},
+    {label:'Converted', color:'#9b59b6', n:clients.length}
+  ];
+  var maxN=Math.max.apply(null, stages.map(function(s){return s.n;}).concat([1]));
+  var W=260, rowH=46, gap=4;
+  var svgRows='';
+  stages.forEach(function(s,i){
+    var wTop = i===0 ? W : (W * (stages[i-1].n||0.3) / maxN);
+    var wBot = W * (s.n||0.3) / maxN;
+    wTop = Math.max(wTop, 30); wBot = Math.max(wBot, 30);
+    var y = i*(rowH+gap);
+    var xTop=(W-wTop)/2, xBot=(W-wBot)/2;
+    svgRows += '<path d="M'+xTop+','+y+' L'+(xTop+wTop)+','+y+' L'+(xBot+wBot)+','+(y+rowH)+' L'+xBot+','+(y+rowH)+' Z" fill="'+s.color+'" opacity="0.9"/>';
+  });
+  var totalH = stages.length*(rowH+gap)-gap;
+  el.innerHTML = '<div style="display:flex;gap:18px;align-items:center">'
+    + '<svg width="'+W+'" height="'+totalH+'" viewBox="0 0 '+W+' '+totalH+'">'+svgRows+'</svg>'
+    + '<div style="flex:1">'
+    + stages.map(function(s){
+        return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0">'
+          + '<span style="width:10px;height:10px;border-radius:3px;background:'+s.color+';flex-shrink:0"></span>'
+          + '<span style="font-size:12px;color:var(--t2);flex:1">'+s.label+'</span>'
+          + '<span style="font-size:14px;font-weight:800;color:var(--text)">'+s.n+'</span>'
+          + '</div>';
+      }).join('')
+    + '</div></div>';
+}
+
 function renderStageTable(){
   var el=document.getElementById('dash-stage-table');
   if(!el) return;
@@ -7874,15 +7996,32 @@ function saveTasks(){
 async function pullTasks(){
   if(!hasScript()) return;
   try{
+    // Sheet may be named TASKS (new) or still REMINDERS (never renamed) —
+    // try both so existing data is never silently invisible either way.
     var res = await scriptGet('TASKS', 1);
+    if(!res || !res.rows || res.rows.length<=1){
+      res = await scriptGet('REMINDERS', 1);
+    }
     if(res && res.rows && res.rows.length > 1){
       var rows = res.rows.slice(1); // skip header
+      var missingIdCount = 0;
       tasks = rows.map(function(r){
-        return { createdDate:r[0]||'', name:r[1]||'', taskDetails:r[2]||'', dueDate:r[3]||'', status:r[4]||'Open', taskFor:r[5]||'OTHERS', taskId:r[6]||'', linkedRecordId:r[7]||'', assignedTo:r[8]||'' };
-      }).filter(function(t){ return t.taskId; });
+        var taskId = r[6]||'';
+        if(!taskId) missingIdCount++;
+        return { createdDate:r[0]||'', name:r[1]||'', taskDetails:r[2]||'', dueDate:r[3]||'', status:r[4]||'Open', taskFor:r[5]||'OTHERS', taskId:taskId, linkedRecordId:r[7]||'', assignedTo:r[8]||'' };
+      }).filter(function(t){ return t.name || t.taskDetails; }); // keep any row with real content, ID or not
       saveTasks();
       if(typeof renderRemindersPending==='function') renderRemindersPending();
       if(document.getElementById('pg-tasks') && document.getElementById('pg-tasks').classList.contains('active')) renderTasks();
+      // Rows from before the Task ID system existed won't have one yet —
+      // backfill them once in the background, then silently re-pull so they
+      // become fully manageable (Delete/Finish/Save) instead of staying stuck.
+      if(missingIdCount>0){
+        try{
+          var bfRes=await sheetWrite({action:'backfillTaskIds'});
+          if(bfRes && bfRes.success && bfRes.filled>0) await pullTasks();
+        }catch(bfErr){ console.warn('Task ID backfill failed:', bfErr.message); }
+      }
     }
   }catch(e){ console.warn('pullTasks failed:', e.message); }
 }
