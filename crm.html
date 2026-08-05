@@ -1587,24 +1587,41 @@ function openFuDetail(mob,nameHint){
 async function pullLeadActivity(mob){
   if(!hasScript()) return;
   mob = String(mob||'').trim();
+  var targetRec = leads.find(function(x){ return x.recordId===mob||x.mobile===mob; });
+  var targetRecordId = targetRec ? targetRec.recordId : '';
+  var targetMobile = targetRec ? targetRec.mobile : mob;
   try{
     var url = cfg_.scriptUrl + '?tab=ACTIVITY_LOG&t=' + Date.now();
     var resp = await fetch(url);
     if(!resp.ok) throw new Error('HTTP '+resp.status);
     var d = await resp.json();
     if(d && d.rows && d.rows.length > 1){
-      // Columns: A=Timestamp B=Name C=Mobile D=Type E=Activity F=Notes G=RawId
+      // Columns: A=Timestamp B=Name C=Mobile D=Type E=Activity F=Notes G=RawId H=RecordId
       var fresh = d.rows.slice(1).map(function(r){
         return {
           ts:String(r[0]||'').trim(), name:String(r[1]||'').trim(),
           mobile:String(r[2]||'').trim(), type:String(r[3]||'LEAD').trim(),
           activity:String(r[4]||'').trim(), notes:String(r[5]||'').trim(),
-          rowId:String(r[6]||'').trim()
+          rowId:String(r[6]||'').trim(), recordId:String(r[7]||'').trim()
         };
-      }).filter(function(e){ return e.activity && mobMatch(e.mobile, mob); });
-      // Replace this lead's local entries with fresh sheet data
-      activityLog = activityLog.filter(function(e){ return !mobMatch(e.mobile, mob); });
-      fresh.forEach(function(f){ f.mobile = mob; }); // normalize for display
+      }).filter(function(e){
+        if(!e.activity) return false;
+        // Match by Record ID when both sides have one (exact, unambiguous even
+        // when two leads share a mobile) — fall back to mobile only for legacy
+        // entries with no Record ID stored.
+        if(e.recordId && targetRecordId) return e.recordId===targetRecordId;
+        if(!e.recordId) return mobMatch(e.mobile, targetMobile);
+        return false;
+      });
+      // Replace this lead's local entries with fresh sheet data — same matching rule
+      activityLog = activityLog.filter(function(e){
+        if(e.recordId && targetRecordId) return e.recordId!==targetRecordId;
+        if(!e.recordId) return !mobMatch(e.mobile, targetMobile);
+        return true;
+      });
+      // No longer overwriting f.mobile — that was replacing each entry's real
+      // mobile with whatever identifier was passed in (sometimes a Record ID),
+      // corrupting the data shown for it.
       activityLog = activityLog.concat(fresh);
       saveActivityLog();
     }
@@ -2033,12 +2050,9 @@ function openDetail(mob,type,nameHint){
     + '</div>';
   document.getElementById('detail-sh').innerHTML = html;  // ← was missing!
   document.getElementById('ov-detail').classList.add('open');
-  checkClientDocsComplete(c); // background check — pops up if required documents are missing
-  updateDataStatusBadge(mob, c); // synchronous — Gather Info fields already in memory
-  (async function(){
-    await checkAndTagClientFolder(c); // finds/tags the client's Drive folder permanently, if one exists
-    updateDocStatusBadge(mob, c); // runs AFTER tagging completes, so c.folderId is up to date
-  })();
+  updateDataStatusBadge(mob, c); // synchronous — Gather Info fields already in memory, no Drive call
+  // Folder/document checking no longer runs automatically on open — it now
+  // runs once, only when the chip window is closed (see closeClientDetailWithPrompt).
   // Event delegation for client popup
   document.getElementById('detail-sh').onclick = function(e){
     var btn = e.target.closest('[data-action]'); if(!btn) return;
@@ -2280,12 +2294,37 @@ function setTaskForType(ty){
 }
 
 function wireTaskForm(existing){
-  setupCombinedAutocomplete('task-name-search','task-ac-list',function(rec,type){
-    var nameEl=document.getElementById('task-name-search');
-    if(nameEl) nameEl.value=toTitle(rec.name);
-    window._taskLinkedRecordId=rec.recordId||'';
-    setTaskForType(type==='lead'?'LEAD':'CLIENT');
+  var input=document.getElementById('task-name-search');
+  var list=document.getElementById('task-ac-list');
+  if(!input||!list) return;
+  input.addEventListener('input',function(){
+    var q=(input.value||'').toLowerCase().trim();
+    if(q.length<2){list.classList.remove('show');return;}
+    var combined=leads.map(function(x){return {rec:x, type:'lead'};})
+      .concat(clients.map(function(x){return {rec:x, type:'client'};}))
+      .filter(function(x){return (x.rec.name||'').toLowerCase().includes(q);})
+      .slice(0,8);
+    if(!combined.length){list.classList.remove('show');return;}
+    list.innerHTML=combined.map(function(x,i){
+      var r=x.rec;
+      return '<div class="ac-item" data-idx="'+i+'">'
+        +'<div>'+toTitle(r.name)+' <span style="font-size:9px;color:var(--t3)">('+(x.type==='lead'?'Lead':'Client')+')</span></div>'
+        +'<div class="ac-sub">'+(r.mobile||'')+(r.country?' · '+r.country:'')+'</div>'
+        +'</div>';
+    }).join('');
+    list.classList.add('show');
+    list.querySelectorAll('.ac-item').forEach(function(item){
+      item.onclick=function(){
+        var x=combined[parseInt(item.dataset.idx)];
+        if(!x) return;
+        input.value=toTitle(x.rec.name);
+        window._taskLinkedRecordId=x.rec.recordId||'';
+        setTaskForType(x.type==='lead'?'LEAD':'CLIENT');
+        list.classList.remove('show');
+      };
+    });
   });
+  document.addEventListener('click',function(e){if(!input.contains(e.target)&&!list.contains(e.target))list.classList.remove('show');});
 }
 
 async function saveTaskNow(){
@@ -3081,7 +3120,33 @@ function closeOv(id){
 // through plain closeOv() above and never prompts. ──
 function closeClientDetailWithPrompt(){
   var mobToAsk=_detailOpenMobile;
-  askClientLastContactedThenClose(mobToAsk, function(){ closeOv('ov-detail'); });
+  var c=resolveOpenRecord(mobToAsk,'client');
+  askClientLastContactedThenClose(mobToAsk, function(){
+    closeOv('ov-detail');
+    // Folder check runs once, here, only on close — not automatically on open.
+    if(c && !c.folderId && hasScript()){
+      checkAndTagClientFolder(c).then(function(){
+        if(!c.folderId) showNoClientFolderPopup(c);
+      });
+    }
+  });
+}
+
+// Shown only when closing a client whose Drive folder doesn't exist yet (and
+// no ambiguous near-match was found either, in which case checkAndTagClientFolder
+// already showed its own picker instead). Purely informational — uploading a
+// document via the Documents section creates the folder automatically.
+function showNoClientFolderPopup(c){
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.innerHTML='<div style="background:var(--s1);border-radius:12px;width:100%;max-width:340px;overflow:hidden">'
+    +'<div style="padding:16px;font-size:14px;font-weight:800;border-bottom:1px solid var(--border)">📁 No document folder yet</div>'
+    +'<div style="padding:14px 16px;font-size:12px;color:var(--t2);line-height:1.6">'+toTitle(c.name)+' doesn\u2019t have a Drive folder yet. Uploading any document from the Documents section will create one automatically.</div>'
+    +'<div style="display:flex;border-top:1px solid var(--border)">'
+    +'<button id="_ncf_ok" style="flex:1;padding:12px;border:none;background:none;color:var(--accent);font-weight:700;cursor:pointer">Got it</button>'
+    +'</div></div>';
+  document.body.appendChild(ov);
+  document.getElementById('_ncf_ok').onclick=function(){ov.remove();};
 }
 document.querySelectorAll('.ov').forEach(function(o){o.addEventListener('click',function(e){if(e.target===o){if(o.id==='ov-fu-detail')closeFuDetail();else closeOv(o.id);}});});
 function fabAdd(){var activePage=document.querySelector('.page.active');if(activePage&&activePage.id==='pg-clients')openAddClient();else openAddLead();}
@@ -3529,17 +3594,24 @@ async function logActivity(mob, type, activity, notes){
     ? leads.find(function(x){ return x.recordId===mob||x.mobile===mob; })
     : clients.find(function(x){ return x.recordId===mob||x.mobile===mob; });
   var name = rec ? (rec.name||mob) : mob;
+  // Store the RESOLVED record's actual mobile and Record ID — not the raw
+  // 'mob' parameter as passed, since callers sometimes pass a Record ID here
+  // and sometimes a mobile number. Without this, two leads/clients sharing a
+  // mobile number would have their activity logs indistinguishable from each
+  // other, since only mobile was ever stored — this is exactly that fix.
+  var actualMobile = rec ? (rec.mobile||mob) : mob;
+  var recordId = rec ? (rec.recordId||'') : '';
   var ts = fmtStamp(new Date());
   var rowId = genRowId(); // unique ID for this log entry
-  var entry = { rowId:rowId, ts:ts, name:name, mobile:mob, type:type.toUpperCase(), activity:activity, notes:notes||'' };
+  var entry = { rowId:rowId, ts:ts, name:name, mobile:actualMobile, recordId:recordId, type:type.toUpperCase(), activity:activity, notes:notes||'' };
 
   // Save locally first
   activityLog.push(entry);
   saveActivityLog();
 
-  // Append to ACTIVITY_LOG sheet — row includes rowId as column 1
+  // Append to ACTIVITY_LOG sheet — row includes rowId (col G) and recordId (col H)
   if(hasScript()){
-    var row = [ts, name, mob, type.toUpperCase(), activity, notes||'', rowId]; // rowId in column G
+    var row = [ts, name, actualMobile, type.toUpperCase(), activity, notes||'', rowId, recordId];
     var res = await sheetWrite({action:'appendLog', row:row});
     if(res && res.error){ console.warn('appendLog failed:', res.error); }
 
@@ -3562,9 +3634,30 @@ function mobMatch(a, b){
   return false;
 }
 
-function getActivity(mob){
+function getActivity(mob, type){
+  mob = String(mob||'').trim();
+  // Resolve the actual target record so we know its true recordId+mobile,
+  // regardless of whether 'mob' as passed is a recordId or a mobile number.
+  var rec = type==='lead'
+    ? leads.find(function(x){ return x.recordId===mob||x.mobile===mob; })
+    : type==='client'
+      ? clients.find(function(x){ return x.recordId===mob||x.mobile===mob; })
+      : null;
+  var targetRecordId = rec ? rec.recordId : '';
+  var targetMobile = rec ? rec.mobile : mob;
   return activityLog
-    .filter(function(e){ return mobMatch(e.mobile, mob); })
+    .filter(function(e){
+      // New-style entries (logged after this fix): match by Record ID only —
+      // exact and unambiguous, even when two records share a mobile number.
+      if(e.recordId && targetRecordId) return e.recordId===targetRecordId;
+      // Legacy entries with no Record ID stored (logged before this fix
+      // existed): fall back to mobile matching, same as before. This can
+      // still show shared history between two records with the same mobile
+      // for OLD entries only — there's no way to disambiguate data that was
+      // never tagged with a Record ID in the first place.
+      if(!e.recordId) return mobMatch(e.mobile, targetMobile);
+      return false;
+    })
     .sort(function(a,b){ return (a.ts||'').localeCompare(b.ts||''); });
 }
 
@@ -3576,13 +3669,13 @@ async function pullActivityLog(){
     if(!resp.ok) throw new Error('HTTP '+resp.status);
     var d = await resp.json();
     if(d && d.rows && d.rows.length > 1){
-      // Columns: A=Timestamp B=Name C=Mobile D=Type E=Activity F=Notes G=RowId
+      // Columns: A=Timestamp B=Name C=Mobile D=Type E=Activity F=Notes G=RowId H=RecordId
       activityLog = d.rows.slice(1).map(function(r){
         return {
           ts:String(r[0]||'').trim(), name:String(r[1]||'').trim(),
           mobile:String(r[2]||'').trim(), type:String(r[3]||'LEAD').trim(),
           activity:String(r[4]||'').trim(), notes:String(r[5]||'').trim(),
-          rowId:String(r[6]||'').trim()
+          rowId:String(r[6]||'').trim(), recordId:String(r[7]||'').trim()
         };
       }).filter(function(e){ return e.mobile && e.activity; });
       saveActivityLog();
@@ -3655,7 +3748,7 @@ async function pullFromSheet(manual){
 
 // ── ACTIVITY LOG DISPLAY (replaces renderCommLog) ──
 function buildHistoryHtml(mob, type){
-  var entries = getActivity(mob);
+  var entries = getActivity(mob, type);
   if(!entries.length){
     return '<div style="color:var(--t3);font-size:12px;padding:14px 0;text-align:center">No activity logged yet.<br><span style="font-size:10px">Use the chips below to log your first interaction.</span></div>';
   }
@@ -4150,7 +4243,7 @@ function checkPhysicalMeetReminder(){
   var notMet=leads.filter(function(l){
     if(['DROPPED','CONVERTED'].includes((l.status||'').toUpperCase())) return false;
     // Check if they've been physically met in last year via activity log
-    var entries=getActivity(l.mobile);
+    var entries=getActivity(l.mobile,'lead');
     var recentMeet=entries.find(function(e){
       return (e.activity||'').toLowerCase().includes('physically met')&&new Date(e.ts.split(' ')[0].split('/').reverse().join('-'))>oneYearAgo;
     });
@@ -4166,7 +4259,7 @@ function checkPhysicalMeetReminder(){
     return createDate<oneYearAgo;
   });
   var notMetClients=clients.filter(function(c){
-    var entries=getActivity(c.mobile);
+    var entries=getActivity(c.mobile,'client');
     var recentMeet=entries.find(function(e){
       return (e.activity||'').toLowerCase().includes('physically met')&&new Date(e.ts.split(' ')[0].split('/').reverse().join('-'))>oneYearAgo;
     });
@@ -4209,7 +4302,7 @@ function makeFuItem(l,itemType){
   var msg=encodeURIComponent(waMsg(l));
   var mob=l.mobile;
   var lastRem='';
-  var entries=getActivity(mob);
+  var entries=getActivity(mob,'lead');
   if(entries.length){var last=entries[entries.length-1];lastRem=(last.activity||'').substring(0,45);}
   var sc=leadScore(l);var heat=leadHeat(sc);
   var fuDue=l.nextFollowUp&&daysUntil(l.nextFollowUp)<=0;
@@ -7278,7 +7371,7 @@ function getStaleAumClients(){
   clients.forEach(function(c){
     var potAum=parseFloat((c.potentialAum||'').toString().replace(/[^0-9.]/g,''))||0;
     if(potAum<=0) return; // no potential AUM on file
-    var log=getActivity(c.mobile);
+    var log=getActivity(c.mobile,'client');
     var lastDateStr = log.length ? log[log.length-1].ts : (c.convertedDate||c.createdDate||'');
     if(!lastDateStr) return;
     var lastDate=new Date(lastDateStr);
@@ -7892,7 +7985,7 @@ function makeFuClientItem(c){
   var waNum=digits.length===10?'91'+digits:digits;
   var mob=c.mobile;
   var lastRem='';
-  var entries=getActivity(mob);
+  var entries=getActivity(mob,'client');
   if(entries.length){var last=entries[entries.length-1];lastRem=(last.activity||'').substring(0,45);}
   var curDate=c.nextFollowUp&&/^\d{4}-\d{2}-\d{2}$/.test(c.nextFollowUp)?c.nextFollowUp:'';
   var fuDue=curDate&&daysUntil(curDate)<=0;

@@ -7,7 +7,7 @@
 <style>
 :root{
   --bg:#000000; --s1:#111111; --s2:#1A1A1A; --border:#2A2A2A;
-  --accent:#C0392B; --accent2:rgba(192,57,43,.12);
+  --accent:#1D6FE0; --accent2:rgba(29,111,224,.12);
   --text:#FFFFFF; --t2:#AAAAAA; --t3:#666666;
   --green:#2ecc71; --r:12px; --r2:8px;
   --page-w:460px; --grid-cols:1;
@@ -99,12 +99,9 @@ var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxi1b4DHWFsXuOCO5XTpsC
 var DOC_TYPES = [
   {key:'PAN', label:'PAN'},
   {key:'Aadhaar', label:'Aadhaar'},
+  {key:'Bank account details', label:'Bank account details (Account statement/Cancelled cheque)'},
   {key:'Passport', label:'Passport (only for NRIs)'},
-  {key:'Resident ID', label:'Resident ID (only for NRIs)'},
-  {key:'Bank account details', label:'Bank account details'},
-  {key:'Health Insurance Policy', label:'Health Insurance Policy Copy'},
-  {key:'Life Insurance Policy', label:'Life Insurance Policy Copy'},
-  {key:'Others', label:'Others'}
+  {key:'Resident ID', label:'Resident ID (only for NRIs)'}
 ];
 
 var client = null; // {name, mobile, pan}
@@ -126,12 +123,29 @@ function fileToBase64(file){
 }
 
 // Same POST pattern as the main app — text/plain avoids CORS preflight
-async function apiPost(data){
+async function apiPost(data, timeoutMs){
+  var controller = (typeof AbortController!=='undefined') ? new AbortController() : null;
+  var timer = null;
+  if(controller && timeoutMs){
+    timer = setTimeout(function(){ controller.abort(); }, timeoutMs);
+  }
   try{
-    var r = await fetch(SCRIPT_URL, { method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify(data) });
+    var r = await fetch(SCRIPT_URL, {
+      method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify(data),
+      signal: controller ? controller.signal : undefined
+    });
+    if(timer) clearTimeout(timer);
     var t = await r.text();
-    try{ return JSON.parse(t); } catch(e){ return r.ok ? {success:true} : {error:'HTTP '+r.status}; }
-  }catch(e){ return {error:e.message}; }
+    try{ return JSON.parse(t); } catch(e){ return r.ok ? {success:true} : {error:'Server returned an error (HTTP '+r.status+')'}; }
+  }catch(e){
+    if(timer) clearTimeout(timer);
+    if(e.name==='AbortError') return {error:'Request timed out — the server took too long to respond'};
+    // A genuine network-level failure (device offline, DNS/connectivity issue,
+    // or — the most likely real-world cause of intermittent reports — the
+    // Apps Script URL in this page no longer matches the live deployment,
+    // e.g. after a "New deployment" was made instead of updating the existing one.
+    return {error:'Could not reach the server — check your internet connection'};
+  }
 }
 
 function renderError(title, msg){
@@ -149,7 +163,7 @@ function renderSlots(){
     + '</div>'
     + '<div class="consent-box" id="consentBox">'
     +   '<div class="t">To help us serve you faster and keep your account secure, please confirm below.</div>'
-    +   '<p>I agree to let Wealth Matrix Finserv LLP collect, store, and use the documents I upload here — such as my PAN, Aadhaar, bank details, and insurance policy copies — to complete my KYC, service my investment account, and, if I choose to use it, review my insurance coverage and share observations with me. This may include using AI-assisted tools — including a third-party AI service located outside India — to review documents such as my Consolidated Account Statement, using my PAN only to correctly match my own holdings. My information will be handled as described in the <a href="privacy-policy.html" target="_blank">Privacy Policy</a>, kept secure, and never sold. I can withdraw this consent anytime by contacting my advisor.</p>'
+    +   '<p>I agree to let Wealth Matrix Finserv LLP to collect, store and use the documents to complete my KYC for investment and other account related service purposes. My information will be handled as per <a href="privacy-policy.html" target="_blank">privacy policy</a>. I can withdraw this consent at any time by contacting Wealth Matrix Finserv LLP.</p>'
     +   '<label class="consent-check" id="consentCheckLabel">'
     +     '<input type="checkbox" id="consentCheckbox" onchange="handleConsentChange(this)">'
     +     '<span>I have read and agree to the above</span>'
@@ -166,7 +180,8 @@ function renderSlots(){
           + '<input type="file" accept="image/*,.pdf" data-doctype="'+dt.key+'" onchange="handleUpload(this)">'
           + '</label></div>';
         if(dt.key==='Bank account details'){
-          row += '<div class="form-block" style="margin-top:-6px;margin-bottom:14px">'
+          row += '<div style="padding:6px 14px 4px;font-size:11px;color:var(--t2)">You may also provide the bank details as below instead.</div>'
+            + '<div class="form-block" style="margin-top:-6px;margin-bottom:14px">'
             +   '<div class="nomform-grid">'
             +     '<div class="fg"><label class="fl">Account Number</label><input class="fi" id="bank-acc" inputmode="numeric" placeholder="Account number" oninput="this.value=this.value.replace(/[^0-9]/g,\'\')"></div>'
             +     '<div class="fg"><label class="fl">IFSC Code</label><input class="fi" id="bank-ifsc" placeholder="IFSC code" oninput="this.value=this.value.toUpperCase()"></div>'
@@ -185,9 +200,9 @@ function renderSlots(){
     +     '<div class="fg"><label class="fl">Nominee Mobile Number</label><input class="fi" id="nom-mobile" type="tel" inputmode="numeric" placeholder="10-digit mobile number" oninput="this.value=this.value.replace(/[^0-9]/g,\'\').slice(0,10)"></div>'
     +   '</div>'
     +   '<div class="fg"><label class="fl">Nominee Email ID</label><input class="fi" id="nom-email" type="email" placeholder="nominee@example.com"></div>'
-    +   '<div class="fg"><label class="fl">Nominee KYC Document (PAN / Aadhaar / Voter ID)</label>'
+    +   '<div class="fg"><label class="fl">Nominee KYC Document</label>'
     +     '<div class="slot" id="row-Nominee_KYC" style="margin-top:2px">'
-    +       '<div class="l"><div class="t">Nominee ID Proof</div><div class="s" id="status-Nominee_KYC">Not uploaded</div></div>'
+    +       '<div class="l"><div class="t">Nominee ID Proof (PAN/Aadhaar/Driving License)</div><div class="s" id="status-Nominee_KYC">Not uploaded</div></div>'
     +       '<label class="btn" id="btn-Nominee_KYC">Upload'
     +       '<input type="file" accept="image/*,.pdf" data-doctype="Nominee KYC" onchange="handleUpload(this)">'
     +       '</label></div>'
@@ -233,7 +248,7 @@ async function markExistingUploads(){
 // Exact wording shown to the client — this exact string is what gets logged
 // as their consent record (column C of DPDP Consents), so it stays in sync
 // with whatever's rendered above even if the wording is edited later.
-var CONSENT_TEXT = 'I agree to let Wealth Matrix Finserv LLP collect, store, and use the documents I upload here — such as my PAN, Aadhaar, bank details, and insurance policy copies — to complete my KYC, service my investment account, and, if I choose to use it, review my insurance coverage and share observations with me. This may include using AI-assisted tools — including a third-party AI service located outside India — to review documents such as my Consolidated Account Statement, using my PAN only to correctly match my own holdings. My information will be handled as described in the Privacy Policy, kept secure, and never sold. I can withdraw this consent anytime by contacting my advisor.';
+var CONSENT_TEXT = 'I agree to let Wealth Matrix Finserv LLP to collect, store and use the documents to complete my KYC for investment and other account related service purposes. My information will be handled as per privacy policy. I can withdraw this consent at any time by contacting Wealth Matrix Finserv LLP.';
 
 async function handleConsentChange(checkboxEl){
   var msgEl = document.getElementById('consentMsg');
@@ -287,7 +302,7 @@ async function handleUpload(inputEl){
       action:'uploadClientDocument',
       clientName: client.name, pan: client.pan||'', mobile: client.mobile, folderId: client.folderId||'',
       docType: docType, fileData: base64, mimeType: file.type, fileExt: ext
-    });
+    }, 25000);
     if(res && res.success){
       if(statusEl) statusEl.textContent = '✅ Uploaded';
       if(rowEl) rowEl.className = 'slot done';
@@ -304,15 +319,54 @@ async function handleUpload(inputEl){
         apiPost({ action: tagAction, mobile: client.mobile, recordId: client.recordId||'', folderId: res.folderId }).catch(function(){});
       }
     } else {
-      if(statusEl) statusEl.textContent = 'Upload failed — please try again';
-      if(rowEl) rowEl.className = 'slot err';
+      // Surface the ACTUAL error (network/timeout/server) instead of a generic
+      // message — this is what makes an intermittent failure diagnosable
+      // instead of just "upload failed, try again" with no further information.
+      showUploadRetry(statusEl, rowEl, safeId, res && res.error ? res.error : 'Unknown error', base64, file.type, ext, docType);
     }
   }catch(e){
-    if(statusEl) statusEl.textContent = 'Upload failed — please try again';
-    if(rowEl) rowEl.className = 'slot err';
+    showUploadRetry(statusEl, rowEl, safeId, e.message||'Could not read the file', null, file.type, null, docType);
   }
   inputEl.value = '';
 }
+
+// Shown on any upload failure — displays the real error and offers a one-tap
+// retry that reuses the already-encoded file data, so the client doesn't have
+// to re-pick the file from their gallery/files app if it was just a transient
+// network hiccup (which "server not found"-type reports usually are).
+function showUploadRetry(statusEl, rowEl, safeId, errMsg, base64, mimeType, ext, docType){
+  if(rowEl) rowEl.className = 'slot err';
+  if(!statusEl) return;
+  statusEl.innerHTML = 'Upload failed: '+esc(errMsg)
+    + (base64 ? ' <a href="#" id="retry-'+safeId+'" style="color:var(--accent);font-weight:700">Retry</a>' : ' (please choose the file again)');
+  if(base64){
+    var retryLink=document.getElementById('retry-'+safeId);
+    if(retryLink){
+      retryLink.onclick=async function(e){
+        e.preventDefault();
+        statusEl.innerHTML = '<span class="spin"></span>Retrying…';
+        if(rowEl) rowEl.className = 'slot';
+        try{
+          var res=await apiPost({
+            action:'uploadClientDocument',
+            clientName: client.name, pan: client.pan||'', mobile: client.mobile, folderId: client.folderId||'',
+            docType: docType, fileData: base64, mimeType: mimeType, fileExt: ext
+          }, 25000);
+          if(res && res.success){
+            statusEl.textContent = '✅ Uploaded';
+            if(rowEl) rowEl.className = 'slot done';
+            if(res.folderId) client.folderId = res.folderId;
+          } else {
+            showUploadRetry(statusEl, rowEl, safeId, res && res.error ? res.error : 'Unknown error', base64, mimeType, ext, docType);
+          }
+        }catch(e2){
+          showUploadRetry(statusEl, rowEl, safeId, e2.message||'Still could not reach the server', base64, mimeType, ext, docType);
+        }
+      };
+    }
+  }
+}
+function esc(s){ var d=document.createElement('div'); d.textContent=s||''; return d.innerHTML; }
 
 async function saveNominee(){
   var name=(document.getElementById('nom-name').value||'').trim();
