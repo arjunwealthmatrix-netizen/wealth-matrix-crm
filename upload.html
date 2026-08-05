@@ -161,17 +161,8 @@ function renderSlots(){
     +   '<div class="t">📋 Why we need these documents</div>'
     +   '<p>As per regulatory (KYC) requirements, please upload the documents below to complete your onboarding.</p>'
     + '</div>'
-    + '<div class="consent-box" id="consentBox">'
-    +   '<div class="t">To help us serve you faster and keep your account secure, please confirm below.</div>'
-    +   '<p>I agree to let Wealth Matrix Finserv LLP to collect, store and use the documents to complete my KYC for investment and other account related service purposes. My information will be handled as per <a href="privacy-policy.html" target="_blank">privacy policy</a>. I can withdraw this consent at any time by contacting Wealth Matrix Finserv LLP.</p>'
-    +   '<label class="consent-check" id="consentCheckLabel">'
-    +     '<input type="checkbox" id="consentCheckbox" onchange="handleConsentChange(this)">'
-    +     '<span>I have read and agree to the above</span>'
-    +   '</label>'
-    +   '<div class="savemsg" id="consentMsg"></div>'
-    + '</div>'
     + '<div class="sectionlbl">Documents</div>'
-    + '<div class="slots" id="slotList" style="opacity:.4;pointer-events:none">'
+    + '<div class="slots" id="slotList">'
     + DOC_TYPES.map(function(dt){
         var safeId = dt.key.replace(/\s+/g,'_');
         var row = '<div class="slot" id="row-'+safeId+'">'
@@ -180,20 +171,12 @@ function renderSlots(){
           + '<input type="file" accept="image/*,.pdf" data-doctype="'+dt.key+'" onchange="handleUpload(this)">'
           + '</label></div>';
         if(dt.key==='Bank account details'){
-          row += '<div style="padding:6px 14px 4px;font-size:11px;color:var(--t2)">You may also provide the bank details as below instead.</div>'
-            + '<div class="form-block" style="margin-top:-6px;margin-bottom:14px">'
-            +   '<div class="nomform-grid">'
-            +     '<div class="fg"><label class="fl">Account Number</label><input class="fi" id="bank-acc" inputmode="numeric" placeholder="Account number" oninput="this.value=this.value.replace(/[^0-9]/g,\'\')"></div>'
-            +     '<div class="fg"><label class="fl">IFSC Code</label><input class="fi" id="bank-ifsc" placeholder="IFSC code" oninput="this.value=this.value.toUpperCase()"></div>'
-            +   '</div>'
-            +   '<button class="savebtn" id="bankSaveBtn" onclick="saveBankDetails()">Save Bank Details</button>'
-            +   '<div class="savemsg" id="bankMsg"></div>'
-            + '</div>';
+          row += '<div style="padding:6px 14px 4px;font-size:11px;color:var(--t2)">You may also provide the bank details below, along with your nominee details.</div>';
         }
         return row;
       }).join('')
     + '</div>'
-    + '<div class="sectionlbl">Nominee Details</div>'
+    + '<div class="sectionlbl">Nominee &amp; Bank Details</div>'
     + '<div class="form-block">'
     +   '<div class="nomform-grid">'
     +     '<div class="fg"><label class="fl">Nominee Name</label><input class="fi" id="nom-name" placeholder="FULL NAME" oninput="this.value=this.value.toUpperCase()"></div>'
@@ -207,7 +190,11 @@ function renderSlots(){
     +       '<input type="file" accept="image/*,.pdf" data-doctype="Nominee KYC" onchange="handleUpload(this)">'
     +       '</label></div>'
     +   '</div>'
-    +   '<button class="savebtn" id="nomSaveBtn" onclick="saveNominee()">Save Nominee Details</button>'
+    +   '<div class="nomform-grid" style="margin-top:14px">'
+    +     '<div class="fg"><label class="fl">Bank Account Number</label><input class="fi" id="bank-acc" inputmode="numeric" placeholder="Account number" oninput="this.value=this.value.replace(/[^0-9]/g,\'\')"></div>'
+    +     '<div class="fg"><label class="fl">IFSC Code</label><input class="fi" id="bank-ifsc" placeholder="IFSC code" oninput="this.value=this.value.toUpperCase()"></div>'
+    +   '</div>'
+    +   '<button class="savebtn" id="nomSaveBtn" onclick="saveNominee()">Save Details</button>'
     +   '<div class="savemsg" id="nomMsg"></div>'
     + '</div>'
     + '<div class="footer-note">🔒 Documents are uploaded directly and securely to your advisor\'s private folder. No account or login needed.</div>';
@@ -243,38 +230,6 @@ async function markExistingUploads(){
       }
     });
   }catch(e){ /* non-fatal — worst case, slots just show "Not uploaded" until re-checked */ }
-}
-
-// Exact wording shown to the client — this exact string is what gets logged
-// as their consent record (column C of DPDP Consents), so it stays in sync
-// with whatever's rendered above even if the wording is edited later.
-var CONSENT_TEXT = 'I agree to let Wealth Matrix Finserv LLP to collect, store and use the documents to complete my KYC for investment and other account related service purposes. My information will be handled as per privacy policy. I can withdraw this consent at any time by contacting Wealth Matrix Finserv LLP.';
-
-async function handleConsentChange(checkboxEl){
-  var msgEl = document.getElementById('consentMsg');
-  var slotList = document.getElementById('slotList');
-  if(!checkboxEl.checked){
-    // Unchecking re-locks the form — consent must be active, not just a one-time click
-    if(slotList){ slotList.style.opacity='.4'; slotList.style.pointerEvents='none'; }
-    if(msgEl){ msgEl.textContent=''; msgEl.className='savemsg'; }
-    return;
-  }
-  checkboxEl.disabled = true; // prevent double-submission while logging
-  if(msgEl){ msgEl.textContent='Saving your consent…'; msgEl.className='savemsg'; }
-  var res = await apiPost({
-    action: 'logDpdpConsent',
-    name: client.name || '',
-    mobile: client.mobile || '',
-    consentText: CONSENT_TEXT
-  });
-  checkboxEl.disabled = false;
-  if(res && res.success){
-    if(slotList){ slotList.style.opacity='1'; slotList.style.pointerEvents='auto'; }
-    if(msgEl){ msgEl.textContent='✅ Thank you — you can now upload your documents below.'; msgEl.className='savemsg ok'; }
-  } else {
-    checkboxEl.checked = false; // don't silently unlock if logging failed
-    if(msgEl){ msgEl.textContent='Could not save your consent — please try again.'; msgEl.className='savemsg err'; }
-  }
 }
 
 async function handleUpload(inputEl){
@@ -372,43 +327,35 @@ async function saveNominee(){
   var name=(document.getElementById('nom-name').value||'').trim();
   var mobile=(document.getElementById('nom-mobile').value||'').trim();
   var email=(document.getElementById('nom-email').value||'').trim();
+  var accNum=(document.getElementById('bank-acc').value||'').trim();
+  var ifsc=(document.getElementById('bank-ifsc').value||'').trim();
   var msgEl=document.getElementById('nomMsg');
   var btn=document.getElementById('nomSaveBtn');
 
-  if(!name){ msgEl.textContent='Please enter the nominee name.'; msgEl.className='savemsg err'; return; }
-  if(mobile && mobile.length!==10){ msgEl.textContent='Mobile number must be exactly 10 digits.'; msgEl.className='savemsg err'; return; }
+  var hasNominee = name || mobile || email;
+  var hasBank = accNum || ifsc;
+  if(!hasNominee && !hasBank){ msgEl.textContent='Please fill in nominee and/or bank details.'; msgEl.className='savemsg err'; return; }
+  if(name && mobile && mobile.length!==10){ msgEl.textContent='Mobile number must be exactly 10 digits.'; msgEl.className='savemsg err'; return; }
   if(email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ msgEl.textContent='Please enter a valid email address.'; msgEl.className='savemsg err'; return; }
+  if(hasBank && (!accNum || !ifsc)){ msgEl.textContent='Please enter both account number and IFSC code.'; msgEl.className='savemsg err'; return; }
+  if(ifsc && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifsc)){ msgEl.textContent='IFSC code looks incorrect — check and try again.'; msgEl.className='savemsg err'; return; }
 
   btn.disabled=true; msgEl.textContent='Saving…'; msgEl.className='savemsg';
+  // Nominee and bank details are combined into ONE file in the client's
+  // folder, rather than two separate files.
   var res = await apiPost({
-    action:'saveNomineeDetails',
+    action:'saveNomineeAndBankDetails',
     clientName: client.name, pan: client.pan||'', mobile: client.mobile, folderId: client.folderId||'',
-    nomineeName: name, nomineeMobile: mobile, nomineeEmail: email
-  });
-  btn.disabled=false;
-  if(res && res.success){ msgEl.textContent='✅ Nominee details saved.'; msgEl.className='savemsg ok'; }
-  else { msgEl.textContent='Could not save — please try again.'; msgEl.className='savemsg err'; }
-}
-
-async function saveBankDetails(){
-  var accNum=(document.getElementById('bank-acc').value||'').trim();
-  var ifsc=(document.getElementById('bank-ifsc').value||'').trim();
-  var msgEl=document.getElementById('bankMsg');
-  var btn=document.getElementById('bankSaveBtn');
-
-  if(!accNum){ msgEl.textContent='Please enter the account number.'; msgEl.className='savemsg err'; return; }
-  if(!ifsc){ msgEl.textContent='Please enter the IFSC code.'; msgEl.className='savemsg err'; return; }
-  if(!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifsc)){ msgEl.textContent='IFSC code looks incorrect — check and try again.'; msgEl.className='savemsg err'; return; }
-
-  btn.disabled=true; msgEl.textContent='Saving…'; msgEl.className='savemsg';
-  var res = await apiPost({
-    action:'saveBankDetails',
-    clientName: client.name, pan: client.pan||'', mobile: client.mobile, folderId: client.folderId||'',
+    nomineeName: name, nomineeMobile: mobile, nomineeEmail: email,
     accountNumber: accNum, ifscCode: ifsc
-  });
+  }, 20000);
   btn.disabled=false;
-  if(res && res.success){ msgEl.textContent='✅ Bank details saved.'; msgEl.className='savemsg ok'; }
-  else { msgEl.textContent='Could not save — please try again.'; msgEl.className='savemsg err'; }
+  if(res && res.success){
+    msgEl.textContent='✅ Details saved.'; msgEl.className='savemsg ok';
+    if(res.folderId) client.folderId = res.folderId;
+  } else {
+    msgEl.textContent='Could not save: '+esc(res&&res.error?res.error:'please try again'); msgEl.className='savemsg err';
+  }
 }
 
 async function init(){
