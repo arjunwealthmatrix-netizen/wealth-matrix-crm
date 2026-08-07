@@ -1900,7 +1900,11 @@ function renderClients(){
       +'<div style="width:46px;height:46px;border-radius:50%;background:'+ac.bg+';border:1.5px solid '+ac.border+';display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:'+ac.text+';flex-shrink:0">'+initials+'</div>'
       +'<div style="flex:1;min-width:0">'
         +'<div style="display:flex;justify-content:space-between;align-items:center;gap:6px">'
-          +'<span style="font-size:15px;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+toTitle(c.name)+(c.familyName?' <span style="font-size:9px;color:var(--t2);background:var(--s2);border:1px solid var(--border);border-radius:999px;padding:1px 6px;font-weight:600">👪 '+c.familyName+'</span>':'')+'</span>'
+          +'<span style="font-size:15px;font-weight:800;color:var(--text);display:flex;align-items:center;flex-wrap:wrap;gap:4px;min-width:0;overflow:hidden">'
+            +'<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+toTitle(c.name)+'</span>'
+            +(c.familyName?'<span style="font-size:9px;color:var(--t2);background:var(--s2);border:1px solid var(--border);border-radius:999px;padding:1px 6px;font-weight:600;flex-shrink:0">👪 '+c.familyName+'</span>':'')
+            +(c.folderId?'<span style="font-size:9px;color:#2ecc71;font-weight:700;flex-shrink:0">📁 Docs uploaded</span>':'')
+          +'</span>'
           +'<select onclick="event.stopPropagation()" onchange="event.stopPropagation();updateClientField(\''+cId+'\',\'stage\',this.value);this.blur();" style="font-size:9px;font-weight:700;color:'+stageCol+';background:var(--bg);border:1px solid '+stageCol+';border-radius:99px;padding:2px 6px;white-space:nowrap;flex-shrink:0;max-width:118px">'
             +STAGE_OPTIONS.map(function(s){return '<option value="'+s+'"'+((c.stage||'').toUpperCase()===s?' selected':'')+'>'+s+'</option>';}).join('')
           +'</select>'
@@ -2029,6 +2033,9 @@ function openDetail(mob,type,nameHint){
     + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px">'
     + '<button onclick="startMeetingInsight(\''+mob+'\')" class="qwa-btn" style="padding:8px 4px;border-color:#9b59b6;color:#9b59b6"><span class="qwa-ico">🧠</span><span class="qwa-lbl">Meeting<br>Insights</span></button>'
     + '<button onclick="sendGatherInfoLinkWA(\''+mob+'\')" class="qwa-btn" style="padding:8px 4px;border-color:#16a085;color:#16a085"><span class="qwa-ico">📝</span><span class="qwa-lbl">Gather<br>Info</span></button>'
+    + '</div>'
+    + '<div style="display:grid;grid-template-columns:1fr;gap:6px;margin-top:6px">'
+    + '<button onclick="startClientReviewReport(\''+mob+'\')" class="qwa-btn" style="padding:8px 4px;border-color:#1D6FE0;color:#1D6FE0"><span class="qwa-ico">💌</span><span class="qwa-lbl">Send Review Report to Client</span></button>'
     + '</div>'
     + '<div id="meeting-insight-body-'+mob+'" style="display:none;padding-top:8px"></div>'
     + '</div>'
@@ -3542,7 +3549,7 @@ function renderLeads(){
     return '<div class="li'+(sel?' selected':'')+'" onclick="'+(bulkMode?'toggleSelect(\''+l.mobile+'\')':'openDetail(\''+lId+'\',\'lead\',\''+encodeURIComponent(l.name||'')+'\')')+'">'
       +(bulkMode?'<div style="width:20px;height:20px;border-radius:50%;border:2px solid var(--accent);background:'+(sel?'var(--accent)':'transparent')+';display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:8px">'+(sel?'<svg width="10" height="10" viewBox="0 0 24 24" fill="white"><path d="M20 6L9 17l-5-5"/></svg>':'')+'</div>':'')
       +'<div class="av">'+ini(l.name)+'</div>'
-      +'<div class="li-info"><div class="li-name" style="display:flex;align-items:center;flex-wrap:wrap;gap:3px">'+toTitle(l.name)+(l.familyName?'<span style="font-size:9px;color:var(--t2);background:var(--s2);border:1px solid var(--border);border-radius:999px;padding:1px 6px;font-weight:600">👪 '+l.familyName+'</span>':'')+' <span style="font-size:11px">'+leadHeat(leadScore(l)).emoji+'</span>'+badge+aumTag+potAumTag+'</div>'
+      +'<div class="li-info"><div class="li-name" style="display:flex;align-items:center;flex-wrap:wrap;gap:3px">'+toTitle(l.name)+(l.familyName?'<span style="font-size:9px;color:var(--t2);background:var(--s2);border:1px solid var(--border);border-radius:999px;padding:1px 6px;font-weight:600">👪 '+l.familyName+'</span>':'')+(l.folderId?'<span style="font-size:9px;color:#2ecc71;font-weight:700">📁 Docs uploaded</span>':'')+' <span style="font-size:11px">'+leadHeat(leadScore(l)).emoji+'</span>'+badge+aumTag+potAumTag+'</div>'
       +'<div class="li-meta">'+(l.mobile||'')+(l.age?' · 🎂'+l.age:'')+(l.country?' · '+l.country:'')+'</div>'
       +((l.products||l.nextFollowUp)?'<div class="li-prod" style="display:flex;gap:6px;flex-wrap:wrap">'+(l.products?'<span>'+l.products+'</span>':'')+(l.nextFollowUp&&/^\d{4}-\d{2}-\d{2}$/.test(l.nextFollowUp)?'<span style="color:var(--accent)">📅 '+fmt(l.nextFollowUp)+'</span>':'')+'</div>':'')
       +(lastRem?'<div style="font-size:10px;color:var(--t3);margin-top:2px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">📝 '+lastRem+'</div>':'')
@@ -4060,7 +4067,7 @@ function renderFuDetailInner(mob,nameHint){
     }
     if(action==='fu-status') quickStatus(m,btn.dataset.status);
     if(action==='fu-waq') sendWAQuick(btn.dataset.wanum, btn.dataset.waqtype, m);
-    if(action==='fu-uploadlink') sendLeadUploadLinkWA(m);
+    if(action==='fu-uploadlink') showUploadChoicePopup(m, 'lead');
     if(action==='del-log') deleteActivityEntry(btn.dataset.rowid||'', btn.dataset.delmob||m, btn.dataset.delts||'');
     if(action==='fu-edit'){
       // Close popup, open edit lead form pre-filled
@@ -6627,7 +6634,7 @@ document.getElementById('ov-detail').addEventListener('click',function(e){
     }
   }
   if(e.target.dataset.waq){ sendWAQuick(e.target.dataset.wanum,e.target.dataset.waq,e.target.dataset.mob); }
-  if(e.target.closest('[data-uploadlink]')){ sendUploadLinkWA(e.target.closest('[data-uploadlink]').dataset.uploadlink); }
+  if(e.target.closest('[data-uploadlink]')){ showUploadChoicePopup(e.target.closest('[data-uploadlink]').dataset.uploadlink, 'client'); }
   if(e.target.closest('[data-action="del-log"]')){
     var dlBtn=e.target.closest('[data-action="del-log"]');
     deleteActivityEntry(dlBtn.dataset.rowid||'', dlBtn.dataset.delmob||_detailOpenMobile, dlBtn.dataset.delts||'');
@@ -6699,6 +6706,145 @@ async function draftLeadWAMessage(mob){
 // Flow: check CAS availability (forced — no skip) → confirm/update AUM →
 // generate via Claude → display with Copy + native Share.
 // ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════════
+// CLIENT REVIEW REPORT — warm, client-facing letter, generated once and
+// saved so the client's link loads it instantly. Advisor previews and
+// approves before it's sent — this goes to a real client, unlike Meeting
+// Insights which stays internal, so a review step matters here.
+// ═══════════════════════════════════════════════
+// Firm's ARN code — fetched once per session, cached, prompted via popup only
+// if never set. Lets the review report distinguish funds actually managed by
+// this firm from funds a client holds elsewhere.
+var _ourArnCodeCache = null;
+async function ensureOurArnCode(){
+  if(_ourArnCodeCache !== null) return _ourArnCodeCache;
+  var res = await sheetWrite({action:'getOurArnCode'});
+  var existing = (res && res.success) ? (res.arnCode||'') : '';
+  if(existing){ _ourArnCodeCache = existing; return existing; }
+  return new Promise(function(resolve){
+    var ov=document.createElement('div');
+    ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100000;display:flex;align-items:center;justify-content:center;padding:20px';
+    ov.innerHTML='<div style="background:var(--s1);border-radius:12px;width:100%;max-width:340px;overflow:hidden">'
+      +'<div style="padding:16px;font-size:14px;font-weight:800;border-bottom:1px solid var(--border)">🔑 Your ARN / Advisor Code</div>'
+      +'<div style="padding:12px 16px;font-size:12px;color:var(--t2);line-height:1.6">Needed once, so review reports can tell which funds on a client\'s statement are actually managed by your firm, versus held elsewhere. Saved for future reports too.</div>'
+      +'<div style="padding:0 16px 14px"><input id="_arn_input" class="fi" placeholder="e.g. ARN-123456" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--text);font-size:13px"></div>'
+      +'<div style="display:flex;border-top:1px solid var(--border)">'
+      +'<button id="_arn_skip" style="flex:1;padding:12px;border:none;background:none;color:var(--t2);cursor:pointer;border-right:1px solid var(--border)">Skip for now</button>'
+      +'<button id="_arn_save" style="flex:1;padding:12px;border:none;background:none;color:var(--accent);font-weight:700;cursor:pointer">Save</button>'
+      +'</div></div>';
+    document.body.appendChild(ov);
+    document.getElementById('_arn_skip').onclick=function(){ ov.remove(); _ourArnCodeCache=''; resolve(''); };
+    document.getElementById('_arn_save').onclick=async function(){
+      var val=(document.getElementById('_arn_input').value||'').trim();
+      if(!val){ ov.remove(); _ourArnCodeCache=''; resolve(''); return; }
+      await sheetWrite({action:'saveOurArnCode', arnCode:val});
+      _ourArnCodeCache=val;
+      ov.remove();
+      resolve(val);
+    };
+  });
+}
+
+function startClientReviewReport(mob){
+  var c=resolveOpenRecord(mob,'client');
+  if(!c){ toast('Client not found'); return; }
+  if(!hasScript()){ toast('Add Apps Script URL first'); return; }
+
+  (async function(){
+    var arnCode = await ensureOurArnCode();
+    var folderId=c.folderId;
+    var casFiles=[];
+    if(folderId){
+      toast('Checking for a statement…');
+      var casRes=await sheetWrite({action:'listCasFilesInFolder', folderId:folderId});
+      casFiles=(casRes && casRes.success)?casRes.files:[];
+    }
+    if(casFiles.length===0){
+      showReviewReportNoCasPrompt(c, mob, arnCode);
+    } else {
+      runClientReviewReport(c, mob, casFiles, arnCode);
+    }
+  })();
+}
+
+function showReviewReportNoCasPrompt(c, mob, arnCode){
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100000;display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.innerHTML='<div style="background:var(--s1);border-radius:12px;width:100%;max-width:340px;overflow:hidden">'
+    +'<div style="padding:16px;font-size:14px;font-weight:800;border-bottom:1px solid var(--border)">No statement on file</div>'
+    +'<div style="padding:12px 16px;font-size:12px;color:var(--t2);line-height:1.5">No CAS statement found for '+toTitle(c.name)+'. The report reads better with one, but can still be written without it.</div>'
+    +'<div style="display:flex;flex-direction:column;border-top:1px solid var(--border)">'
+    +'<button id="_rr_upload" style="padding:12px;border:none;background:none;color:var(--accent);font-weight:700;cursor:pointer;border-bottom:1px solid var(--border)">📤 Upload CAS now</button>'
+    +'<button id="_rr_skip" style="padding:12px;border:none;background:none;color:var(--t2);cursor:pointer">➡️ Continue without it</button>'
+    +'</div></div>';
+  document.body.appendChild(ov);
+  document.getElementById('_rr_upload').onclick=function(){
+    ov.remove();
+    var docsBody=document.getElementById('chip-docs-body');
+    if(docsBody && docsBody.style.display==='none') toggleChipDocs(mob);
+    toast('Upload the CAS PDF below, then tap Send Review Report again');
+  };
+  document.getElementById('_rr_skip').onclick=function(){
+    ov.remove();
+    runClientReviewReport(c, mob, [], arnCode);
+  };
+}
+
+async function runClientReviewReport(c, mob, casFiles, arnCode){
+  toast('Writing the review…');
+  var sorted=casFiles.slice().sort(function(a,b){return new Date(a.uploadDate)-new Date(b.uploadDate);});
+  var fileIds=[];
+  if(sorted.length>=2){ fileIds=[sorted[0].id, sorted[sorted.length-1].id]; }
+  else if(sorted.length===1){ fileIds=[sorted[0].id]; }
+
+  var res=await sheetWrite({action:'generateAndSaveReviewReport',
+    recordId:c.recordId||'', name:c.name, mobile:c.mobile,
+    products:c.products, healthInsurance:c.healthInsurance, lifeInsurance:c.lifeInsurance, willDone:c.willDone,
+    createdDate:c.createdDate, convertedDate:c.convertedDate, fileIds:fileIds, ourArnCode:arnCode||''});
+
+  if(!res || !res.success){
+    toast('❌ '+(res&&res.error||'Could not generate the report')); return;
+  }
+  showReviewReportPreview(c, mob, res.report);
+}
+
+function showReviewReportPreview(c, mob, reportText){
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100000;display:flex;align-items:flex-end;justify-content:center';
+  var textId='rr-text-'+Date.now();
+  ov.innerHTML='<div style="background:var(--s1);border-radius:16px 16px 0 0;width:100%;max-width:480px;max-height:85vh;display:flex;flex-direction:column;border:1px solid #1D6FE0">'
+    +'<div style="padding:14px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)">'
+    +'<span style="font-size:14px;font-weight:800;color:#1D6FE0">💌 Preview before sending</span>'
+    +'<span onclick="this.closest(\'div[style*=fixed]\').remove()" style="font-size:20px;color:var(--t2);cursor:pointer">✕</span>'
+    +'</div>'
+    +'<div id="'+textId+'" style="font-size:13px;color:var(--text);line-height:1.7;white-space:pre-wrap;padding:16px;overflow-y:auto;flex:1">'+reportText+'</div>'
+    +'<div style="display:flex;gap:8px;padding:12px 16px 20px">'
+    +'<button class="btn btn-ghost" style="font-size:12px;flex:1" onclick="copyInsightText(\''+textId+'\')">📋 Copy</button>'
+    +'<button class="btn btn-gold" style="font-size:12px;flex:1" onclick="confirmSendReviewReport(\''+mob+'\')">✅ Looks good — Send Link</button>'
+    +'</div></div>';
+  document.body.appendChild(ov);
+}
+
+async function confirmSendReviewReport(mob){
+  document.querySelectorAll('div[style*="z-index:100000"]').forEach(function(el){ el.remove(); });
+  var c=resolveOpenRecord(mob,'client');
+  if(!c){ toast('Client not found'); return; }
+  toast('Preparing link…');
+  var token=await getOrCreateUploadToken(mob);
+  if(!token){ toast('Could not generate link'); return; }
+  var link=buildReviewReportLink(token);
+  var digits=(c.mobile||'').replace(/\D/g,'');
+  var waNum=digits.length===10?'91'+digits:digits;
+  var msg='Hi '+toTitle(c.name)+',\n\nI\'ve put together a quick review of your portfolio — thought you\'d like to see it:\n\n'+link+'\n\nWarm regards\nArjun';
+  window.open('https://wa.me/'+waNum+'?text='+encodeURIComponent(msg),'_blank');
+  logActivity(mob,'client','Review Report link sent via WhatsApp','');
+}
+
+function buildReviewReportLink(token){
+  var base=location.href.replace(/[^\/]*$/, '');
+  return base+'review.html?id='+encodeURIComponent(token);
+}
+
 function startMeetingInsight(mob){
   var c=resolveOpenRecord(mob,'client');
   if(!c){ toast('Client not found'); return; }
@@ -8650,6 +8796,36 @@ function generateUploadToken(){
   var t=''; for(var i=0;i<20;i++) t+=chars[arr[i]%chars.length];
   return t;
 }
+// ── Tapping "Upload Link" no longer sends a WhatsApp link straight away — it
+// first asks whether to send the link to the client, or open the upload page
+// directly so the advisor can upload documents on the client's behalf right
+// now (e.g. if the client physically handed over documents in person). ──
+function showUploadChoicePopup(mob, recType){
+  var rec = recType==='lead' ? leads.find(function(x){return x.recordId===mob||x.mobile===mob;}) : clients.find(function(x){return x.recordId===mob||x.mobile===mob;});
+  var name = rec ? toTitle(rec.name) : 'this '+recType;
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.innerHTML='<div style="background:var(--s1);border-radius:12px;width:100%;max-width:340px;overflow:hidden">'
+    +'<div style="padding:16px;font-size:14px;font-weight:800;border-bottom:1px solid var(--border)">📤 Upload documents for '+name+'</div>'
+    +'<div style="padding:12px 16px;font-size:12px;color:var(--t2);line-height:1.5">Send the upload link to them via WhatsApp, or upload the documents yourself right now?</div>'
+    +'<div style="display:flex;flex-direction:column;border-top:1px solid var(--border)">'
+    +'<button id="_uc_send" style="padding:12px;border:none;background:none;color:var(--accent);font-weight:700;cursor:pointer;border-bottom:1px solid var(--border)">💬 Send Link to Them</button>'
+    +'<button id="_uc_self" style="padding:12px;border:none;background:none;color:#f39c12;font-weight:700;cursor:pointer">📤 I\'m Uploading Now</button>'
+    +'</div></div>';
+  document.body.appendChild(ov);
+  document.getElementById('_uc_send').onclick=function(){
+    ov.remove();
+    if(recType==='lead') sendLeadUploadLinkWA(mob); else sendUploadLinkWA(mob);
+  };
+  document.getElementById('_uc_self').onclick=async function(){
+    ov.remove();
+    toast('Preparing upload page…');
+    var token = recType==='lead' ? await getOrCreateLeadUploadToken(mob) : await getOrCreateUploadToken(mob);
+    if(!token){ toast('Could not generate link'); return; }
+    window.open(buildUploadLink(token), '_blank');
+  };
+}
+
 async function getOrCreateUploadToken(mob){
   var c=clients.find(function(x){return x.recordId===mob||x.mobile===mob;});
   if(!c) return null;

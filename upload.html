@@ -48,6 +48,8 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,B
 .slot.done{border-color:var(--green)}
 .slot.done .s{color:var(--green)}
 .slot.err .s{color:#e74c3c}
+.slot.staged{border-color:#f39c12}
+.slot.staged .s{color:#f39c12}
 .slot .btn.done{background:var(--s2);color:var(--green);border:1px solid var(--green)}
 .form-block{margin:6px 14px 0;background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:14px}
 .fg{margin-bottom:12px}
@@ -158,7 +160,7 @@ function renderError(title, msg){
 function renderSlots(){
   var app = document.getElementById('app');
   var html = '<div class="greet"><div class="name">Hi '+esc(client.name||'there')+'</div>'
-    + '<div class="sub">Please upload the documents below. Tap any item to choose a photo or PDF from your phone.</div></div>'
+    + '<div class="sub">Please select the documents below, then tap Save to upload them all at once.</div></div>'
     + '<div class="notice">'
     +   '<div class="t">📋 Why we need these documents</div>'
     +   '<p>As per regulatory (KYC) requirements, please upload the documents below to complete your onboarding.</p>'
@@ -170,8 +172,8 @@ function renderSlots(){
         var safeId = dt.key.replace(/\s+/g,'_');
         var row = '<div class="slot" id="row-'+safeId+'">'
           + '<div class="l"><div class="t">'+dt.label+'</div><div class="s" id="status-'+safeId+'">Not uploaded</div></div>'
-          + '<label class="btn" id="btn-'+safeId+'">Upload'
-          + '<input type="file" accept="image/*,.pdf" data-doctype="'+dt.key+'" onchange="handleUpload(this)">'
+          + '<label class="btn" id="btn-'+safeId+'">Select'
+          + '<input type="file" accept="image/*,.pdf" data-doctype="'+dt.key+'" onchange="stageFile(this)">'
           + '</label></div>';
         if(dt.key==='Bank account details'){
           row += '<div class="form-block" style="margin-top:-6px;margin-bottom:14px">'
@@ -187,6 +189,10 @@ function renderSlots(){
         return row;
       }).join('')
     + '</div>'
+    + '<div style="padding:0 14px 4px">'
+    +   '<button class="savebtn" id="saveDocsBtn" onclick="saveAllDocuments()">💾 Save &amp; Upload Documents</button>'
+    +   '<div class="savemsg" id="saveDocsMsg"></div>'
+    + '</div>'
 
     + '<div class="sectionlbl">Nominee Details</div>'
     + '<div class="form-block">'
@@ -198,8 +204,8 @@ function renderSlots(){
     +   '<div class="fg"><label class="fl">Nominee KYC Document</label>'
     +     '<div class="slot" id="row-Nominee_KYC" style="margin-top:2px">'
     +       '<div class="l"><div class="t">Nominee ID Proof (PAN/Aadhaar/Driving License)</div><div class="s" id="status-Nominee_KYC">Not uploaded</div></div>'
-    +       '<label class="btn" id="btn-Nominee_KYC">Upload'
-    +       '<input type="file" accept="image/*,.pdf" data-doctype="Nominee KYC" onchange="handleUpload(this)">'
+    +       '<label class="btn" id="btn-Nominee_KYC">Select'
+    +       '<input type="file" accept="image/*,.pdf" data-doctype="Nominee KYC" onchange="stageFile(this)">'
     +       '</label></div>'
     +   '</div>'
     +   '<button class="savebtn" id="nomSaveBtn" onclick="saveNominee()">Save Nominee Details</button>'
@@ -240,7 +246,13 @@ async function markExistingUploads(){
   }catch(e){ /* non-fatal — worst case, slots just show "Not uploaded" until re-checked */ }
 }
 
-async function handleUpload(inputEl){
+// ── Staged files — selecting a file no longer uploads immediately. It's held
+// here (already base64-encoded, ready to go) until the Save button is
+// pressed, at which point the folder gets created (if needed) and every
+// staged file uploads in sequence. ──
+var stagedFiles = {}; // docType -> {base64, mimeType, ext, name}
+
+async function stageFile(inputEl){
   var docType = inputEl.dataset.doctype;
   var file = inputEl.files[0];
   if(!file) return;
@@ -250,86 +262,137 @@ async function handleUpload(inputEl){
   var btnEl = document.getElementById('btn-'+safeId);
 
   if(file.size > 10*1024*1024){
-    if(statusEl){ statusEl.textContent = 'File too large — please keep it under 10MB'; }
+    if(statusEl) statusEl.textContent = 'File too large — please keep it under 10MB';
     if(rowEl) rowEl.className = 'slot err';
     inputEl.value=''; return;
   }
 
-  if(statusEl){ statusEl.innerHTML = '<span class="spin"></span>Uploading…'; }
-  if(rowEl) rowEl.className = 'slot';
-
+  if(statusEl) statusEl.innerHTML = '<span class="spin"></span>Preparing…';
   try{
     var base64 = await fileToBase64(file);
     var ext = file.name.indexOf('.')>=0 ? file.name.split('.').pop() : '';
-    var res = await apiPost({
-      action:'uploadClientDocument',
-      clientName: client.name, pan: client.pan||'', mobile: client.mobile, folderId: client.folderId||'',
-      docType: docType, fileData: base64, mimeType: file.type, fileExt: ext
-    }, 25000);
-    if(res && res.success){
-      if(statusEl) statusEl.textContent = '✅ Uploaded';
-      if(rowEl) rowEl.className = 'slot done';
-      if(btnEl){ btnEl.textContent = 'Replace'; btnEl.className='btn done'; btnEl.appendChild(inputEl); }
-      // The backend either found an existing folder (matched by Name+Mobile) or
-      // created a fresh one — either way, persist that folder ID back to the
-      // sheet immediately (matched by Record ID, or mobile as fallback for leads/
-      // legacy rows), so it's tagged right away rather than relying on the
-      // advisor's app to discover and tag it on a later visit. Cheap and safe to
-      // call even if it was already tagged — it just overwrites with the same value.
-      if(res.folderId && res.folderId !== client.folderId){
-        client.folderId = res.folderId;
-        var tagAction = client.recordType==='lead' ? 'tagLeadFolder' : 'tagClientFolder';
-        apiPost({ action: tagAction, mobile: client.mobile, recordId: client.recordId||'', folderId: res.folderId }).catch(function(){});
-      }
-    } else {
-      // Surface the ACTUAL error (network/timeout/server) instead of a generic
-      // message — this is what makes an intermittent failure diagnosable
-      // instead of just "upload failed, try again" with no further information.
-      showUploadRetry(statusEl, rowEl, safeId, res && res.error ? res.error : 'Unknown error', base64, file.type, ext, docType);
+    stagedFiles[docType] = { base64:base64, mimeType:file.type, ext:ext, name:file.name };
+    if(statusEl) statusEl.innerHTML = '📎 Ready: '+esc(file.name)+' <a href="#" id="unstage-'+safeId+'" style="color:var(--t3)">(remove)</a>';
+    if(rowEl) rowEl.className = 'slot staged';
+    if(btnEl){ btnEl.textContent = 'Change'; btnEl.appendChild(inputEl); }
+    var unstageLink = document.getElementById('unstage-'+safeId);
+    if(unstageLink){
+      unstageLink.onclick = function(e){
+        e.preventDefault();
+        delete stagedFiles[docType];
+        if(statusEl) statusEl.textContent = 'Not uploaded';
+        if(rowEl) rowEl.className = 'slot';
+        if(btnEl) btnEl.textContent = 'Select';
+      };
     }
   }catch(e){
-    showUploadRetry(statusEl, rowEl, safeId, e.message||'Could not read the file', null, file.type, null, docType);
+    if(statusEl) statusEl.textContent = 'Could not read the file — please try again';
+    if(rowEl) rowEl.className = 'slot err';
   }
   inputEl.value = '';
 }
 
-// Shown on any upload failure — displays the real error and offers a one-tap
-// retry that reuses the already-encoded file data, so the client doesn't have
-// to re-pick the file from their gallery/files app if it was just a transient
-// network hiccup (which "server not found"-type reports usually are).
-function showUploadRetry(statusEl, rowEl, safeId, errMsg, base64, mimeType, ext, docType){
-  if(rowEl) rowEl.className = 'slot err';
-  if(!statusEl) return;
-  statusEl.innerHTML = 'Upload failed: '+esc(errMsg)
-    + (base64 ? ' <a href="#" id="retry-'+safeId+'" style="color:var(--accent);font-weight:700">Retry</a>' : ' (please choose the file again)');
-  if(base64){
-    var retryLink=document.getElementById('retry-'+safeId);
-    if(retryLink){
-      retryLink.onclick=async function(e){
-        e.preventDefault();
-        statusEl.innerHTML = '<span class="spin"></span>Retrying…';
-        if(rowEl) rowEl.className = 'slot';
-        try{
-          var res=await apiPost({
-            action:'uploadClientDocument',
-            clientName: client.name, pan: client.pan||'', mobile: client.mobile, folderId: client.folderId||'',
-            docType: docType, fileData: base64, mimeType: mimeType, fileExt: ext
-          }, 25000);
-          if(res && res.success){
-            statusEl.textContent = '✅ Uploaded';
-            if(rowEl) rowEl.className = 'slot done';
-            if(res.folderId) client.folderId = res.folderId;
-          } else {
-            showUploadRetry(statusEl, rowEl, safeId, res && res.error ? res.error : 'Unknown error', base64, mimeType, ext, docType);
-          }
-        }catch(e2){
-          showUploadRetry(statusEl, rowEl, safeId, e2.message||'Still could not reach the server', base64, mimeType, ext, docType);
+// Checks for an existing folder before the first upload of a session — if
+// found, informs the advisor/client so they know documents are being added
+// to an existing record rather than a new one being silently created.
+// Resolves once the user has seen and dismissed the notice (or immediately
+// if no matching folder exists).
+var _folderCheckDone = false;
+function checkFolderBeforeSaving(){
+  return new Promise(function(resolve){
+    if(_folderCheckDone || client.folderId){ resolve(); return; }
+    apiPost({ action:'checkClientFolder', clientName:client.name, pan:client.pan||'', mobile:client.mobile }, 15000)
+      .then(function(res){
+        _folderCheckDone = true;
+        if(res && res.exists){
+          client.folderId = res.folderId;
+          var ov=document.createElement('div');
+          ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+          ov.innerHTML='<div style="background:var(--s1);border-radius:12px;width:100%;max-width:320px;overflow:hidden">'
+            +'<div style="padding:16px;font-size:14px;font-weight:800;border-bottom:1px solid var(--border)">📁 Existing folder found</div>'
+            +'<div style="padding:14px 16px;font-size:12px;color:var(--t2);line-height:1.6">A document folder already exists for '+esc(client.name)+'. These files will be added to it.</div>'
+            +'<div style="display:flex;border-top:1px solid var(--border)"><button id="_fc_ok" style="flex:1;padding:12px;border:none;background:none;color:var(--accent);font-weight:700;cursor:pointer">Continue</button></div>'
+            +'</div>';
+          document.body.appendChild(ov);
+          document.getElementById('_fc_ok').onclick=function(){ ov.remove(); resolve(); };
+        } else {
+          resolve();
         }
-      };
+      })
+      .catch(function(){ _folderCheckDone = true; resolve(); }); // non-fatal — proceed, folder gets created on first upload anyway
+  });
+}
+
+// Uploads one staged file, retrying automatically once on failure before
+// giving up and marking that specific slot as failed (the rest continue).
+async function uploadOneStaged(docType, staged){
+  var safeId = docType.replace(/\s+/g,'_');
+  var statusEl = document.getElementById('status-'+safeId);
+  var rowEl = document.getElementById('row-'+safeId);
+  var btnEl = document.getElementById('btn-'+safeId);
+  if(statusEl) statusEl.innerHTML = '<span class="spin"></span>Uploading…';
+  for(var attempt=0; attempt<2; attempt++){
+    try{
+      var res = await apiPost({
+        action:'uploadClientDocument',
+        clientName: client.name, pan: client.pan||'', mobile: client.mobile, folderId: client.folderId||'',
+        docType: docType, fileData: staged.base64, mimeType: staged.mimeType, fileExt: staged.ext
+      }, 25000);
+      if(res && res.success){
+        if(statusEl) statusEl.textContent = '✅ Uploaded';
+        if(rowEl) rowEl.className = 'slot done';
+        if(btnEl) btnEl.textContent = 'Replace';
+        if(res.folderId && res.folderId !== client.folderId){
+          client.folderId = res.folderId;
+          var tagAction = client.recordType==='lead' ? 'tagLeadFolder' : 'tagClientFolder';
+          apiPost({ action: tagAction, mobile: client.mobile, recordId: client.recordId||'', folderId: res.folderId }).catch(function(){});
+        }
+        delete stagedFiles[docType];
+        return true;
+      }
+      if(attempt===0) continue; // one silent retry
+      if(statusEl) statusEl.textContent = 'Failed: '+esc(res&&res.error?res.error:'Unknown error');
+      if(rowEl) rowEl.className = 'slot err';
+      return false;
+    }catch(e){
+      if(attempt===0) continue;
+      if(statusEl) statusEl.textContent = 'Failed: '+esc(e.message||'Could not reach the server');
+      if(rowEl) rowEl.className = 'slot err';
+      return false;
     }
   }
 }
-function esc(s){ var d=document.createElement('div'); d.textContent=s||''; return d.innerHTML; }
+
+async function saveAllDocuments(){
+  var docTypes = Object.keys(stagedFiles).filter(function(k){ return k!=='Nominee KYC'; });
+  var msgEl = document.getElementById('saveDocsMsg');
+  var btn = document.getElementById('saveDocsBtn');
+  if(!docTypes.length){
+    if(msgEl){ msgEl.textContent='Please select at least one document first.'; msgEl.className='savemsg err'; }
+    return;
+  }
+  btn.disabled = true;
+  if(msgEl){ msgEl.textContent='Checking your folder…'; msgEl.className='savemsg'; }
+  await checkFolderBeforeSaving();
+
+  var okCount=0;
+  for(var i=0;i<docTypes.length;i++){
+    if(msgEl){ msgEl.textContent='Uploading '+(i+1)+' of '+docTypes.length+'…'; msgEl.className='savemsg'; }
+    var success = await uploadOneStaged(docTypes[i], stagedFiles[docTypes[i]]);
+    if(success) okCount++;
+  }
+  btn.disabled = false;
+  if(okCount===docTypes.length){
+    if(msgEl){ msgEl.textContent='✅ All documents saved.'; msgEl.className='savemsg ok'; }
+  } else {
+    if(msgEl){ msgEl.textContent=okCount+' of '+docTypes.length+' uploaded — check the failed item(s) above and tap Save again.'; msgEl.className='savemsg err'; }
+  }
+}
+  var name=(document.getElementById('nom-name').value||'').trim();
+  var mobile=(document.getElementById('nom-mobile').value||'').trim();
+  var email=(document.getElementById('nom-email').value||'').trim();
+  var msgEl=document.getElementById('nomMsg');
+  var btn=document.getElementById('nomSaveBtn');
 
 async function saveNominee(){
   var name=(document.getElementById('nom-name').value||'').trim();
@@ -343,15 +406,24 @@ async function saveNominee(){
   if(email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ msgEl.textContent='Please enter a valid email address.'; msgEl.className='savemsg err'; return; }
 
   btn.disabled=true; msgEl.textContent='Saving…'; msgEl.className='savemsg';
+  if(stagedFiles['Nominee KYC']) await checkFolderBeforeSaving();
   var res = await apiPost({
     action:'saveNomineeDetails',
     clientName: client.name, pan: client.pan||'', mobile: client.mobile, folderId: client.folderId||'',
     nomineeName: name, nomineeMobile: mobile, nomineeEmail: email
   }, 20000);
+  if(res && res.success && res.folderId) client.folderId = res.folderId;
+
+  // If a Nominee ID Proof file was staged, upload it now too, in the same save action.
+  var idUploadOk = true;
+  if(stagedFiles['Nominee KYC']){
+    idUploadOk = await uploadOneStaged('Nominee KYC', stagedFiles['Nominee KYC']);
+  }
   btn.disabled=false;
-  if(res && res.success){
+  if(res && res.success && idUploadOk){
     msgEl.textContent='✅ Nominee details saved.'; msgEl.className='savemsg ok';
-    if(res.folderId) client.folderId = res.folderId;
+  } else if(res && res.success){
+    msgEl.textContent='Nominee details saved, but the ID proof upload failed — check above and try again.'; msgEl.className='savemsg err';
   } else {
     msgEl.textContent='Could not save: '+esc(res&&res.error?res.error:'please try again'); msgEl.className='savemsg err';
   }
