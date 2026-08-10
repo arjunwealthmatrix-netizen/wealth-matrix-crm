@@ -224,7 +224,7 @@ async function markExistingUploads(){
     var res = await apiPost({
       action:'listClientDocuments',
       clientName: client.name, pan: client.pan||'', mobile: client.mobile, folderId: client.folderId
-    });
+    }, 15000);
     if(!res || !res.success || !res.files) return;
     var uploadedTypes = {};
     res.files.forEach(function(f){ uploadedTypes[f.docType]=true; });

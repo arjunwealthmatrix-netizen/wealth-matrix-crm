@@ -2280,10 +2280,10 @@ function taskFormHtml(existing){
     +'</div>'
     +'<div style="display:flex;gap:8px;padding:12px 16px 20px;flex-shrink:0">'
     +(isEdit
-      ? '<button class="btn btn-ghost" style="flex:1;border-color:#e74c3c;color:#e74c3c" onclick="deleteTaskNow()">🗑 Delete</button>'
-        +'<button class="btn btn-ghost" style="flex:1;border-color:#2ecc71;color:#2ecc71" onclick="finishTaskNow()">✅ Finish</button>'
-        +'<button class="btn btn-gold" style="flex:1" onclick="saveTaskNow()">Save</button>'
-      : '<button class="btn btn-gold btn-full" onclick="saveTaskNow()">Save Task</button>')
+      ? '<button id="task-btn-delete" class="btn btn-ghost" style="flex:1;border-color:#e74c3c;color:#e74c3c" onclick="deleteTaskNow()">🗑 Delete</button>'
+        +'<button id="task-btn-finish" class="btn btn-ghost" style="flex:1;border-color:#2ecc71;color:#2ecc71" onclick="finishTaskNow()">✅ Finish</button>'
+        +'<button id="task-btn-save" class="btn btn-gold" style="flex:1" onclick="saveTaskNow()">Save</button>'
+      : '<button id="task-btn-save" class="btn btn-gold btn-full" onclick="saveTaskNow()">Save Task</button>')
     +'</div></div>';
 }
 
@@ -2345,10 +2345,14 @@ async function saveTaskNow(){
   if(!details){ toast('Type the task details'); return; }
   if(!hasScript()){ toast('⚠️ No Apps Script connected — set this up in Sync settings first'); return; }
 
+  var btnSave=document.getElementById('task-btn-save'), btnFinish=document.getElementById('task-btn-finish'), btnDelete=document.getElementById('task-btn-delete');
+  var saveOrigText=btnSave?btnSave.textContent:'';
+  setTaskButtonsBusy(true, btnSave, 'Saving…');
+
   var existingId=window._editingTaskId;
   if(existingId){
     var t=tasks.find(function(x){return x.taskId===existingId;});
-    if(!t) return;
+    if(!t){ setTaskButtonsBusy(false, btnSave, saveOrigText); return; }
     var res=await sheetWrite({action:'updateTask', taskId:existingId,
       name:name, taskDetails:details, dueDate:dueDate, taskFor:forType, linkedRecordId:window._taskLinkedRecordId||''});
     if(res && res.success){
@@ -2356,7 +2360,9 @@ async function saveTaskNow(){
       saveTasks(); renderTasks();
       toast('✅ Task updated');
     } else {
-      toast('❌ Could not update: '+(res&&res.error||'unknown error')); return;
+      toast('❌ Could not update: '+(res&&res.error||'unknown error'));
+      setTaskButtonsBusy(false, btnSave, saveOrigText);
+      return;
     }
   } else {
     var newTask={createdDate:today(), name:name, taskDetails:details, dueDate:dueDate, status:'Open', taskFor:forType, linkedRecordId:window._taskLinkedRecordId||'', assignedTo:''};
@@ -2367,11 +2373,24 @@ async function saveTaskNow(){
       saveTasks(); renderTasks();
       toast('✅ Task saved');
     } else {
-      toast('❌ Could not save: '+(res2&&res2.error||'unknown error')); return;
+      toast('❌ Could not save: '+(res2&&res2.error||'unknown error'));
+      setTaskButtonsBusy(false, btnSave, saveOrigText);
+      return;
     }
   }
   var ov=document.getElementById('task-form-ov'); if(ov) ov.remove();
   window._editingTaskId=null;
+}
+
+// Disables all three task-action buttons during a request (prevents
+// overlapping taps triggering a second request), and shows a busy label on
+// whichever one was actually pressed. Restored on completion or error.
+function setTaskButtonsBusy(busy, activeBtn, busyText){
+  ['task-btn-save','task-btn-finish','task-btn-delete'].forEach(function(id){
+    var b=document.getElementById(id);
+    if(b) b.disabled=busy;
+  });
+  if(activeBtn && busy) activeBtn.textContent=busyText;
 }
 
 async function finishTaskNow(){
@@ -2380,6 +2399,9 @@ async function finishTaskNow(){
   if(!hasScript()){ toast('⚠️ No Apps Script connected'); return; }
   var t=tasks.find(function(x){return x.taskId===taskId;});
   if(!t) return;
+  var btnFinish=document.getElementById('task-btn-finish');
+  var origText=btnFinish?btnFinish.textContent:'';
+  setTaskButtonsBusy(true, btnFinish, 'Finishing…');
   var res=await sheetWrite({action:'updateTask', taskId:taskId, status:'Finished'});
   if(res && res.success){
     t.status='Finished';
@@ -2389,6 +2411,7 @@ async function finishTaskNow(){
     toast('✅ Task finished');
   } else {
     toast('❌ Could not update: '+(res&&res.error||'unknown error'));
+    setTaskButtonsBusy(false, btnFinish, origText);
   }
 }
 
@@ -2396,6 +2419,9 @@ async function deleteTaskNow(){
   var taskId=window._editingTaskId;
   if(!taskId) return;
   if(!hasScript()){ toast('⚠️ No Apps Script connected'); return; }
+  var btnDelete=document.getElementById('task-btn-delete');
+  var origText=btnDelete?btnDelete.textContent:'';
+  setTaskButtonsBusy(true, btnDelete, 'Deleting…');
   var res=await sheetWrite({action:'deleteTask', taskId:taskId});
   if(res && res.success){
     tasks=tasks.filter(function(x){return x.taskId!==taskId;});
@@ -2405,6 +2431,7 @@ async function deleteTaskNow(){
     toast('Task deleted');
   } else {
     toast('❌ Could not delete: '+(res&&res.error||'unknown error'));
+    setTaskButtonsBusy(false, btnDelete, origText);
   }
 }
 
@@ -2885,17 +2912,22 @@ async function scriptGet(tab,retries){
 }
 
 // ROBUST WRITE — uses same fetch pattern as scriptGet (follows 302 redirects, awaits response)
-async function sheetWrite(data){
+async function sheetWrite(data, timeoutMs){
   if(!hasScript()) return {error:'no script url'};
   var url = cfg_.scriptUrl;
+  var effectiveTimeout = timeoutMs || 30000; // default 30s — generous for normal writes, but never "forever"
+  var controller = (typeof AbortController!=='undefined') ? new AbortController() : null;
+  var timer = controller ? setTimeout(function(){ controller.abort(); }, effectiveTimeout) : null;
   // PROVEN METHOD: POST with text/plain content-type avoids CORS preflight.
   // This is the method that works reliably in the older version.
   try{
     var resp = await fetch(url, {
       method: 'POST',
       headers: {'Content-Type': 'text/plain'},
-      body: JSON.stringify(data)
+      body: JSON.stringify(data),
+      signal: controller ? controller.signal : undefined
     });
+    if(timer) clearTimeout(timer);
     var text = await resp.text();
     try{ return JSON.parse(text); }
     catch(pe){
@@ -2904,6 +2936,10 @@ async function sheetWrite(data){
       throw pe;
     }
   }catch(e){
+    if(timer) clearTimeout(timer);
+    if(e && e.name==='AbortError'){
+      return {error:'Request timed out — the server took too long to respond. Please try again.'};
+    }
     // Fallback: GET with payload in URL
     try{
       var encoded = encodeURIComponent(JSON.stringify(data));
@@ -5854,7 +5890,7 @@ async function runQuickInsight(type){
   var origHtml=box?box.innerHTML:'';
   if(box) box.innerHTML='<span class="ib-ico">⏳</span><span class="ib-label">Analyzing…</span>';
   try{
-    var res=await sheetWrite({action:type==='productivity'?'generateProductivityInsight':'generateEngagementInsight'});
+    var res=await sheetWrite({action:type==='productivity'?'generateProductivityInsight':'generateEngagementInsight'}, 55000);
     if(box) box.innerHTML=origHtml;
     if(res && res.success){
       showQuickInsightPopup(label, res.insight);
@@ -6800,7 +6836,7 @@ async function runClientReviewReport(c, mob, casFiles, arnCode){
   var res=await sheetWrite({action:'generateAndSaveReviewReport',
     recordId:c.recordId||'', name:c.name, mobile:c.mobile,
     products:c.products, healthInsurance:c.healthInsurance, lifeInsurance:c.lifeInsurance, willDone:c.willDone,
-    createdDate:c.createdDate, convertedDate:c.convertedDate, fileIds:fileIds, ourArnCode:arnCode||''});
+    createdDate:c.createdDate, convertedDate:c.convertedDate, fileIds:fileIds, ourArnCode:arnCode||''}, 55000);
 
   if(!res || !res.success){
     toast('❌ '+(res&&res.error||'Could not generate the report')); return;
@@ -6943,7 +6979,7 @@ async function runMeetingInsight(c, mob, casFiles){
     aum:c.aum, potentialAum:c.potentialAum, potentialSip:c.potentialSip,
     products:c.products, healthInsurance:c.healthInsurance, lifeInsurance:c.lifeInsurance, willDone:c.willDone,
     createdDate:c.createdDate, convertedDate:c.convertedDate, remarks:c.remarks,
-    fileIds:fileIds, casCount:sorted.length});
+    fileIds:fileIds, casCount:sorted.length}, 55000);
 
   if(res && res.success){
     body.innerHTML='<div id="mi-text-'+mob+'" style="font-size:12px;color:var(--text);line-height:1.7;white-space:pre-wrap;padding:10px;background:var(--s1);border:1px solid var(--border);border-radius:9px;max-height:420px;overflow-y:auto">'+res.insight+'</div>'
@@ -7146,7 +7182,7 @@ function confirmCasFileSelection(){
 
 async function runCasAnalysis(c, fileIds){
   toast('📧 Reading CAS document(s) and drafting…');
-  var res2=await sheetWrite({action:'draftCasEmailInsight', clientName:c.name, mobile:c.mobile||'', pan:c.pan||'', fileIds:fileIds});
+  var res2=await sheetWrite({action:'draftCasEmailInsight', clientName:c.name, mobile:c.mobile||'', pan:c.pan||'', fileIds:fileIds}, 55000);
   if(!res2 || !res2.success){
     toast('❌ Could not draft email: '+(res2&&res2.error||'unknown error — check backend is deployed and CLAUDE_API_KEY is set'));
     return;
