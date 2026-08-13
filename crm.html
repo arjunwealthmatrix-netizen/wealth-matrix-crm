@@ -79,7 +79,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 /* Task page */
 .task-filter-chip{flex-shrink:0;padding:7px 15px;border-radius:999px;border:1.5px solid var(--border);background:var(--s1);color:var(--t2);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
 .task-filter-chip.active{border-color:var(--accent);background:var(--accent2);color:var(--accent)}
-.task-card{background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:12px 14px;margin-bottom:8px;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.2)}
+.task-card{background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:12px 14px;margin-bottom:8px;cursor:pointer;box-shadow:0 8px 20px rgba(0,0,0,.35),0 2px 6px rgba(0,0,0,.28);transition:transform .12s,box-shadow .12s}
+.task-card:active{transform:scale(.98);box-shadow:0 3px 8px rgba(0,0,0,.3)}
 .task-card.status-due{border-top:4px solid #e74c3c}
 .task-card.status-open{border-top:4px solid #4FC3F7}
 .task-card.status-finished{border-top:4px solid #2ecc71;opacity:.6}
@@ -108,8 +109,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .chips::-webkit-scrollbar{display:none}
 .chip{flex-shrink:0;padding:7px 15px;border-radius:999px;font-size:12px;font-weight:700;border:1px solid var(--border);background:var(--s1);color:var(--t2);cursor:pointer;white-space:nowrap}
 .chip.active{background:var(--accent);color:#000000;border-color:var(--accent)}
-.li{padding:13px 14px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:12px;cursor:pointer;transition:background .1s}
-.li:active{background:var(--s2)}
+.li{padding:13px 14px;background:var(--s1);border:1px solid var(--border);border-radius:14px;margin:0 12px 8px;display:flex;align-items:flex-start;gap:12px;cursor:pointer;transition:transform .12s,box-shadow .12s;box-shadow:0 8px 20px rgba(0,0,0,.35),0 2px 6px rgba(0,0,0,.28)}
+.li:active{transform:scale(.98);box-shadow:0 3px 8px rgba(0,0,0,.3);background:var(--s2)}
 .li.selected{background:var(--bdim);border-left:3px solid var(--blue)}
 .av{width:46px;height:46px;min-width:46px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;color:var(--accent)}
 .li-info{flex:1;min-width:0}
@@ -554,7 +555,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <button id="sort-aum-btn" onclick="setClientSort('aum')" style="flex:1;padding:7px 4px;font-size:11px;font-weight:700;border-radius:8px;border:1.5px solid var(--accent);background:var(--accent);color:#000;cursor:pointer">💰 AUM ↓</button>
     <button id="sort-potaum-btn" onclick="setClientSort('potentialAum')" style="flex:1;padding:7px 4px;font-size:11px;font-weight:700;border-radius:8px;border:1.5px solid var(--border);background:transparent;color:var(--t2);cursor:pointer">📈 Potential AUM ↓</button>
   </div>
-  <div id="family-filter-wrap-client" style="padding:0 12px 8px"><select id="family-dropdown-client" onchange="setFFC(this.value)" style="width:100%;padding:9px 10px;font-size:12px;font-weight:600;color:var(--text);background:var(--s2);border:1px solid var(--border);border-radius:8px;-webkit-appearance:none;cursor:pointer"></select></div>
+  <div id="location-filter-wrap-client" style="padding:0 12px 8px"><select id="location-dropdown-client" onchange="setLFC(this.value)" style="width:100%;padding:9px 10px;font-size:12px;font-weight:600;color:var(--text);background:var(--s2);border:1px solid var(--border);border-radius:8px;-webkit-appearance:none;cursor:pointer"></select></div>
   <div id="client-bulk-bar" style="display:none;padding:8px 12px;background:rgba(255,255,255,.08);border-bottom:1px solid var(--border);justify-content:space-between;align-items:center">
     <span id="client-sel-count" style="font-size:12px;font-weight:700;color:var(--accent)">0 selected</span>
     <div style="display:flex;gap:6px">
@@ -750,6 +751,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 
   </div>
 </div>
+<!-- ^ closes pg-analytics (was missing this closing div — everything after
+     it, including the entire Task page, was being nested inside the Insights
+     page instead of being a proper sibling) -->
 
 <!-- TASKS -->
 <div class="page" id="pg-tasks">
@@ -1038,7 +1042,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       </div>
       <div class="frow" style="margin-bottom:0">
         <div class="fg" style="margin-bottom:0"><label class="fl">Review Date</label><input class="fi" id="cf-review" type="date"></div>
-        <div class="fg" style="margin-bottom:0"><label class="fl">Next Follow-up</label><input class="fi" id="cf-nextfu" type="date"></div>
       </div>
       </div>
     </div>
@@ -1200,7 +1203,7 @@ var leads=[], clients=[], cfg_={}, editLead=null, editClient=null, filterStatus=
 var filterProduct='All';
 var filterGeo='All';
 var filterFamily='All'; // Leads family-wise filter
-var filterFamilyClient='All'; // Clients family-wise filter
+var filterLocationClient='All'; // Clients location-wise filter
 var clientSortBy='aum'; // 'aum' or 'potentialAum'
 var leadSortBy='score'; // 'score' (default, hot leads first) | 'potentialAum' | 'aum' (used as \'Potential SIP\' rank)
 var syncInProgress=false, bulkMode=false, selectedLeads=new Set();
@@ -1503,7 +1506,7 @@ function setF(s){filterStatus=s;renderLeads();}
 function setFP(p){filterProduct=p;renderLeads();}
 function setFG(g){filterGeo=g;renderLeads();}
 function setFF(f){filterFamily=f;renderLeads();}
-function setFFC(f){filterFamilyClient=f;renderClients();}
+function setLFC(f){filterLocationClient=f;renderClients();}
 
 
 // ═══════════════════════════════════════════════
@@ -1824,23 +1827,23 @@ function aumDisplay(v){
 
 function renderClients(){
   var q=(document.getElementById('shared-search')?document.getElementById('shared-search').value||'':'').toLowerCase();
-  var famTagsC=['All'].concat(Array.from(new Set(clients.map(function(c){return (c.familyName||'').trim();}).filter(Boolean))).sort());
-  var famWrapC=document.getElementById('family-filter-wrap-client');
-  var famDropdownC=document.getElementById('family-dropdown-client');
-  if(famDropdownC){
-    if(famTagsC.length<=1){
-      if(famWrapC) famWrapC.style.display='none'; // no family names entered yet — hide row
+  var locTagsC=['All'].concat(Array.from(new Set(clients.map(function(c){return toTitle((c.country||'').trim());}).filter(Boolean))).sort());
+  var locWrapC=document.getElementById('location-filter-wrap-client');
+  var locDropdownC=document.getElementById('location-dropdown-client');
+  if(locDropdownC){
+    if(locTagsC.length<=1){
+      if(locWrapC) locWrapC.style.display='none'; // no locations recorded yet — hide row
     } else {
-      if(famWrapC) famWrapC.style.display='block';
-      famDropdownC.innerHTML=famTagsC.map(function(f){
-        var n=f==='All'?clients.length:clients.filter(function(c){return (c.familyName||'').trim()===f;}).length;
-        return '<option value="'+f+'"'+(filterFamilyClient===f?' selected':'')+'>'+(f==='All'?'👪 All families':f)+' ('+n+')</option>';
+      if(locWrapC) locWrapC.style.display='block';
+      locDropdownC.innerHTML=locTagsC.map(function(f){
+        var n=f==='All'?clients.length:clients.filter(function(c){return toTitle((c.country||'').trim())===f;}).length;
+        return '<option value="'+f+'"'+(filterLocationClient===f?' selected':'')+'>'+(f==='All'?'🌍 All locations':'🌍 '+f)+' ('+n+')</option>';
       }).join('');
     }
   }
   // Sort newest first (most recently converted at top)
   var arr=clients.filter(function(c){
-    if(filterFamilyClient!=='All' && (c.familyName||'').trim()!==filterFamilyClient) return false;
+    if(filterLocationClient!=='All' && toTitle((c.country||'').trim())!==filterLocationClient) return false;
     return !q||(c.name||'').toLowerCase().includes(q);
   }).sort(function(a,b){
     // Sort by selected field (AUM or Potential AUM) descending
@@ -1895,7 +1898,7 @@ function renderClients(){
     var sinceDate=c.convertedDate?fmt(c.convertedDate):'';
     var prods=(c.products||'').trim();
 
-    return '<div onclick="'+clickFn+'" style="background:'+bg+';border:1px solid '+borderColor+';border-top:4px solid '+stageCol+';border-radius:14px;padding:12px 14px;display:flex;gap:12px;align-items:flex-start;cursor:pointer;margin-bottom:8px;transition:opacity .15s">'
+    return '<div onclick="'+clickFn+'" style="background:'+bg+';border:1px solid '+borderColor+';border-top:4px solid '+stageCol+';border-radius:14px;padding:12px 14px;display:flex;gap:12px;align-items:flex-start;cursor:pointer;margin-bottom:8px;transition:opacity .15s,transform .12s;box-shadow:0 8px 20px rgba(0,0,0,.35),0 2px 6px rgba(0,0,0,.28)">'
       +(clientBulkMode?'<div style="width:22px;height:22px;border-radius:50%;border:2px solid var(--accent);background:'+(sel?'var(--accent)':'transparent')+';display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:9px">'+(sel?'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>':'')+'</div>':'')
       +'<div style="width:46px;height:46px;border-radius:50%;background:'+ac.bg+';border:1.5px solid '+ac.border+';display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:'+ac.text+';flex-shrink:0">'+initials+'</div>'
       +'<div style="flex:1;min-width:0">'
@@ -1908,6 +1911,9 @@ function renderClients(){
           +'<select onclick="event.stopPropagation()" onchange="event.stopPropagation();updateClientField(\''+cId+'\',\'stage\',this.value);this.blur();" style="font-size:9px;font-weight:700;color:'+stageCol+';background:var(--bg);border:1px solid '+stageCol+';border-radius:99px;padding:2px 6px;white-space:nowrap;flex-shrink:0;max-width:118px">'
             +STAGE_OPTIONS.map(function(s){return '<option value="'+s+'"'+((c.stage||'').toUpperCase()===s?' selected':'')+'>'+s+'</option>';}).join('')
           +'</select>'
+        +'</div>'
+        +'<div style="display:flex;justify-content:flex-end;margin-top:4px">'
+          +'<button onclick="event.stopPropagation();openAddTaskForClient(\''+cId+'\')" style="font-size:9px;font-weight:700;color:#1D6FE0;background:rgba(29,111,224,.12);border:1px solid #1D6FE0;border-radius:99px;padding:3px 9px;cursor:pointer">+ Task</button>'
         +'</div>'
         +'<div style="font-size:11px;color:var(--t3);margin-top:3px">'+(c.mobile||'')+(c.country?' · 🌍 '+toTitle(c.country):'')+'</div>'
         +'<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:4px">'
@@ -2226,6 +2232,23 @@ function openAddTask(){
   wireTaskForm(null);
 }
 
+// Opens the Add Task popup pre-linked to a specific client — called from the
+// "+ Task" button on each client capsule, so adding a task for that client
+// doesn't require opening the full chip window first.
+function openAddTaskForClient(recordId){
+  var c=clients.find(function(x){return x.recordId===recordId||x.mobile===recordId;});
+  window._editingTaskId=null;
+  window._taskForType='CLIENT';
+  window._taskLinkedRecordId=recordId;
+  var ov=document.createElement('div');
+  ov.id='task-form-ov';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:99999;display:flex;align-items:flex-end;justify-content:center';
+  ov.innerHTML=taskFormHtml(null, {type:'CLIENT', name:c?c.name:''});
+  document.body.appendChild(ov);
+  ov.addEventListener('click',function(e){ if(e.target===ov) ov.remove(); });
+  wireTaskForm(null);
+}
+
 // ── Existing task tapped — Delete / Finish / Save flow ──
 function openTaskDetail(taskId){
   var t=tasks.find(function(x){return x.taskId===taskId;});
@@ -2250,10 +2273,11 @@ function taskForTypeButtons(activeType){
   }).join('');
 }
 
-function taskFormHtml(existing){
+function taskFormHtml(existing, prefill){
   var isEdit=!!existing;
-  var forType=isEdit?(existing.taskFor||'OTHERS').toUpperCase():'OTHERS';
+  var forType=isEdit?(existing.taskFor||'OTHERS').toUpperCase():(prefill&&prefill.type?prefill.type:'OTHERS');
   var showNameField=forType!=='OTHERS';
+  var nameVal=isEdit&&existing.name?toTitle(existing.name):(prefill&&prefill.name?toTitle(prefill.name):'');
   return '<div style="background:var(--s1);border-radius:14px 14px 0 0;width:100%;max-width:420px;overflow:hidden;border:1px solid var(--accent);border-bottom:none;max-height:88vh;display:flex;flex-direction:column">'
     +'<div style="padding:16px 16px 4px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">'
     +'<span style="font-size:15px;font-weight:800;color:var(--accent)">📝 '+(isEdit?'Task':'New Task')+'</span>'
@@ -2266,7 +2290,7 @@ function taskFormHtml(existing){
     +'</div>'
     +'<div id="task-name-field-wrap" style="padding:10px 16px 4px;position:relative;display:'+(showNameField?'block':'none')+'">'
     +'<label class="fl">Client / Lead Name</label>'
-    +'<input class="fi" id="task-name-search" placeholder="Search leads or clients…" autocomplete="off" value="'+(isEdit&&existing.name?toTitle(existing.name):'')+'">'
+    +'<input class="fi" id="task-name-search" placeholder="Search leads or clients…" autocomplete="off" value="'+nameVal+'">'
     +'<div class="ac-list" id="task-ac-list"></div>'
     +'</div>'
     +'<div style="padding:10px 16px 4px">'
@@ -2506,7 +2530,6 @@ function editClientOpen(mob){
   sv('cf-source', c.source); sv('cf-referral', c.referral);
   sv('cf-aum', c.aum); sv('cf-potaum', c.potentialAum); sv('cf-potsip', c.potentialSip);
   sv('cf-sipdate', c.sipDate); sv('cf-sipdate2', c.sipDate2); sv('cf-review', c.reviewDate);
-  sv('cf-nextfu', c.nextFollowUp);
   sv('cf-healthins', c.healthInsurance); sv('cf-healthcov', c.healthInsuranceCoverage); sv('cf-duehealth', c.dueDateHealth);
   sv('cf-lifeins', c.lifeInsurance); sv('cf-lifecov', c.lifeInsuranceCoverage); sv('cf-duelife', c.dueDateLife);
   sv('cf-sdob', c.spouseDob); sv('cf-anniversary', c.anniversary);
@@ -2569,7 +2592,6 @@ async function saveClient(){
     source:caps(gv('cf-source')), referral:gv('cf-referral'),
     aum:gv('cf-aum'), potentialAum:gv('cf-potaum'), potentialSip:gv('cf-potsip'), familyName:familyName,
     sipDate:gv('cf-sipdate'), sipDate2:gv('cf-sipdate2'), reviewDate:gv('cf-review'),
-    nextFollowUp:gv('cf-nextfu'),
     healthInsurance:gv('cf-healthins'), healthInsuranceCoverage:gv('cf-healthcov'), dueDateHealth:gv('cf-duehealth'),
     lifeInsurance:gv('cf-lifeins'), lifeInsuranceCoverage:gv('cf-lifecov'), dueDateLife:gv('cf-duelife'),
     spouseDob:gv('cf-sdob'), anniversary:gv('cf-anniversary'),
@@ -2611,14 +2633,21 @@ async function saveClient(){
     if(clients.find(function(c){return c.mobile===mob&&(c.name||'').toUpperCase().trim()===name.toUpperCase().trim();})){toast('A client with this exact name and mobile already exists');return;}
     data.createdDate=today();
     data.modifiedDate=now();
+    // Guaranteed-unique TEMPORARY Record ID, assigned immediately — the real
+    // server-assigned Client ID (C1, C2...) only arrives after the async
+    // round-trip below completes, and Apps Script needs to scan the sheet to
+    // determine it. Without something unique in the meantime, two clients
+    // added with the same mobile number would both have an EMPTY recordId
+    // during that gap, causing the app to fall back to mobile as the lookup
+    // key — which is ambiguous between them, and tapping either one would
+    // open whichever client happens to be found first. This closes that gap.
+    data.recordId='temp_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
     clients.unshift(data); // newest at top
     saveC();
     closeOv('ov-client');
     renderClients();
     syncClient(data,'add').then(function(res){
-      // Capture the server-assigned Client ID (C1, C2...) immediately, so this
-      // client can be opened/edited/deleted correctly even if two clients share
-      // a mobile number, without waiting for the next full reload.
+      // Replace the temporary ID with the real server-assigned Client ID.
       if(res && res.recordId){
         data.recordId=res.recordId;
         var dIdx=clients.indexOf(data);
@@ -2680,6 +2709,12 @@ async function autoConvert(l){
     dueDateHealth:'', dueDateLife:'',
     stage:'KYC PENDING', lastContacted:l.modifiedDate||''
   };
+  // Guaranteed-unique TEMPORARY Record ID, assigned immediately — see the
+  // matching fix in saveClient() for the full explanation. The render below
+  // happens before the server-assigned Client ID comes back, so without this,
+  // a lead converting here while another client already shares this mobile
+  // would have an ambiguous empty recordId in that gap.
+  c.recordId='temp_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
 
   // Add to clients array (at START so it appears at top of clients page)
   clients.unshift(c);
@@ -3332,16 +3367,26 @@ async function quickStatus(mob,status){
     return;
   }
   l.status=status;
-  logActivity(l.mobile,'lead','Status changed: '+prev+' → '+status,'');
   var _anaCol={'PROSPECT':3,'CONTACTED':4,'IN PROGRESS':5,'CONVERTED':6,'DROPPED':7};
   if(_anaCol[prev]&&prev!==status.toUpperCase()) logAnalytics(_anaCol[prev],-1);
   if(_anaCol[status]) logAnalytics(_anaCol[status],1);
   saveL();
-  closeOv('ov-detail');closeFuDetail();
-  renderLeads();renderDash();renderFU();
   syncLead(l,'update'); // AWAIT — guarantees write completes (same as follow-up date)
-  if(status==='CONVERTED'&&prev!=='CONVERTED') autoConvert(l);
-  if(status!=='CONVERTED') toast('Status → '+status);
+  if(status==='CONVERTED'&&prev!=='CONVERTED'){
+    // Terminal transition — the lead moves out of Leads entirely, so the chip
+    // window (which is showing THIS lead) genuinely has nothing left to show.
+    logActivity(l.mobile,'lead','Status changed: '+prev+' → '+status,'');
+    closeOv('ov-detail');closeFuDetail();
+    renderLeads();renderDash();renderFU();
+    autoConvert(l);
+    return;
+  }
+  // Routine progression (Prospect/Contacted/In Progress) — stays open, no
+  // activity log noise. Refresh the chip content in place so the status tabs
+  // reflect the change immediately, without closing the window.
+  renderLeads();renderDash();renderFU();
+  renderFuDetailInner(mob);
+  toast('Status → '+status);
 }
 
 // ── OVERRIDE openAddLead to populate AUM ──
@@ -3960,18 +4005,21 @@ function renderFuDetailInner(mob,nameHint){
       return '<button style="flex:0 0 calc(33% - 3px);border:1.5px solid '+(isCur?col:'var(--border)')+';border-radius:6px;padding:4px 4px;font-size:10px;font-weight:'+(isCur?'700':'500')+';cursor:pointer;background:'+(isCur?col+'18':'transparent')+';color:'+(isCur?col:'var(--t3)')+';text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" data-action="fu-mode" data-mob="'+mob+'" data-mode="'+m+'">'+(modeEmoji[m]||'')+' '+m+'</button>';
     }).join('')+'</div></div>';
 
-  // Structured info block — Remarks, then Country/Age, then a prominent "days since
-  // last contacted" stat — each on its own line, per the revamped layout spec.
-  var infoBlock='<div style="padding:10px 14px;border-bottom:1px solid var(--border);background:var(--bg)">'
-    +(l.remarks?'<div style="font-size:12px;color:var(--t2);line-height:1.5;margin-bottom:8px">📝 '+l.remarks.split('\n').slice(-3).join('<br>')+'</div>':'')
-    +'<div style="font-size:12px;color:var(--t2);margin-bottom:8px">'
-      +(l.country?'🌍 '+l.country:'')+(l.country&&l.age?'&nbsp;&nbsp;·&nbsp;&nbsp;':'')+(l.age?'🎂 '+l.age+' yrs':'')
-    +'</div>'
-    +'<div style="text-align:center;padding:8px 0 2px">'
+  // Days-since-contacted — big stat, shown first (right after the header)
+  var daysSinceBlock='<div style="padding:10px 14px 4px;border-bottom:1px solid var(--border);background:var(--bg)">'
+    +'<div style="text-align:center;padding:4px 0 2px">'
       +'<div style="font-size:28px;font-weight:900;color:var(--accent);line-height:1">'+d+'</div>'
       +'<div style="font-size:10px;color:var(--t3);text-transform:uppercase;font-weight:700;letter-spacing:.4px;margin-top:2px">days since last contacted</div>'
     +'</div>'
+    +(l.country||l.age?'<div style="font-size:12px;color:var(--t2);text-align:center;margin-top:6px">'
+      +(l.country?'🌍 '+l.country:'')+(l.country&&l.age?'&nbsp;&nbsp;·&nbsp;&nbsp;':'')+(l.age?'🎂 '+l.age+' yrs':'')
+    +'</div>':'')
     +'</div>';
+
+  // Remarks — own block, shown right after days-since
+  var remarksBlock=l.remarks?('<div style="padding:8px 14px;border-bottom:1px solid var(--border);background:var(--bg)">'
+    +'<div style="font-size:12px;color:var(--t2);line-height:1.5">📝 '+l.remarks.split('\n').slice(-3).join('<br>')+'</div>'
+    +'</div>'):'';
 
   // Activity history — ACTIVITY_LOG sheet is still keyed by mobile, not Record ID
   var histHtml=buildHistoryHtml(l.mobile,'lead');
@@ -4043,18 +4091,18 @@ function renderFuDetailInner(mob,nameHint){
     +'</div>'
     +'<button class="sh-x" onclick="checkUnsavedNoteAndClose()">✕</button>'
     +'</div>'
+    // Days since last contacted (big stat) — shown first, right after the header
+    +daysSinceBlock
+    // Remarks
+    +remarksBlock
     // Status tabs
     +statusHtml
-    // Remarks / Country+Age / big days-since-contacted stat
-    +infoBlock
     // Mode of contact (compact wrap)
     +modeHtml
     // Follow-up date (tappable, auto-saves)
     +fuDisplayHtml
     // Potential AUM + Potential SIP, side by side
     +aumSipHtml
-    // Unified action icons: Call, Botim, Meet, CAS Report, Upload Docs, AI Message
-    +actionIconsHtml
     // Activity log
     +'<div style="padding:8px 14px 0">'
     +'<div style="font-size:9px;color:var(--t3);text-transform:uppercase;font-weight:700;letter-spacing:.4px;margin-bottom:5px">📋 Activity log <span style="font-weight:400;text-transform:none">(× to delete)</span></div>'
@@ -4068,6 +4116,8 @@ function renderFuDetailInner(mob,nameHint){
     +'<input class="fi" id="fu-note-input-'+mob+'" placeholder="Custom note…" style="flex:1;padding:7px 10px;font-size:13px;background:var(--bg)">'
     +'<button class="btn btn-gold" style="padding:7px 11px;font-size:12px;flex-shrink:0" data-action="fu-save-note" data-mob="'+mob+'">Log →</button>'
     +'</div></div>'
+    // Unified action icons: Call, Botim, Meet, CAS Report, Upload Docs, AI Message
+    +actionIconsHtml
     // Bottom actions: Edit + Delete
     +'<div style="display:flex;gap:8px;padding:10px 14px 20px">'
     +'<button class="btn btn-ghost" style="flex:1;font-size:12px;border-color:#4FC3F7;color:#4FC3F7" data-action="fu-edit" data-mob="'+mob+'">✏️ Edit Lead</button>'
@@ -4376,12 +4426,12 @@ function makeFuItem(l,itemType){
     +'<a href="tel:'+mob+'" class="fu-icon-btn call"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg></a>'
     +'<a href="botim://call/'+digits+'" class="fu-icon-btn call">📱</a>'
     // Direct date input — tap to change, auto-saves immediately
-    +'<div style="display:flex;flex-direction:column;align-items:center;gap:2px">'
-    +'<input type="date" id="fucard-date-'+mob+'" value="'+curDate+'" '
-    +'style="width:90px;font-size:10px;font-weight:700;color:'+fuColor+';background:transparent;border:1.5px solid '+fuColor+';border-radius:6px;padding:4px 5px;cursor:pointer;-webkit-appearance:none" '
-    +'onchange="saveFuCardDate(\''+mob+'\',this.value)" '
-    +'title="Tap to change follow-up date">'
-    +(curDate?'<span style="font-size:9px;color:'+fuColor+'">'+(fuDue?'Overdue':fmt(curDate).split(' ').slice(0,2).join(' '))+'</span>':'<span style="font-size:9px;color:var(--t3)">Set date</span>')
+    // Follow-up date — display only now, no direct edit. Tapping opens the
+    // chip window instead, so the advisor sees (and is prompted to update)
+    // the activity log rather than silently bumping the date with no record
+    // of what actually happened.
+    +'<div data-action="fu-open" data-mob="'+mob+'" data-name="'+encodeURIComponent(l.name||'')+'" style="display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 5px;border:1.5px solid '+fuColor+';border-radius:6px;cursor:pointer;min-width:70px">'
+    +(curDate?'<span style="font-size:10px;font-weight:700;color:'+fuColor+'">'+(fuDue?'Overdue':fmt(curDate).split(' ').slice(0,2).join(' '))+'</span>':'<span style="font-size:9px;color:var(--t3)">No date set</span>')
     +'</div>'
     +'</div>'
     +'</div>';
@@ -4623,6 +4673,14 @@ async function saveLead(){
         status:status,source:source,referral:referral,products:prods,potentialSip:aum,potentialAum:potentialAum,
         contactMode:contactMode,nextFollowUp:nextFU,remarks:remarks,geoTag:geoTag,familyName:familyName,notes:[],
         createdDate:today(),modifiedDate:''};
+      // Guaranteed-unique TEMPORARY Record ID, assigned immediately — see the
+      // matching fix in saveClient() for the full explanation. Same gap here:
+      // this exact code path supports two leads sharing a mobile (the
+      // "different person — add anyway" dialog above), so without this, two
+      // such leads would both have an empty recordId until the async
+      // server round-trip completes, making mobile-based lookup ambiguous
+      // between them in the meantime.
+      newLead.recordId='temp_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
       leads.push(newLead);saveL();
       renderAll();
       closeOv('ov-lead');
@@ -4916,6 +4974,17 @@ async function bootSequenceV17(){
 
     // Activity log fetched in background — not needed for initial render
     pullActivityLog();
+
+    // Background, silent cleanup: trim activity log history down to the most
+    // recent 10 entries per lead/client (items 5 & 6 — no confirmation asked,
+    // runs once per app load). Only re-pulls the log if something was actually
+    // removed, to avoid an unnecessary extra fetch on every normal boot.
+    apiFetch({action:'trimActivityLogHistory'}).then(function(trimRes){
+      if(trimRes && trimRes.success && trimRes.removed>0){
+        console.log('Activity log trimmed:', trimRes.removed, 'old entries removed');
+        pullActivityLog();
+      }
+    }).catch(function(e){ console.warn('Activity log trim failed:', e.message); });
 
     // Analytics + Special Days + Calendar — AWAITED (not fire-and-forget) so the
     // dashboard's first real render is guaranteed to already include calendar
@@ -7293,8 +7362,7 @@ function sendWAQuick(waNum, type, mob){
   } else if(type==='sip'){
     msg='Dear Sir/Madam,'
       +'\n\nA gentle reminder that your SIP is due on '+sipDateText+'.'
-      +'\n\nEvery SIP is a step towards building long-term wealth and securing your family\'s financial future. Please ensure that sufficient funds are available in your bank account to avoid missing this month\'s investment.'
-      +'\n\nWealth is created through discipline, not timing.'
+      +'\n\nPlease ensure that sufficient funds are available in your bank account to avoid missing this month\'s investment.'
       +'\n\nRegards,'
       +'\nArjun K T M'
       +'\nWealth Matrix Finserv LLP';
@@ -8187,12 +8255,8 @@ function makeFuClientItem(c){
     +'<div class="fu-actions">'
     +'<a href="https://wa.me/'+waNum+'" target="_blank" class="fu-icon-btn wa">'+waIcon()+'</a>'
     +'<a href="tel:'+mob+'" class="fu-icon-btn call"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg></a>'
-    +'<div style="display:flex;flex-direction:column;align-items:center;gap:2px">'
-    +'<input type="date" id="fucard-cdate-'+mob+'" value="'+curDate+'" '
-    +'style="width:90px;font-size:10px;font-weight:700;color:'+fuColor+';background:transparent;border:1.5px solid '+fuColor+';border-radius:6px;padding:4px 5px;cursor:pointer;-webkit-appearance:none" '
-    +'onchange="updateClientField(\''+mob+'\',\'nextFollowUp\',this.value)" '
-    +'title="Tap to change follow-up date">'
-    +(curDate?'<span style="font-size:9px;color:'+fuColor+'">'+(fuDue?'Overdue':fmt(curDate).split(' ').slice(0,2).join(' '))+'</span>':'<span style="font-size:9px;color:var(--t3)">Set date</span>')
+    +'<div data-caction="fu-client-open" data-cmob="'+mob+'" data-cname="'+encodeURIComponent(c.name||'')+'" style="display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 5px;border:1.5px solid '+fuColor+';border-radius:6px;cursor:pointer;min-width:70px">'
+    +(curDate?'<span style="font-size:10px;font-weight:700;color:'+fuColor+'">'+(fuDue?'Overdue':fmt(curDate).split(' ').slice(0,2).join(' '))+'</span>':'<span style="font-size:9px;color:var(--t3)">No date set</span>')
     +'</div>'
     +'</div>'
     +'</div>';
