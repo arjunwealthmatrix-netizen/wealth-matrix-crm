@@ -428,6 +428,39 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   <button id="lock-forgot-btn" style="margin-top:20px;background:none;border:none;color:#666;font-size:12px;text-decoration:underline;cursor:pointer">Forgot PIN? Tap to reset</button>
 </div>
 
+<!-- USER LOGIN SCREEN — shown before the app loads any data, until a valid
+     session exists. Different from the App Lock PIN above: this is WHO is
+     using the app (role-based), not just a device-level PIN. -->
+<div id="login-screen" style="display:none;position:fixed;inset:0;z-index:2147483646;background:#0a0a0a;flex-direction:column;align-items:center;justify-content:center;padding:24px">
+  <div style="width:72px;height:72px;background:#0F1D2E;border:1px solid #1C2B3E;border-radius:18px;display:flex;align-items:center;justify-content:center;margin-bottom:20px">
+    <span style="font-size:26px;font-weight:900;color:#fff">WM</span>
+  </div>
+  <div style="font-size:17px;font-weight:800;color:#fff;margin-bottom:4px">Wealth Matrix CRM</div>
+  <div style="font-size:12px;color:#666;margin-bottom:28px">Sign in to continue</div>
+  <div style="width:100%;max-width:300px">
+    <input id="login-username" placeholder="Username" autocapitalize="none" autocomplete="username" style="width:100%;background:#111;border:1px solid #2A2A2A;border-radius:10px;padding:13px 14px;color:#fff;font-size:14px;margin-bottom:10px">
+    <input id="login-password" type="password" placeholder="Password" autocomplete="current-password" style="width:100%;background:#111;border:1px solid #2A2A2A;border-radius:10px;padding:13px 14px;color:#fff;font-size:14px;margin-bottom:14px">
+    <div id="login-error" style="font-size:12px;color:#e74c3c;margin-bottom:10px;display:none"></div>
+    <button id="login-submit-btn" onclick="attemptLogin()" style="width:100%;background:#FFFFFF;color:#000;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:800;cursor:pointer">Sign In</button>
+  </div>
+</div>
+
+<!-- FORCED PASSWORD CHANGE — shown once, after first login with an
+     admin-set initial password. Blocks access to the app until completed. -->
+<div id="force-pwd-screen" style="display:none;position:fixed;inset:0;z-index:2147483646;background:#0a0a0a;flex-direction:column;align-items:center;justify-content:center;padding:24px">
+  <div style="width:72px;height:72px;background:#0F1D2E;border:1px solid #1C2B3E;border-radius:18px;display:flex;align-items:center;justify-content:center;margin-bottom:20px">
+    <span style="font-size:26px;font-weight:900;color:#fff">🔑</span>
+  </div>
+  <div style="font-size:17px;font-weight:800;color:#fff;margin-bottom:4px">Set a New Password</div>
+  <div style="font-size:12px;color:#666;margin-bottom:28px;text-align:center;max-width:280px">This is your first login — choose a password only you will know. Once set, it cannot be viewed by anyone, including an Admin.</div>
+  <div style="width:100%;max-width:300px">
+    <input id="force-pwd-new" type="password" placeholder="New password" autocomplete="new-password" style="width:100%;background:#111;border:1px solid #2A2A2A;border-radius:10px;padding:13px 14px;color:#fff;font-size:14px;margin-bottom:10px">
+    <input id="force-pwd-confirm" type="password" placeholder="Confirm new password" autocomplete="new-password" style="width:100%;background:#111;border:1px solid #2A2A2A;border-radius:10px;padding:13px 14px;color:#fff;font-size:14px;margin-bottom:14px">
+    <div id="force-pwd-error" style="font-size:12px;color:#e74c3c;margin-bottom:10px;display:none"></div>
+    <button id="force-pwd-btn" onclick="submitForcedPasswordChange()" style="width:100%;background:#FFFFFF;color:#000;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:800;cursor:pointer">Set Password &amp; Continue</button>
+  </div>
+</div>
+
 <div id="app">
 <div id="content">
 
@@ -691,8 +724,26 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div class="syc"><button class="btn btn-ghost btn-full" onclick="showSpecialDaysList()">📋 View Upcoming Special Days</button></div>
   </div>
 
+  <!-- ACCOUNT — visible to everyone, shows who's logged in -->
+  <div class="sec">
+    <div class="lbl" style="color:var(--accent)">👤 Account</div>
+    <div class="sg">
+      <div class="si" id="account-info-row"><span>Signed in as</span><span id="account-name-display" style="color:var(--t2)">—</span></div>
+      <div class="si" onclick="openChangePasswordForm()" style="cursor:pointer"><span>🔑 Change Password</span><span>›</span></div>
+      <div class="si" onclick="logoutUser()" style="cursor:pointer;border-bottom:none"><span style="color:#e74c3c">🚪 Log Out</span><span></span></div>
+    </div>
+  </div>
+
+  <!-- ADMIN — user management, only visible/functional for the Admin role -->
+  <div class="sec" id="admin-panel-sec" style="display:none">
+    <div class="lbl" style="color:var(--accent)">🛡️ User Management (Admin)</div>
+    <div class="card" style="padding:12px 14px">
+      <button class="btn btn-gold btn-full" style="margin-bottom:10px" onclick="openCreateUserForm()">➕ Add User</button>
+      <div id="admin-user-list"><div style="font-size:11px;color:var(--t3);text-align:center;padding:8px">Loading…</div></div>
+    </div>
+  </div>
+
   <div style="text-align:center;padding:20px 0 40px;font-size:10px;color:var(--t3)">Wealth Matrix CRM v5.0.0</div>
-</div>
 </div>
 
 <!-- FOLLOW-UPS -->
@@ -704,49 +755,23 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 <!-- ANALYTICS -->
 <div class="page" id="pg-analytics">
   <div class="ph">
-    <div><h1>Insights</h1><div id="ana-sub" class="sub">AI-generated, from your live CRM data</div></div>
-    <button onclick="runInsightsNow()" style="background:none;border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:11px;color:var(--t2);cursor:pointer;flex-shrink:0">🔄 Refresh</button>
+    <div><h1>Insights</h1><div class="sub">Business signals from your live CRM data</div></div>
   </div>
   <div style="padding:0 14px 100px">
 
-    <div class="sec">
-      <div class="lbl" style="color:var(--accent)">⚡ Quick Insights</div>
-      <div class="insight-box-grid">
-        <div class="insight-icon-box" id="ib-productivity" onclick="runQuickInsight('productivity')">
-          <span class="ib-ico">📊</span>
-          <span class="ib-label">Productivity</span>
-          <span class="ib-hint">Tap to analyze</span>
-        </div>
-        <div class="insight-icon-box" id="ib-engagement" onclick="runQuickInsight('engagement')">
-          <span class="ib-ico">🤝</span>
-          <span class="ib-label">Leads Engagement</span>
-          <span class="ib-hint">Tap to analyze</span>
-        </div>
-      </div>
+    <div class="task-card" id="ib-stale-leads" style="border-top:4px solid #e74c3c;cursor:default">
+      <div class="tc-name">🕰️ Stale Leads</div>
+      <div class="tc-details" id="ib-stale-leads-body">Loading…</div>
     </div>
 
-    <div class="sec">
-      <div class="lbl" style="color:var(--accent)">⏰ Weekly Automation</div>
-      <div class="card" style="padding:12px 14px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-          <span style="font-size:12px;color:var(--t2)">Status</span>
-          <span id="insights-status" style="font-weight:700;font-size:12px">Checking...</span>
-        </div>
-        <button class="btn btn-ghost btn-full" id="insights-toggle-btn" onclick="toggleInsightsTrigger()">Loading...</button>
-      </div>
+    <div class="task-card" id="ib-never-contacted" style="border-top:4px solid #f39c12;cursor:default">
+      <div class="tc-name">🚫 Never Contacted</div>
+      <div class="tc-details" id="ib-never-contacted-body">Loading…</div>
     </div>
 
-    <div class="sec">
-      <div class="lbl" style="color:var(--accent)">🤖 Latest Insight</div>
-      <div class="card" style="padding:14px">
-        <button class="btn btn-gold btn-full" style="margin-bottom:10px" onclick="runInsightsNow()">▶️ Generate Fresh Insight</button>
-        <pre id="insights-result" style="font-size:12px;line-height:1.6;white-space:pre-wrap;margin:0;color:var(--text)">Tap "Generate Fresh Insight" to get your first AI-written briefing, or turn on weekly automation above.</pre>
-      </div>
-    </div>
-
-    <div class="sec">
-      <div class="lbl" style="color:var(--accent)">📜 History</div>
-      <div id="insights-history"><div style="font-size:11px;color:var(--t3);text-align:center;padding:12px">No history yet — generate your first insight above.</div></div>
+    <div class="task-card" id="ib-protection-gaps" style="border-top:4px solid #4FC3F7;cursor:default">
+      <div class="tc-name">🛡️ Protection Gaps</div>
+      <div class="tc-details" id="ib-protection-gaps-body">Loading…</div>
     </div>
 
   </div>
@@ -772,16 +797,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   </button>
 </div>
 
-  
-  <div id="client-bulk-bar" style="display:none;padding:8px 12px;background:rgba(255,255,255,.08);border-bottom:1px solid var(--border);justify-content:space-between">
-    <span id="client-sel-count" style="font-size:12px;font-weight:700;color:var(--accent)">0 selected</span>
-    <div style="display:flex;gap:6px">
-      <button class="btn btn-ghost" style="padding:5px 10px;font-size:11px" onclick="clientSelectAll()">All</button>
-      <button class="btn btn-red" style="padding:5px 10px;font-size:11px" onclick="deleteSelectedClients()">🗑 Delete</button>
-    </div>
-  </div>
-  <div id="client-list"></div>
-</div>
 
 <!-- SYNC -->
 
@@ -812,7 +827,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 
   <button class="nb" onclick="nav('settings',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Settings</button>
 </nav>
-</div>
 
 <!-- FOLLOW-UP DETAIL OVERLAY -->
 <div class="ov" id="ov-fu-detail"><div class="sh" id="fu-detail-sh"></div></div>
@@ -938,7 +952,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <button class="btn btn-gold btn-full" onclick="saveLead()" style="padding:14px;font-size:15px;border-radius:10px;margin-bottom:8px">Save Lead</button>
   </div>
 </div></div>
-</div>
 
 <!-- CLIENT FORM -->
 <div class="ov" id="ov-client"><div class="sh">
@@ -3216,22 +3229,50 @@ function closeClientDetailWithPrompt(){
 // document via the Documents section creates the folder automatically.
 function showNoClientFolderPopup(c){
   var ov=document.createElement('div');
+  ov.id='ncf-ov';
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
   ov.innerHTML='<div style="background:var(--s1);border-radius:12px;width:100%;max-width:340px;overflow:hidden">'
     +'<div style="padding:16px;font-size:14px;font-weight:800;border-bottom:1px solid var(--border)">📁 No document folder yet</div>'
-    +'<div style="padding:14px 16px;font-size:12px;color:var(--t2);line-height:1.6">'+toTitle(c.name)+' doesn\u2019t have a Drive folder yet. Uploading any document from the Documents section will create one automatically.</div>'
+    +'<div style="padding:14px 16px;font-size:12px;color:var(--t2);line-height:1.6" id="ncf-msg">'+toTitle(c.name)+' doesn\u2019t have a Drive folder yet. You can create one now, or it will be created automatically the next time a document is uploaded.</div>'
     +'<div style="display:flex;border-top:1px solid var(--border)">'
-    +'<button id="_ncf_ok" style="flex:1;padding:12px;border:none;background:none;color:var(--accent);font-weight:700;cursor:pointer">Got it</button>'
+    +'<button id="_ncf_ok" style="flex:1;padding:12px;border:none;background:none;color:var(--t2);cursor:pointer;border-right:1px solid var(--border)">Not now</button>'
+    +'<button id="_ncf_create" style="flex:1;padding:12px;border:none;background:none;color:var(--accent);font-weight:700;cursor:pointer">📁 Create Folder</button>'
     +'</div></div>';
   document.body.appendChild(ov);
   document.getElementById('_ncf_ok').onclick=function(){ov.remove();};
+  document.getElementById('_ncf_create').onclick=async function(){
+    var btn=document.getElementById('_ncf_create');
+    var msgEl=document.getElementById('ncf-msg');
+    btn.disabled=true; btn.textContent='Creating…';
+    try{
+      var res=await sheetWrite({action:'createClientFolder', clientName:c.name, pan:c.pan||'', mobile:c.mobile}, 20000);
+      if(!res || !res.success){
+        msgEl.textContent='Could not create the folder: '+(res&&res.error||'unknown error'); msgEl.style.color='#e74c3c';
+        btn.disabled=false; btn.textContent='📁 Create Folder';
+        return;
+      }
+      // Persist the folder ID to the sheet — this is what makes future uploads
+      // (via the client's upload link) land in THIS folder instead of the app
+      // searching again or a client accidentally getting a second folder.
+      await sheetWrite({action:'tagClientFolder', recordId:c.recordId||'', mobile:c.mobile, folderId:res.folderId});
+      c.folderId=res.folderId; // update the in-memory record immediately too
+      saveC();
+      msgEl.textContent='✅ Folder created and linked to '+toTitle(c.name)+'.'; msgEl.style.color='#2ecc71';
+      btn.style.display='none';
+      document.getElementById('_ncf_ok').textContent='Done';
+      renderClients(); // list capsule's green "Docs uploaded" area depends on folderId being set
+    }catch(e){
+      msgEl.textContent='Could not create the folder: '+e.message; msgEl.style.color='#e74c3c';
+      btn.disabled=false; btn.textContent='📁 Create Folder';
+    }
+  };
 }
 document.querySelectorAll('.ov').forEach(function(o){o.addEventListener('click',function(e){if(e.target===o){if(o.id==='ov-fu-detail')closeFuDetail();else closeOv(o.id);}});});
 function fabAdd(){var activePage=document.querySelector('.page.active');if(activePage&&activePage.id==='pg-clients')openAddClient();else openAddLead();}
 function renderAll(){
   renderDash();renderLeads();renderFU();renderClients();
   var anaPage=document.getElementById('pg-analytics');
-  if(anaPage&&anaPage.classList.contains('active')){ checkInsightsStatus(); loadInsightsHistory(); }
+  if(anaPage&&anaPage.classList.contains('active')){ loadAllBusinessInsights(); }
   setTimeout(addSearchClose,100);
 }
 function nav(name,btn){
@@ -3253,8 +3294,7 @@ function nav(name,btn){
   // Render on page switch
   if(name==='analytics'){
     var sb4=document.getElementById('shared-search-bar'); if(sb4) sb4.style.display='none';
-    checkInsightsStatus();
-    loadInsightsHistory();
+    loadAllBusinessInsights();
   }
   if(name==='clients'){
     var sb2=document.getElementById('shared-search-bar');
@@ -3266,6 +3306,7 @@ function nav(name,btn){
     var sb5=document.getElementById('shared-search-bar'); if(sb5) sb5.style.display='none';
     loadSettings();
     renderLockSettingsStatus();
+    renderAccountSection();
   }
   if(name==='tasks'){
     var sb6=document.getElementById('shared-search-bar'); if(sb6) sb6.style.display='none';
@@ -5006,7 +5047,7 @@ async function bootSequenceV17(){
     setTopSync('ok','Synced '+ts+' — '+leads.length+' leads');setSyncBanner('ok');
     renderAll();updateFUBadge();
     var anaPg=document.getElementById('pg-analytics');
-    if(anaPg&&anaPg.classList.contains('active')){ checkInsightsStatus(); loadInsightsHistory(); }
+    if(anaPg&&anaPg.classList.contains('active')){ loadAllBusinessInsights(); }
   }catch(err){
     setTopSync('err','Sync failed — tap 🔄');setSyncBanner('err');
     console.warn('Boot sync:',err.message);
@@ -5948,29 +5989,84 @@ async function toggleInsightsTrigger(){
   }
   checkInsightsStatus();
 }
-// ── Quick Insights (Productivity / Engagement) — tap a floating icon box,
-// get a focused AI-written briefing in a copyable/shareable text pop-up.
-// Uses the same ad-hoc-overlay pattern as the rest of the app, so it
-// automatically benefits from the desktop centering fix. ──
-async function runQuickInsight(type){
-  var box=document.getElementById(type==='productivity'?'ib-productivity':'ib-engagement');
-  var label=type==='productivity'?'Productivity':'Leads Engagement';
-  if(!hasScript()){ toast('Add Apps Script URL first'); return; }
-  var origHtml=box?box.innerHTML:'';
-  if(box) box.innerHTML='<span class="ib-ico">⏳</span><span class="ib-label">Analyzing…</span>';
+// ═══════════════════════════════════════════════
+// BUSINESS INSIGHTS — Stale Leads, Never Contacted, Protection Gaps.
+// No tap-to-analyze step: all three load automatically, in parallel, the
+// moment the Insights page is opened, writing directly into each capsule's
+// body. Stale Leads also gets a "View & Manage List" action button once its
+// data is in, since deleting individual leads is a deliberate action that
+// should still require a tap — that's different from just reading the insight.
+// ═══════════════════════════════════════════════
+function loadAllBusinessInsights(){
+  if(!hasScript()){
+    ['ib-stale-leads-body','ib-never-contacted-body','ib-protection-gaps-body'].forEach(function(id){
+      var el=document.getElementById(id); if(el) el.textContent='Add Apps Script URL first (Settings).';
+    });
+    return;
+  }
+  loadOneBusinessInsight('staleLeads', 'ib-stale-leads-body', 'generateStaleLeadsInsight');
+  loadOneBusinessInsight('neverContacted', 'ib-never-contacted-body', 'generateNeverContactedInsight');
+  loadOneBusinessInsight('protectionGaps', 'ib-protection-gaps-body', 'generateProtectionGapsInsight');
+}
+
+async function loadOneBusinessInsight(type, bodyId, action){
+  var el=document.getElementById(bodyId);
+  if(el) el.textContent='Analyzing…';
   try{
-    var res=await sheetWrite({action:type==='productivity'?'generateProductivityInsight':'generateEngagementInsight'}, 55000);
-    if(box) box.innerHTML=origHtml;
+    var res=await sheetWrite({action:action}, 55000);
+    if(!el) return; // user navigated away before this resolved
     if(res && res.success){
-      showQuickInsightPopup(label, res.insight);
+      el.textContent=res.insight;
+      if(type==='staleLeads' && res.list && res.list.length){
+        window._staleLeadsList=res.list;
+        var card=document.getElementById('ib-stale-leads');
+        if(card && !document.getElementById('ib-stale-leads-listbtn')){
+          var btn=document.createElement('button');
+          btn.id='ib-stale-leads-listbtn';
+          btn.className='btn btn-gold';
+          btn.style.cssText='font-size:12px;width:100%;margin-top:10px';
+          btn.textContent='📋 View & Manage List ('+res.list.length+')';
+          btn.onclick=function(e){ e.stopPropagation(); showStaleLeadsListPopup(); };
+          card.appendChild(btn);
+        }
+      }
     } else {
-      toast('❌ '+(res&&res.error||'Could not generate insight'));
+      el.textContent='Could not load: '+(res&&res.error||'unknown error');
     }
   }catch(e){
-    if(box) box.innerHTML=origHtml;
-    toast('❌ '+e.message);
+    if(el) el.textContent='Could not load: '+e.message;
   }
 }
+
+// Delete-capable drill-down for Stale Leads specifically — reuses the
+// existing deleteLead() confirmation flow for the actual deletion, so
+// nothing about the deletion logic itself is duplicated.
+function showStaleLeadsListPopup(){
+  var list=window._staleLeadsList||[];
+  var ov=document.createElement('div');
+  ov.id='stale-leads-list-ov';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:100000;display:flex;align-items:flex-end;justify-content:center';
+  ov.innerHTML='<div style="background:var(--s1);border-radius:16px 16px 0 0;width:100%;max-width:480px;max-height:85vh;display:flex;flex-direction:column;border:1px solid #e74c3c">'
+    +'<div style="padding:14px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)">'
+    +'<span style="font-size:14px;font-weight:800;color:#e74c3c">🕰️ Stale Leads ('+list.length+')</span>'
+    +'<span onclick="document.getElementById(\'stale-leads-list-ov\').remove()" style="font-size:20px;color:var(--t2);cursor:pointer;padding:0 4px">✕</span>'
+    +'</div>'
+    +'<div id="stale-leads-rows" style="overflow-y:auto;flex:1;padding:8px 12px">'
+    +list.map(function(l,i){
+      return '<div id="stale-row-'+i+'" style="display:flex;align-items:center;gap:8px;padding:10px;background:var(--s2);border-radius:10px;margin-bottom:6px">'
+        +'<div style="flex:1;min-width:0">'
+        +'<div style="font-size:13px;font-weight:700;color:var(--text)">'+toTitle(l.name)+'</div>'
+        +'<div style="font-size:10px;color:var(--t3);margin-top:2px">'+l.status+' · '+l.daysStale+' days stale'+(l.potentialAum?' · AUM '+l.potentialAum:'')+'</div>'
+        +'</div>'
+        +'<button onclick="openDetail(\''+(l.recordId||l.mobile)+'\',\'lead\',\''+encodeURIComponent(l.name||'')+'\')" style="font-size:10px;font-weight:700;color:var(--accent);background:none;border:1px solid var(--accent);border-radius:8px;padding:6px 8px;cursor:pointer;flex-shrink:0">View</button>'
+        +'<button onclick="deleteLead(\''+(l.recordId||l.mobile)+'\')" style="font-size:10px;font-weight:700;color:#e74c3c;background:none;border:1px solid #e74c3c;border-radius:8px;padding:6px 8px;cursor:pointer;flex-shrink:0">🗑</button>'
+        +'</div>';
+    }).join('')
+    +'</div></div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('click',function(e){ if(e.target===ov) ov.remove(); });
+}
+
 
 function showQuickInsightPopup(label, text){
   var ov=document.createElement('div');
@@ -7973,7 +8069,7 @@ async function saveSpecialDay(){
 
 
 // ── SIP reminder tracking — once sent per month, don't show again ──
-function sipReminderKey(mob){ return 'wm_sip_'+today().substring(0,7)+'_'+mob; } // YYYY-MM
+function sipReminderKey(mob){ return 'wm_sip_'+today()+'_'+mob; } // YYYY-MM-DD — day-level granularity, so acknowledging the 5-days-before reminder doesn't suppress the separate 2-days-before reminder later that month
 function markSipReminderSent(mob){ localStorage.setItem(sipReminderKey(mob),'1'); }
 function isSipReminderSent(mob){ return !!localStorage.getItem(sipReminderKey(mob)); }
 
@@ -8377,7 +8473,8 @@ async function syncOverdueTasksSilently(){
       t.status='Due'; changed=true;
     }
   });
-  if(changed){ saveTasks(); renderTasks(); }
+  if(!changed) return; // nothing to sync — skip the network call entirely, this was firing every single time the Task page opened regardless of whether anything actually needed updating
+  saveTasks(); renderTasks();
   try{ await sheetWrite({action:'syncOverdueTasks'}); }catch(e){ /* non-fatal, local display already updated */ }
 }
 
@@ -9390,11 +9487,15 @@ function renderTodaysActivity(){
     }
   }catch(e){ console.warn('Today\'s Activity — Events section failed:', e.message); }
 
-  // ── 4. SIP due next 5 days — checks BOTH SIP Date 1 and SIP Date 2 ──
+  // ── 4. SIP due — triggers ONLY at exactly 5 days before or exactly 2 days
+  // before the SIP date, nothing in between and nothing after. Checks both
+  // SIP Date 1 and SIP Date 2 independently. ──
   try{
     var sipDue=clients.filter(function(c){
-      var d1due=c.sipDate&&daysToSip(c.sipDate)<=5&&daysToSip(c.sipDate)>=0;
-      var d2due=c.sipDate2&&daysToSip(c.sipDate2)<=5&&daysToSip(c.sipDate2)>=0;
+      var d1days=c.sipDate?daysToSip(c.sipDate):null;
+      var d2days=c.sipDate2?daysToSip(c.sipDate2):null;
+      var d1due=d1days===5||d1days===2;
+      var d2due=d2days===5||d2days===2;
       return (d1due||d2due)&&!isSipReminderSent(c.mobile);
     });
     if(sipDue.length){
@@ -9402,8 +9503,10 @@ function renderTodaysActivity(){
         title:'SIP due — '+sipDue.length+' client'+(sipDue.length>1?'s':''),
         sub:sipDue.map(function(c){
           var dates=[];
-          if(c.sipDate&&daysToSip(c.sipDate)<=5&&daysToSip(c.sipDate)>=0) dates.push(c.sipDate+'th');
-          if(c.sipDate2&&daysToSip(c.sipDate2)<=5&&daysToSip(c.sipDate2)>=0) dates.push(c.sipDate2+'th');
+          var d1days=c.sipDate?daysToSip(c.sipDate):null;
+          var d2days=c.sipDate2?daysToSip(c.sipDate2):null;
+          if(d1days===5||d1days===2) dates.push(c.sipDate+'th ('+d1days+'d)');
+          if(d2days===5||d2days===2) dates.push(c.sipDate2+'th ('+d2days+'d)');
           return toTitle(c.name)+' ('+dates.join(' & ')+')';
         }).join(' · '),
         list:sipDue, listType:'sip'});
@@ -9545,8 +9648,302 @@ _loadQ();
 try{var _sd=localStorage.getItem('wm_specialdays');if(_sd){var _sdo=JSON.parse(_sd);if(_sdo.length>_specialDays.length)_specialDays=_sdo;}}catch(e){}
 try{_calendarEvents=JSON.parse(localStorage.getItem('wm_calendar_events')||'[]');}catch(e){_calendarEvents=[];}
 // Show lock screen FIRST if app lock is enabled — blocks the app until unlocked
-if(isLockEnabled()){ showLockScreen(); }
-load();loadActivityLog();loadTasks();bootSequenceV17();
+// ═══════════════════════════════════════════════
+// AUTHENTICATION — client-side SHA-256 hashing (Web Crypto API) so a plain-
+// text password is never sent over the network; session stored in
+// localStorage (this app has no traditional server-side session store).
+// ═══════════════════════════════════════════════
+async function sha256Hex(text){
+  var enc=new TextEncoder().encode(text);
+  var hashBuffer=await crypto.subtle.digest('SHA-256', enc);
+  var hashArray=Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(function(b){return b.toString(16).padStart(2,'0');}).join('');
+}
+
+function getSession(){
+  try{ return JSON.parse(localStorage.getItem('wm_session')||'null'); }catch(e){ return null; }
+}
+function setSession(s){ localStorage.setItem('wm_session', JSON.stringify(s)); }
+function clearSession(){ localStorage.removeItem('wm_session'); }
+function currentUserType(){ var s=getSession(); return s?s.userType:null; }
+function isAdmin(){ return currentUserType()==='ADMIN'; }
+
+function showLoginScreen(){
+  var ls=document.getElementById('login-screen');
+  if(ls) ls.style.display='flex';
+  setTimeout(function(){ var u=document.getElementById('login-username'); if(u) u.focus(); }, 100);
+}
+function hideLoginScreen(){
+  var ls=document.getElementById('login-screen');
+  if(ls) ls.style.display='none';
+}
+
+async function attemptLogin(){
+  var userEl=document.getElementById('login-username');
+  var passEl=document.getElementById('login-password');
+  var errEl=document.getElementById('login-error');
+  var btn=document.getElementById('login-submit-btn');
+  var username=(userEl?userEl.value:'').trim();
+  var password=passEl?passEl.value:'';
+  if(!username||!password){
+    if(errEl){ errEl.textContent='Enter both username and password.'; errEl.style.display='block'; }
+    return;
+  }
+  if(!hasScript()){
+    if(errEl){ errEl.textContent='App not connected to a sheet yet — add the Apps Script URL first.'; errEl.style.display='block'; }
+    return;
+  }
+  btn.disabled=true; btn.textContent='Signing in…';
+  if(errEl) errEl.style.display='none';
+  try{
+    var passwordHash=await sha256Hex(password);
+    var res=await sheetWrite({action:'loginUser', username:username, passwordHash:passwordHash}, 20000);
+    btn.disabled=false; btn.textContent='Sign In';
+    if(res && res.success){
+      setSession({name:res.name, username:res.username, userType:res.userType, userId:res.userId});
+      if(passEl) passEl.value='';
+      hideLoginScreen();
+      if(res.passwordNeverChanged){
+        showForcedPasswordChange();
+      } else {
+        startAppAfterAuth();
+      }
+    } else {
+      if(errEl){ errEl.textContent=(res&&res.error)||'Could not sign in — please try again.'; errEl.style.display='block'; }
+    }
+  }catch(e){
+    btn.disabled=false; btn.textContent='Sign In';
+    if(errEl){ errEl.textContent='Could not reach the server: '+e.message; errEl.style.display='block'; }
+  }
+}
+
+function showForcedPasswordChange(){
+  var fs=document.getElementById('force-pwd-screen');
+  if(fs) fs.style.display='flex';
+}
+async function submitForcedPasswordChange(){
+  var newEl=document.getElementById('force-pwd-new');
+  var confirmEl=document.getElementById('force-pwd-confirm');
+  var errEl=document.getElementById('force-pwd-error');
+  var btn=document.getElementById('force-pwd-btn');
+  var newPwd=newEl?newEl.value:'';
+  var confirmPwd=confirmEl?confirmEl.value:'';
+  if(!newPwd || newPwd.length<6){
+    if(errEl){ errEl.textContent='Password must be at least 6 characters.'; errEl.style.display='block'; }
+    return;
+  }
+  if(newPwd!==confirmPwd){
+    if(errEl){ errEl.textContent='Passwords do not match.'; errEl.style.display='block'; }
+    return;
+  }
+  var session=getSession();
+  if(!session){ showLoginScreen(); return; }
+  btn.disabled=true; btn.textContent='Saving…';
+  if(errEl) errEl.style.display='none';
+  try{
+    var newHash=await sha256Hex(newPwd);
+    var res=await sheetWrite({action:'changeOwnPassword', userId:session.userId, newPasswordHash:newHash}, 20000);
+    btn.disabled=false; btn.textContent='Set Password & Continue';
+    if(res && res.success){
+      var fs=document.getElementById('force-pwd-screen'); if(fs) fs.style.display='none';
+      startAppAfterAuth();
+    } else {
+      if(errEl){ errEl.textContent=(res&&res.error)||'Could not save — please try again.'; errEl.style.display='block'; }
+    }
+  }catch(e){
+    btn.disabled=false; btn.textContent='Set Password & Continue';
+    if(errEl){ errEl.textContent='Could not reach the server: '+e.message; errEl.style.display='block'; }
+  }
+}
+
+function renderAccountSection(){
+  var session=getSession();
+  var nameEl=document.getElementById('account-name-display');
+  if(nameEl) nameEl.textContent=session?(session.name+' ('+session.userType+')'):'—';
+  var adminSec=document.getElementById('admin-panel-sec');
+  if(adminSec){
+    if(isAdmin()){ adminSec.style.display='block'; loadAdminUserList(); }
+    else adminSec.style.display='none';
+  }
+}
+
+// ── Change own password — available to every role ──
+function openChangePasswordForm(){
+  var ov=document.createElement('div');
+  ov.id='cpw-ov';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.innerHTML='<div style="background:var(--s1);border-radius:12px;width:100%;max-width:340px;overflow:hidden">'
+    +'<div style="padding:16px;font-size:14px;font-weight:800;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">'
+    +'<span>🔑 Change Password</span><span onclick="document.getElementById(\'cpw-ov\').remove()" style="cursor:pointer;color:var(--t2)">✕</span></div>'
+    +'<div style="padding:14px 16px">'
+    +'<input id="cpw-old" type="password" placeholder="Current password" autocomplete="current-password" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--text);font-size:13px;margin-bottom:8px">'
+    +'<input id="cpw-new" type="password" placeholder="New password" autocomplete="new-password" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--text);font-size:13px;margin-bottom:8px">'
+    +'<input id="cpw-confirm" type="password" placeholder="Confirm new password" autocomplete="new-password" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--text);font-size:13px;margin-bottom:10px">'
+    +'<div id="cpw-msg" class="savemsg"></div>'
+    +'<button id="cpw-btn" class="btn btn-gold btn-full" onclick="submitChangePassword()">Save New Password</button>'
+    +'</div></div>';
+  document.body.appendChild(ov);
+}
+async function submitChangePassword(){
+  var oldPwd=(document.getElementById('cpw-old').value||'');
+  var newPwd=(document.getElementById('cpw-new').value||'');
+  var confirmPwd=(document.getElementById('cpw-confirm').value||'');
+  var msgEl=document.getElementById('cpw-msg');
+  var btn=document.getElementById('cpw-btn');
+  if(!oldPwd||!newPwd){ msgEl.textContent='Fill in all fields.'; msgEl.className='savemsg err'; return; }
+  if(newPwd.length<6){ msgEl.textContent='New password must be at least 6 characters.'; msgEl.className='savemsg err'; return; }
+  if(newPwd!==confirmPwd){ msgEl.textContent='New passwords do not match.'; msgEl.className='savemsg err'; return; }
+  var session=getSession(); if(!session){ toast('Session expired — please log in again'); logoutUser(); return; }
+  btn.disabled=true; msgEl.textContent='Saving…'; msgEl.className='savemsg';
+  try{
+    var oldHash=await sha256Hex(oldPwd);
+    var newHash=await sha256Hex(newPwd);
+    var res=await sheetWrite({action:'changeOwnPassword', userId:session.userId, oldPasswordHash:oldHash, newPasswordHash:newHash}, 20000);
+    btn.disabled=false;
+    if(res && res.success){
+      msgEl.textContent='✅ Password updated.'; msgEl.className='savemsg ok';
+      setTimeout(function(){ var ov=document.getElementById('cpw-ov'); if(ov) ov.remove(); }, 1200);
+    } else {
+      msgEl.textContent=(res&&res.error)||'Could not update password.'; msgEl.className='savemsg err';
+    }
+  }catch(e){
+    btn.disabled=false;
+    msgEl.textContent='Error: '+e.message; msgEl.className='savemsg err';
+  }
+}
+
+// ── Admin: user list ──
+async function loadAdminUserList(){
+  var listEl=document.getElementById('admin-user-list');
+  if(!listEl) return;
+  var session=getSession(); if(!session) return;
+  try{
+    var res=await sheetWrite({action:'listUsers', requestingUserId:session.userId}, 20000);
+    if(!res || !res.success){ listEl.innerHTML='<div style="font-size:11px;color:#e74c3c;text-align:center;padding:8px">'+(res&&res.error||'Could not load users')+'</div>'; return; }
+    if(!res.users.length){ listEl.innerHTML='<div style="font-size:11px;color:var(--t3);text-align:center;padding:8px">No users yet.</div>'; return; }
+    listEl.innerHTML=res.users.map(function(u){
+      return '<div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border)">'
+        +'<div style="flex:1;min-width:0">'
+        +'<div style="font-size:13px;font-weight:700;color:var(--text)">'+esc(u.name)+' <span style="font-size:9px;color:var(--t3);font-weight:400">@'+esc(u.username)+'</span></div>'
+        +'<div style="font-size:10px;color:var(--t3);margin-top:1px">'+esc(u.userType)+(u.passwordChangedDate?' · pwd set '+esc(u.passwordChangedDate.split(' ')[0]):' · never changed password')+'</div>'
+        +'</div>'
+        +'<button onclick="openResetPasswordConfirm(\''+u.userId+'\',\''+esc(u.name)+'\')" style="font-size:10px;font-weight:700;color:#f39c12;background:none;border:1px solid #f39c12;border-radius:8px;padding:6px 8px;cursor:pointer;flex-shrink:0">Reset PW</button>'
+        +'</div>';
+    }).join('');
+  }catch(e){
+    listEl.innerHTML='<div style="font-size:11px;color:#e74c3c;text-align:center;padding:8px">Error: '+e.message+'</div>';
+  }
+}
+
+function esc(s){ var d=document.createElement('div'); d.textContent=s||''; return d.innerHTML; }
+
+// ── Admin: create user ──
+function openCreateUserForm(){
+  var ov=document.createElement('div');
+  ov.id='cu-ov';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.innerHTML='<div style="background:var(--s1);border-radius:12px;width:100%;max-width:340px;overflow:hidden">'
+    +'<div style="padding:16px;font-size:14px;font-weight:800;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">'
+    +'<span>➕ Add User</span><span onclick="document.getElementById(\'cu-ov\').remove()" style="cursor:pointer;color:var(--t2)">✕</span></div>'
+    +'<div style="padding:14px 16px">'
+    +'<input id="cu-name" placeholder="Full name" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--text);font-size:13px;margin-bottom:8px">'
+    +'<input id="cu-username" placeholder="Username (for login)" autocapitalize="none" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--text);font-size:13px;margin-bottom:8px">'
+    +'<select id="cu-type" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--text);font-size:13px;margin-bottom:8px">'
+    +'<option value="MAKER">Maker</option><option value="CHECKER">Checker</option><option value="AUTHORIZER">Authorizer</option><option value="ADMIN">Admin</option>'
+    +'</select>'
+    +'<input id="cu-initpwd" type="password" placeholder="Initial password" autocomplete="new-password" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--text);font-size:13px;margin-bottom:10px">'
+    +'<div style="font-size:10px;color:var(--t3);margin-bottom:10px">The user will be required to change this on their first login.</div>'
+    +'<div id="cu-msg" class="savemsg"></div>'
+    +'<button id="cu-btn" class="btn btn-gold btn-full" onclick="submitCreateUser()">Create User</button>'
+    +'</div></div>';
+  document.body.appendChild(ov);
+}
+async function submitCreateUser(){
+  var name=(document.getElementById('cu-name').value||'').trim();
+  var username=(document.getElementById('cu-username').value||'').trim();
+  var userType=document.getElementById('cu-type').value;
+  var initPwd=(document.getElementById('cu-initpwd').value||'');
+  var msgEl=document.getElementById('cu-msg');
+  var btn=document.getElementById('cu-btn');
+  if(!name||!username||!initPwd){ msgEl.textContent='Fill in all fields.'; msgEl.className='savemsg err'; return; }
+  if(initPwd.length<6){ msgEl.textContent='Initial password must be at least 6 characters.'; msgEl.className='savemsg err'; return; }
+  var session=getSession(); if(!session){ toast('Session expired'); logoutUser(); return; }
+  btn.disabled=true; msgEl.textContent='Creating…'; msgEl.className='savemsg';
+  try{
+    var pwdHash=await sha256Hex(initPwd);
+    var res=await sheetWrite({action:'createUser', requestingUserId:session.userId, name:name, username:username, userType:userType, initialPasswordHash:pwdHash}, 20000);
+    btn.disabled=false;
+    if(res && res.success){
+      msgEl.textContent='✅ User created ('+res.userId+').'; msgEl.className='savemsg ok';
+      loadAdminUserList();
+      setTimeout(function(){ var ov=document.getElementById('cu-ov'); if(ov) ov.remove(); }, 1200);
+    } else {
+      msgEl.textContent=(res&&res.error)||'Could not create user.'; msgEl.className='savemsg err';
+    }
+  }catch(e){
+    btn.disabled=false;
+    msgEl.textContent='Error: '+e.message; msgEl.className='savemsg err';
+  }
+}
+
+// ── Admin: reset another user's password (doesn't need to know the old one) ──
+function openResetPasswordConfirm(targetUserId, targetName){
+  var ov=document.createElement('div');
+  ov.id='rp-ov';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.innerHTML='<div style="background:var(--s1);border-radius:12px;width:100%;max-width:340px;overflow:hidden">'
+    +'<div style="padding:16px;font-size:14px;font-weight:800;border-bottom:1px solid var(--border)">Reset Password — '+esc(targetName)+'</div>'
+    +'<div style="padding:14px 16px">'
+    +'<input id="rp-new" type="password" placeholder="New temporary password" autocomplete="new-password" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--text);font-size:13px;margin-bottom:10px">'
+    +'<div style="font-size:10px;color:var(--t3);margin-bottom:10px">'+esc(targetName)+' will be required to set their own new password the next time they log in.</div>'
+    +'<div id="rp-msg" class="savemsg"></div>'
+    +'<div style="display:flex;gap:8px">'
+    +'<button class="btn btn-ghost" style="flex:1" onclick="document.getElementById(\'rp-ov\').remove()">Cancel</button>'
+    +'<button id="rp-btn" class="btn btn-gold" style="flex:1" onclick="submitResetPassword(\''+targetUserId+'\')">Reset</button>'
+    +'</div></div></div>';
+  document.body.appendChild(ov);
+}
+async function submitResetPassword(targetUserId){
+  var newPwd=(document.getElementById('rp-new').value||'');
+  var msgEl=document.getElementById('rp-msg');
+  var btn=document.getElementById('rp-btn');
+  if(!newPwd||newPwd.length<6){ msgEl.textContent='Enter a password of at least 6 characters.'; msgEl.className='savemsg err'; return; }
+  var session=getSession(); if(!session){ toast('Session expired'); logoutUser(); return; }
+  btn.disabled=true; msgEl.textContent='Resetting…'; msgEl.className='savemsg';
+  try{
+    var newHash=await sha256Hex(newPwd);
+    var res=await sheetWrite({action:'resetUserPassword', requestingUserId:session.userId, targetUserId:targetUserId, newPasswordHash:newHash}, 20000);
+    btn.disabled=false;
+    if(res && res.success){
+      msgEl.textContent='✅ Password reset.'; msgEl.className='savemsg ok';
+      loadAdminUserList();
+      setTimeout(function(){ var ov=document.getElementById('rp-ov'); if(ov) ov.remove(); }, 1200);
+    } else {
+      msgEl.textContent=(res&&res.error)||'Could not reset password.'; msgEl.className='savemsg err';
+    }
+  }catch(e){
+    btn.disabled=false;
+    msgEl.textContent='Error: '+e.message; msgEl.className='savemsg err';
+  }
+}
+
+function logoutUser(){
+  clearSession();
+  location.reload();
+}
+
+// The app's real boot sequence — only runs once a valid session exists,
+// either from a returning login or right after a fresh one completes.
+function startAppAfterAuth(){
+  if(isLockEnabled()){ showLockScreen(); }
+  load();loadActivityLog();loadTasks();bootSequenceV17();
+}
+
+if(getSession()){
+  startAppAfterAuth();
+} else {
+  showLoginScreen();
+}
 // Load cached analytics
 try{_analyticsData=JSON.parse(localStorage.getItem('wm_analytics')||'[]');}catch(e){_analyticsData=[];}
 checkURLParams();
