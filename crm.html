@@ -764,25 +764,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 <!-- ANALYTICS -->
 <div class="page" id="pg-analytics">
   <div class="ph">
-    <div><h1>Insights</h1><div class="sub">Business signals from your live CRM data</div></div>
+    <div><h1>AI Insights</h1><div class="sub">Your top 10, ranked by importance</div></div>
   </div>
   <div style="padding:0 14px 100px">
-
-    <div class="task-card" id="ib-stale-leads" style="border-top:4px solid #e74c3c;cursor:default">
-      <div class="tc-name">🕰️ Stale Leads</div>
-      <div class="tc-details" id="ib-stale-leads-body">Loading…</div>
-    </div>
-
-    <div class="task-card" id="ib-never-contacted" style="border-top:4px solid #f39c12;cursor:default">
-      <div class="tc-name">🚫 Never Contacted</div>
-      <div class="tc-details" id="ib-never-contacted-body">Loading…</div>
-    </div>
-
-    <div class="task-card" id="ib-protection-gaps" style="border-top:4px solid #4FC3F7;cursor:default">
-      <div class="tc-name">🛡️ Protection Gaps</div>
-      <div class="tc-details" id="ib-protection-gaps-body">Loading…</div>
-    </div>
-
+    <div id="top-insights-list"></div>
   </div>
 </div>
 <!-- ^ closes pg-analytics (was missing this closing div — everything after
@@ -3285,6 +3270,10 @@ function renderAll(){
   setTimeout(addSearchClose,100);
 }
 function nav(name,btn){
+  if(name==='analytics' && !isAdmin()){
+    toast('Insights is only available to Admin');
+    name='dash'; btn=null;
+  }
   document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
   document.querySelectorAll('.nb').forEach(function(b){b.classList.remove('active');});
   var pg=document.getElementById('pg-'+name);
@@ -3303,7 +3292,7 @@ function nav(name,btn){
   // Render on page switch
   if(name==='analytics'){
     var sb4=document.getElementById('shared-search-bar'); if(sb4) sb4.style.display='none';
-    loadAllBusinessInsights();
+    confirmAndLoadInsights();
   }
   if(name==='clients'){
     var sb2=document.getElementById('shared-search-bar');
@@ -6006,16 +5995,58 @@ async function toggleInsightsTrigger(){
 // data is in, since deleting individual leads is a deliberate action that
 // should still require a tap — that's different from just reading the insight.
 // ═══════════════════════════════════════════════
-function loadAllBusinessInsights(){
+// Shown every time the user navigates into Insights, before any AI calls
+// fire — cost awareness, since each of the three capsules below makes a
+// real Claude API call. Background refresh calls elsewhere don't re-show
+// this; only an explicit navigation into the page does.
+function confirmAndLoadInsights(){
+  var ov=document.createElement('div');
+  ov.id='ai-cost-ov';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100000;display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.innerHTML='<div style="background:var(--s1);border-radius:12px;width:100%;max-width:320px;overflow:hidden">'
+    +'<div style="padding:16px;font-size:14px;font-weight:800;border-bottom:1px solid var(--border)">🤖 Using AI to analyze</div>'
+    +'<div style="padding:14px 16px;font-size:12px;color:var(--t2);line-height:1.6">You are now using AI for analyzing — this may charge according to your plan.</div>'
+    +'<div style="display:flex;border-top:1px solid var(--border)">'
+    +'<button id="_aic_ok" style="flex:1;padding:12px;border:none;background:none;color:var(--accent);font-weight:700;cursor:pointer">OK</button>'
+    +'</div></div>';
+  document.body.appendChild(ov);
+  document.getElementById('_aic_ok').onclick=function(){
+    ov.remove();
+    loadAllBusinessInsights();
+  };
+}
+
+async function loadAllBusinessInsights(){
+  var listEl=document.getElementById('top-insights-list');
+  if(!listEl) return;
   if(!hasScript()){
-    ['ib-stale-leads-body','ib-never-contacted-body','ib-protection-gaps-body'].forEach(function(id){
-      var el=document.getElementById(id); if(el) el.textContent='Add Apps Script URL first (Settings).';
-    });
+    listEl.innerHTML='<div style="font-size:12px;color:var(--t3);text-align:center;padding:20px">Add Apps Script URL first (Settings).</div>';
     return;
   }
-  loadOneBusinessInsight('staleLeads', 'ib-stale-leads-body', 'generateStaleLeadsInsight');
-  loadOneBusinessInsight('neverContacted', 'ib-never-contacted-body', 'generateNeverContactedInsight');
-  loadOneBusinessInsight('protectionGaps', 'ib-protection-gaps-body', 'generateProtectionGapsInsight');
+  listEl.innerHTML='<div style="font-size:12px;color:var(--t3);text-align:center;padding:20px">Analyzing…</div>';
+  try{
+    var res=await sheetWrite({action:'generateTopBusinessInsights'}, 55000);
+    if(!res || !res.success){
+      listEl.innerHTML='<div style="font-size:12px;color:#e74c3c;text-align:center;padding:20px">Could not load insights: '+(res&&res.error||'unknown error')+'</div>';
+      return;
+    }
+    if(!res.insights || !res.insights.length){
+      listEl.innerHTML='<div style="font-size:12px;color:var(--t3);text-align:center;padding:20px">Nothing urgent to flag right now — everything looks on track.</div>';
+      return;
+    }
+    listEl.innerHTML=res.insights.map(function(item){
+      var initials=ini(item.name);
+      return '<div style="background:#0F1D2E;border:1px solid #1C2B3E;border-top:4px solid #FFFFFF;border-radius:14px;padding:12px 14px;display:flex;gap:12px;align-items:flex-start;margin-bottom:10px;box-shadow:0 8px 20px rgba(0,0,0,.35),0 2px 6px rgba(0,0,0,.28)">'
+        +'<div style="width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,.10);border:1.5px solid #5C6B80;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#FFFFFF;flex-shrink:0">'+initials+'</div>'
+        +'<div style="flex:1;min-width:0">'
+        +'<div style="font-size:15px;font-weight:800;color:var(--text)">'+esc(toTitle(item.name))+(item.familyName?' <span style="font-weight:600;color:var(--t2);font-size:12px">- '+esc(item.familyName)+'</span>':'')+'</div>'
+        +'<div style="font-size:12px;color:var(--t2);line-height:1.5;margin-top:4px">'+esc(item.insight)+'</div>'
+        +'</div>'
+        +'</div>';
+    }).join('');
+  }catch(e){
+    listEl.innerHTML='<div style="font-size:12px;color:#e74c3c;text-align:center;padding:20px">Could not load insights: '+e.message+'</div>';
+  }
 }
 
 async function loadOneBusinessInsight(type, bodyId, action){
@@ -6025,19 +6056,11 @@ async function loadOneBusinessInsight(type, bodyId, action){
     var res=await sheetWrite({action:action}, 55000);
     if(!el) return; // user navigated away before this resolved
     if(res && res.success){
-      el.textContent=res.insight;
       if(type==='staleLeads' && res.list && res.list.length){
         window._staleLeadsList=res.list;
-        var card=document.getElementById('ib-stale-leads');
-        if(card && !document.getElementById('ib-stale-leads-listbtn')){
-          var btn=document.createElement('button');
-          btn.id='ib-stale-leads-listbtn';
-          btn.className='btn btn-gold';
-          btn.style.cssText='font-size:12px;width:100%;margin-top:10px';
-          btn.textContent='📋 View & Manage List ('+res.list.length+')';
-          btn.onclick=function(e){ e.stopPropagation(); showStaleLeadsListPopup(); };
-          card.appendChild(btn);
-        }
+        renderStaleLeadsBody(el, res.insight, res.list);
+      } else {
+        el.textContent=res.insight;
       }
     } else {
       el.textContent='Could not load: '+(res&&res.error||'unknown error');
@@ -6045,6 +6068,52 @@ async function loadOneBusinessInsight(type, bodyId, action){
   }catch(e){
     if(el) el.textContent='Could not load: '+e.message;
   }
+}
+
+// Builds the Stale Leads capsule body as a real structured list — top 3
+// shown directly, "Show More" expands the rest — matching the app's own
+// row styling, rather than leaving this as plain AI-written text.
+function renderStaleLeadsBody(el, insightText, list){
+  var top3=list.slice(0,3);
+  var rest=list.slice(3);
+  function rowHtml(l){
+    return '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">'
+      +'<div style="flex:1;min-width:0">'
+      +'<div style="font-size:12px;font-weight:700;color:var(--text)">'+esc(toTitle(l.name))+'</div>'
+      +'<div style="font-size:10px;color:var(--t3);margin-top:1px">'+esc(l.status)+' · '+l.daysStale+' days stale'+(l.potentialAum?' · AUM '+esc(l.potentialAum):'')+'</div>'
+      +'</div>'
+      +'</div>';
+  }
+  var html='<div style="font-size:12px;color:var(--text);line-height:1.6;margin-bottom:10px">'+esc(insightText)+'</div>'
+    +'<div id="sl-top3-rows">'+top3.map(rowHtml).join('')+'</div>';
+  if(rest.length){
+    html+='<div id="sl-rest-rows" style="display:none">'+rest.map(rowHtml).join('')+'</div>'
+      +'<div id="sl-showmore-wrap" style="text-align:center;padding-top:8px">'
+      +'<span id="sl-showmore-btn" onclick="toggleStaleLeadsShowMore()" style="font-size:11px;color:var(--accent);font-weight:700;cursor:pointer">Show '+rest.length+' more ▾</span>'
+      +'</div>';
+  }
+  el.innerHTML=html;
+  // View & Manage List button (delete-capable drill-down) — added once, below the capsule body
+  var card=document.getElementById('ib-stale-leads');
+  if(card && !document.getElementById('ib-stale-leads-listbtn')){
+    var btn=document.createElement('button');
+    btn.id='ib-stale-leads-listbtn';
+    btn.className='btn btn-gold';
+    btn.style.cssText='font-size:12px;width:100%;margin-top:10px';
+    btn.textContent='📋 View & Manage List ('+list.length+')';
+    btn.onclick=function(e){ e.stopPropagation(); showStaleLeadsListPopup(); };
+    card.appendChild(btn);
+  }
+}
+
+function toggleStaleLeadsShowMore(){
+  var restEl=document.getElementById('sl-rest-rows');
+  var btnEl=document.getElementById('sl-showmore-btn');
+  if(!restEl || !btnEl) return;
+  var showing=restEl.style.display==='block';
+  restEl.style.display=showing?'none':'block';
+  var restCount=(window._staleLeadsList||[]).length-3;
+  btnEl.textContent=showing?('Show '+restCount+' more ▾'):'Show less ▴';
 }
 
 // Delete-capable drill-down for Stale Leads specifically — reuses the
@@ -9412,6 +9481,7 @@ function renderTodaysActivity(){
   var el=document.getElementById('dash-todays-activity');
   if(!el) return;
   var now=new Date();
+  now.setHours(0,0,0,0); // normalize to midnight — this is a calendar-day comparison, not a 24-hour-period one. Without this, exact-day checks (like the SIP due trigger below) silently break depending on what time of day the app happens to be opened.
   var todayStr=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
   var items=[];
 
@@ -9979,6 +10049,10 @@ function logoutUser(){
 function startAppAfterAuth(){
   if(isLockEnabled()){ showLockScreen(); }
   load();loadActivityLog();loadTasks();bootSequenceV17();
+  if(!isAdmin()){
+    var navBtn=document.getElementById('nav-analytics'); if(navBtn) navBtn.style.display='none';
+    var sideBtn=document.getElementById('sidebar-nav-analytics'); if(sideBtn) sideBtn.style.display='none';
+  }
 }
 
 // Config (specifically the Apps Script URL) must be read BEFORE the login
