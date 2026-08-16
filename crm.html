@@ -442,6 +442,15 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <input id="login-password" type="password" placeholder="Password" autocomplete="current-password" style="width:100%;background:#111;border:1px solid #2A2A2A;border-radius:10px;padding:13px 14px;color:#fff;font-size:14px;margin-bottom:14px">
     <div id="login-error" style="font-size:12px;color:#e74c3c;margin-bottom:10px;display:none"></div>
     <button id="login-submit-btn" onclick="attemptLogin()" style="width:100%;background:#FFFFFF;color:#000;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:800;cursor:pointer">Sign In</button>
+    <div style="text-align:center;margin-top:16px">
+      <span onclick="toggleLoginSetupForm()" style="font-size:11px;color:#666;text-decoration:underline;cursor:pointer">⚙️ App not connected yet? Set up connection</span>
+    </div>
+    <div id="login-setup-form" style="display:none;margin-top:12px;padding-top:14px;border-top:1px solid #2A2A2A">
+      <div style="font-size:11px;color:#999;margin-bottom:8px">Paste the Apps Script Web App URL (from Deploy → Manage deployments) to connect this app to your sheet.</div>
+      <input id="login-setup-url" placeholder="https://script.google.com/macros/s/.../exec" autocapitalize="none" style="width:100%;background:#111;border:1px solid #2A2A2A;border-radius:10px;padding:11px 12px;color:#fff;font-size:12px;margin-bottom:8px">
+      <div id="login-setup-msg" style="font-size:11px;margin-bottom:8px;display:none"></div>
+      <button onclick="saveLoginSetupUrl()" style="width:100%;background:none;border:1px solid #FFFFFF;color:#fff;border-radius:10px;padding:10px;font-size:12px;font-weight:700;cursor:pointer">Save Connection</button>
+    </div>
   </div>
 </div>
 
@@ -9671,11 +9680,44 @@ function isAdmin(){ return currentUserType()==='ADMIN'; }
 function showLoginScreen(){
   var ls=document.getElementById('login-screen');
   if(ls) ls.style.display='flex';
-  setTimeout(function(){ var u=document.getElementById('login-username'); if(u) u.focus(); }, 100);
+  if(!hasScript()){
+    // No connection configured at all yet — this is very likely a fresh
+    // deployment. Show the setup form immediately instead of making someone
+    // find and tap a small link first; login is meaningless without this anyway.
+    var sf=document.getElementById('login-setup-form');
+    if(sf) sf.style.display='block';
+  } else {
+    setTimeout(function(){ var u=document.getElementById('login-username'); if(u) u.focus(); }, 100);
+  }
 }
 function hideLoginScreen(){
   var ls=document.getElementById('login-screen');
   if(ls) ls.style.display='none';
+}
+function toggleLoginSetupForm(){
+  var sf=document.getElementById('login-setup-form');
+  if(!sf) return;
+  var showing=sf.style.display==='block';
+  sf.style.display=showing?'none':'block';
+  if(!showing){
+    var u=document.getElementById('login-setup-url');
+    if(u){ u.value=cfg_.scriptUrl||''; setTimeout(function(){u.focus();},50); }
+  }
+}
+function saveLoginSetupUrl(){
+  var urlEl=document.getElementById('login-setup-url');
+  var msgEl=document.getElementById('login-setup-msg');
+  var url=(urlEl?urlEl.value:'').trim();
+  if(!url || !url.includes('script.google.com')){
+    if(msgEl){ msgEl.textContent='That doesn\'t look like a valid Apps Script URL.'; msgEl.style.color='#e74c3c'; msgEl.style.display='block'; }
+    return;
+  }
+  cfg('scriptUrl', url); // same save mechanism Settings uses — this app has one config store, not a separate one for this form
+  if(msgEl){ msgEl.textContent='✅ Connection saved. You can sign in now.'; msgEl.style.color='#2ecc71'; msgEl.style.display='block'; }
+  setTimeout(function(){
+    var sf=document.getElementById('login-setup-form'); if(sf) sf.style.display='none';
+    var u=document.getElementById('login-username'); if(u) u.focus();
+  }, 1000);
 }
 
 async function attemptLogin(){
@@ -9938,6 +9980,15 @@ function startAppAfterAuth(){
   if(isLockEnabled()){ showLockScreen(); }
   load();loadActivityLog();loadTasks();bootSequenceV17();
 }
+
+// Config (specifically the Apps Script URL) must be read BEFORE the login
+// decision — hasScript() is checked both by showLoginScreen()'s auto-setup
+// logic and by attemptLogin() itself, and until now cfg_ stayed empty until
+// AFTER a successful login (it was only loaded inside load(), which only
+// runs post-auth). That meant hasScript() always reported false at the
+// login screen even on a device that already had a saved connection —
+// this is what was actually causing "not able to login" reports.
+try{ cfg_=JSON.parse(localStorage.getItem('wm_cfg')||'{}'); }catch(e){ cfg_={}; }
 
 if(getSession()){
   startAppAfterAuth();
