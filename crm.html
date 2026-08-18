@@ -539,10 +539,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 <!-- DASHBOARD -->
 <div class="page active" id="pg-dash">
   <div class="ph">
-    <div style="display:flex;align-items:center;gap:8px">
-      <div style="width:32px;height:32px;background:var(--accent);border-radius:4px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.5)"><span style="font-size:12px;font-weight:900;color:#000;letter-spacing:.5px">WM</span></div>
-      <div><div style="font-size:15px;font-weight:900">Wealth Matrix</div><div style="font-size:9px;color:var(--t3);letter-spacing:1px;text-transform:uppercase">Prosper With Purpose</div></div>
-    </div>
+    <div><h1>Dash</h1></div>
   </div>
 
   <!-- 4 count tiles: 2x2 grid -->
@@ -6144,32 +6141,32 @@ function pickChipSubset(n, excludeLabels){
   var shuffled=pool.slice().sort(function(){ return Math.random()-0.5; });
   return shuffled.slice(0,n);
 }
-function renderChatChips(items){
-  var grid=document.getElementById('chat-chip-grid');
+function renderChatChips(items, targetId){
+  var grid=document.getElementById(targetId||'chat-chip-grid');
   if(!grid) return;
   grid.innerHTML=items.map(function(item,i){
-    return '<span class="chip chat-chip-in" style="animation-delay:'+(i*.07)+'s" onclick="askQuickChat(\''+item.q.replace(/'/g,"\\'")+'\')">'+esc(item.label)+'</span>';
+    return '<span class="chip chat-chip-in" style="animation-delay:'+(i*.07)+'s;font-size:10.5px;padding:6px 12px" onclick="askQuickChat(\''+item.q.replace(/'/g,"\\'")+'\')">'+esc(item.label)+'</span>';
   }).join('');
 }
 function startChatChipCarousel(){
   var current=pickChipSubset(4);
-  renderChatChips(current);
-  scheduleNextChipRotation(current.map(function(i){return i.label;}));
+  renderChatChips(current, 'chat-chip-grid');
+  scheduleNextChipRotation(current.map(function(i){return i.label;}), 'chat-chip-grid');
 }
-function scheduleNextChipRotation(currentLabels){
+function scheduleNextChipRotation(currentLabels, targetId){
   if(_chatChipTimer) clearTimeout(_chatChipTimer);
   _chatChipTimer=setTimeout(function(){
     if(_chatChipsStopped || _chatChipsPaused) return;
-    var grid=document.getElementById('chat-chip-grid');
-    if(!grid) return;
+    var grid=document.getElementById(targetId);
+    if(!grid) return; // target scrolled away/removed — stop quietly
     grid.style.transition='opacity .3s ease';
     grid.style.opacity='0';
     setTimeout(function(){
       if(_chatChipsStopped || _chatChipsPaused) return;
       var next=pickChipSubset(4, currentLabels);
-      renderChatChips(next);
+      renderChatChips(next, targetId);
       grid.style.opacity='1';
-      scheduleNextChipRotation(next.map(function(i){return i.label;}));
+      scheduleNextChipRotation(next.map(function(i){return i.label;}), targetId);
     }, 320);
   }, 6500); // a calmer, less busy pace than a typical consumer-app carousel
 }
@@ -6178,24 +6175,65 @@ function stopChatChipCarousel(){
   if(_chatChipTimer) clearTimeout(_chatChipTimer);
 }
 
+// ── Follow-up chip rotation — same mechanism as the landing-page carousel,
+// but scoped to whichever reply's chip row is currently latest. Only ONE
+// row ever rotates at a time: starting a new one always stops the previous
+// one first, so a growing conversation never accumulates multiple background
+// timers (the exact mistake fixed earlier for the idle landing-page carousel). ──
+var _followUpChipTimer=null;
+function startFollowUpChipRotation(targetId){
+  stopFollowUpChipRotation();
+  _lastFollowUpChipRowId=targetId;
+  var current=pickChipSubset(4);
+  renderChatChips(current, targetId);
+  scheduleFollowUpRotation(current.map(function(i){return i.label;}), targetId);
+}
+function scheduleFollowUpRotation(currentLabels, targetId){
+  _followUpChipTimer=setTimeout(function(){
+    var grid=document.getElementById(targetId);
+    if(!grid) return; // this reply's row is gone (a newer one took over) — stop quietly
+    grid.style.transition='opacity .3s ease';
+    grid.style.opacity='0';
+    setTimeout(function(){
+      var g2=document.getElementById(targetId);
+      if(!g2) return;
+      var next=pickChipSubset(4, currentLabels);
+      renderChatChips(next, targetId);
+      g2.style.opacity='1';
+      scheduleFollowUpRotation(next.map(function(i){return i.label;}), targetId);
+    }, 320);
+  }, 5000);
+}
+function stopFollowUpChipRotation(){
+  if(_followUpChipTimer){ clearTimeout(_followUpChipTimer); _followUpChipTimer=null; }
+}
+
 // ── Pause/resume — distinct from stop. Stop is permanent (the user actually
 // engaged with the chat). Pause is temporary (they just navigated to a
 // different tab) — the whole point is these background timers shouldn't
 // keep firing invisibly while the user is looking at Leads or Clients. ──
 var _chatChipsPaused=false;
+var _followUpPaused=false;
+var _lastFollowUpChipRowId=null;
 function pauseChatIdleAnimations(){
   _chatChipsPaused=true;
   _chatPlaceholderPaused=true;
   if(_chatChipTimer){ clearTimeout(_chatChipTimer); _chatChipTimer=null; }
   if(_chatPlaceholderTimer){ clearTimeout(_chatPlaceholderTimer); _chatPlaceholderTimer=null; }
+  if(_followUpChipTimer){ _followUpPaused=true; stopFollowUpChipRotation(); }
 }
 function resumeChatIdleAnimations(){
-  // Only resume if the chat was actually unlocked and never permanently
-  // stopped (i.e. the user hasn't sent a message yet) — otherwise there's
-  // nothing to resume, or resuming would fight with a live conversation.
-  if(!window._chatUnlocked || _chatChipsStopped) return;
-  if(_chatChipsPaused){ _chatChipsPaused=false; startChatChipCarousel(); }
-  if(_chatPlaceholderPaused){ _chatPlaceholderPaused=false; startChatPlaceholderCycle(); }
+  if(!window._chatUnlocked) return;
+  // Landing-page carousel only resumes if the conversation hasn't started yet.
+  if(_chatChipsPaused && !_chatChipsStopped){ _chatChipsPaused=false; startChatChipCarousel(); }
+  if(_chatPlaceholderPaused && !_chatPlaceholderStopped){ _chatPlaceholderPaused=false; startChatPlaceholderCycle(); }
+  // Follow-up rotation resumes regardless — it's specifically for mid-conversation.
+  if(_followUpPaused){
+    _followUpPaused=false;
+    if(_lastFollowUpChipRowId && document.getElementById(_lastFollowUpChipRowId)){
+      startFollowUpChipRotation(_lastFollowUpChipRowId);
+    }
+  }
 }
 
 var _chatPlaceholderPaused=false;
@@ -6252,11 +6290,17 @@ function appendChatBubble(role, text){
     bubble.innerHTML='<div style="background:#FFFFFF;color:#000;border-radius:14px 14px 3px 14px;padding:10px 13px;font-size:13px;max-width:80%;line-height:1.5;font-weight:600">'+esc(text)+'</div>';
   } else {
     bubble.style.cssText='display:flex;flex-direction:column;align-items:flex-start;margin-bottom:10px';
+    // Follow-up chips — auto-rotate every 5s to a fresh set, same mechanism as
+    // the landing-page carousel, so scrolling through them over time shows the
+    // range of what can be asked. Only the LATEST reply's row ever rotates —
+    // starting this one automatically stops whichever reply was rotating before.
+    var chipRowId='chat-followup-'+Date.now();
     bubble.innerHTML='<div style="background:var(--s1);border:1px solid var(--border);color:var(--text);border-radius:14px 14px 14px 3px;padding:10px 13px;font-size:13px;max-width:85%;line-height:1.6;white-space:pre-wrap">'+esc(text)+'</div>'
-      +'<span onclick="nav(\'dash\',null)" style="margin-top:6px;margin-left:2px;font-size:11px;font-weight:700;color:var(--t3);cursor:pointer;display:flex;align-items:center;gap:4px">🏠 Main Menu</span>';
+      +'<div id="'+chipRowId+'" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;max-width:95%;min-height:26px"></div>';
   }
   container.appendChild(bubble);
   setTimeout(function(){ bubble.scrollIntoView({behavior:'smooth', block:'end'}); }, 50);
+  if(role==='assistant' && typeof chipRowId!=='undefined'){ startFollowUpChipRotation(chipRowId); }
   return bubble;
 }
 
