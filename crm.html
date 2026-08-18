@@ -490,6 +490,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <button id="global-refresh-btn" onclick="manualTopBarRefresh()" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.06);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer" aria-label="Refresh">
       <svg id="global-refresh-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--t2)" stroke-width="2.3"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
     </button>
+    <button onclick="nav('settings',null)" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.06);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer" aria-label="Settings">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--t2)" stroke-width="2.3"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+    </button>
     <button id="global-logout-btn" onclick="confirmLogout()" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.06);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer" aria-label="Log out">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#e74c3c" stroke-width="2.3"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
     </button>
@@ -539,10 +542,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div style="display:flex;align-items:center;gap:8px">
       <div style="width:32px;height:32px;background:var(--accent);border-radius:4px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.5)"><span style="font-size:12px;font-weight:900;color:#000;letter-spacing:.5px">WM</span></div>
       <div><div style="font-size:15px;font-weight:900">Wealth Matrix</div><div style="font-size:9px;color:var(--t3);letter-spacing:1px;text-transform:uppercase">Prosper With Purpose</div></div>
-    </div>
-    <div style="display:flex;align-items:center;gap:8px">
-      <button onclick="manualSync()" style="background:none;border:none;cursor:pointer;font-size:16px">🔄</button>
-      <span style="font-size:9px;font-weight:700;color:var(--accent);background:var(--accent2);padding:2px 7px;border-radius:999px;border:1px solid var(--accent)">v5.0.0</span>
     </div>
   </div>
 
@@ -859,13 +858,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     </span>
     <span style="color:#3FA073;font-weight:800">Insights</span>
   </button>
-  <button class="nb sidebar-nb" onclick="nav('settings',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg><span>Settings</span></button>
 </aside>
 
 <nav id="nav">
   <button class="nb" onclick="nav('leads',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>Leads</button>
   <button class="nb active" onclick="nav('dash',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dash</button>
-  <button class="nb" onclick="nav('tasks',this)" id="nav-tasks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>Task</button>
   <button class="nb" onclick="nav('analytics',this)" id="nav-analytics" style="gap:1px;position:relative">
     <span style="position:absolute;top:-22px;left:50%;transform:translateX(-50%);width:52px;height:52px;border-radius:50%;background:linear-gradient(145deg,#3FA073,#2C7A57);border:3px solid var(--bg);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(47,150,105,.5)">
       <svg width="26" height="26" viewBox="0 0 24 24" fill="#FFFFFF"><path d="M12 2c.3 3.5 1.3 6 3 7.5S19 12 22 12c-3 0-5.3.9-7 2.5S12.3 18.5 12 22c-.3-3.5-1.3-6-3-7.5S4 12 2 12c3 0 5.3-.9 7-2.5S11.7 5.5 12 2z"/></svg>
@@ -873,9 +870,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <span style="height:30px"></span>
     <span style="font-size:10px;font-weight:800;color:#3FA073">Insights</span>
   </button>
+  <button class="nb" onclick="nav('tasks',this)" id="nav-tasks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>Task</button>
   <button class="nb" onclick="nav('clients',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Clients</button>
-
-  <button class="nb" onclick="nav('settings',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Settings</button>
 </nav>
 
 <!-- FOLLOW-UP DETAIL OVERLAY -->
@@ -6255,8 +6251,9 @@ function appendChatBubble(role, text){
     bubble.style.cssText='display:flex;justify-content:flex-end;margin-bottom:10px';
     bubble.innerHTML='<div style="background:#FFFFFF;color:#000;border-radius:14px 14px 3px 14px;padding:10px 13px;font-size:13px;max-width:80%;line-height:1.5;font-weight:600">'+esc(text)+'</div>';
   } else {
-    bubble.style.cssText='display:flex;justify-content:flex-start;margin-bottom:10px';
-    bubble.innerHTML='<div style="background:var(--s1);border:1px solid var(--border);color:var(--text);border-radius:14px 14px 14px 3px;padding:10px 13px;font-size:13px;max-width:85%;line-height:1.6;white-space:pre-wrap">'+esc(text)+'</div>';
+    bubble.style.cssText='display:flex;flex-direction:column;align-items:flex-start;margin-bottom:10px';
+    bubble.innerHTML='<div style="background:var(--s1);border:1px solid var(--border);color:var(--text);border-radius:14px 14px 14px 3px;padding:10px 13px;font-size:13px;max-width:85%;line-height:1.6;white-space:pre-wrap">'+esc(text)+'</div>'
+      +'<span onclick="nav(\'dash\',null)" style="margin-top:6px;margin-left:2px;font-size:11px;font-weight:700;color:var(--t3);cursor:pointer;display:flex;align-items:center;gap:4px">🏠 Main Menu</span>';
   }
   container.appendChild(bubble);
   setTimeout(function(){ bubble.scrollIntoView({behavior:'smooth', block:'end'}); }, 50);
