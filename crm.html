@@ -8609,6 +8609,21 @@ function sipReminderKey(mob){ return 'wm_sip_'+today()+'_'+mob; } // YYYY-MM-DD 
 function markSipReminderSent(mob){ localStorage.setItem(sipReminderKey(mob),'1'); }
 function isSipReminderSent(mob){ return !!localStorage.getItem(sipReminderKey(mob)); }
 
+// ── SIP debit verification tracking — separate from the reminder above.
+// This is the "did the SIP actually go through?" check that appears 7 days
+// AFTER the SIP date, to catch bounced/missed SIPs (insufficient funds etc).
+// Keyed by year-month + mobile + which SIP date, so confirming this month's
+// SIP correctly clears it for this month only and it returns next month.
+// Both "Confirmed" and "Returned SIP" mark it done — the difference is that
+// Returned also opens a WhatsApp draft to the client. ──
+function sipVerifyKey(mob, sipDay){
+  var d=new Date();
+  var ym=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+  return 'wm_sipverify_'+ym+'_'+mob+'_'+sipDay;
+}
+function markSipVerified(mob, sipDay){ localStorage.setItem(sipVerifyKey(mob, sipDay),'1'); }
+function isSipVerified(mob, sipDay){ return !!localStorage.getItem(sipVerifyKey(mob, sipDay)); }
+
 
 // Show clickable list when a dash tile is tapped
 // ── Lead pipeline funnel — desktop-only visual, built from the same lead
@@ -10047,8 +10062,46 @@ function renderTodaysActivity(){
           return toTitle(c.name)+' ('+dates.join(' & ')+')';
         }).join(' · '),
         list:sipDue, listType:'sip'});
+    } else {
+      // Nothing due — say so explicitly rather than showing nothing at all.
+      // Silence is ambiguous (did the check run? is it broken?); an explicit
+      // all-clear confirms the check actually ran and found nothing.
+      items.push({icon:'💰',color:'#4FC3F7',bg:'rgba(79,195,247,.06)',
+        title:'No SIP due in the next 5 days',
+        sub:'All clear — nothing to follow up on right now.',
+        list:null, listType:'sipNone'});
     }
   }catch(e){ console.warn('Today\'s Activity — SIP due section failed:', e.message); }
+
+  // ── 4b. SIP debit verification — fires exactly 7 days AFTER the SIP date,
+  // to catch SIPs that bounced (insufficient funds, mandate issues, etc).
+  // e.g. SIP on the 7th → this appears on the 14th. Checks SIP Date 1 and 2
+  // independently, and skips any already confirmed/marked-returned this month. ──
+  try{
+    var sipVerify=[];
+    clients.forEach(function(c){
+      [{day:c.sipDate, which:'1'},{day:c.sipDate2, which:'2'}].forEach(function(s){
+        if(!s.day) return;
+        var day=parseInt(s.day);
+        if(!day||day<1||day>28) return;
+        // How many days since this month's SIP date? (Exactly 7 = show it.)
+        var nowD=new Date(); nowD.setHours(0,0,0,0);
+        var thisMonthSip=new Date(nowD.getFullYear(), nowD.getMonth(), day);
+        var daysSince=Math.round((nowD-thisMonthSip)/86400000);
+        if(daysSince!==7) return;
+        if(isSipVerified(c.mobile, s.which)) return; // already handled this month
+        sipVerify.push({client:c, sipDay:day, which:s.which});
+      });
+    });
+    if(sipVerify.length){
+      items.push({icon:'🔍',color:'#e67e22',bg:'rgba(230,126,34,.08)',
+        title:'Verify SIP debited — '+sipVerify.length+' client'+(sipVerify.length>1?'s':''),
+        sub:sipVerify.map(function(v){
+          return toTitle(v.client.name)+' (SIP was on '+v.sipDay+'th)';
+        }).join(' · '),
+        list:sipVerify, listType:'sipVerify'});
+    }
+  }catch(e){ console.warn('Today\'s Activity — SIP verification section failed:', e.message); }
 
   // ── 5. Review due TODAY (forward-looking reviews now live in Planning Nudges, next 14 days) ──
   try{
@@ -10147,6 +10200,19 @@ function showTodaysActivityList(idx){
         +'<div style="font-size:10px;color:'+(isBday?'#25D366':'#4FC3F7')+';margin-top:2px">'+(isBday?'Birthday':ev.time)+'</div></div>'
         +'</div>';
     }).join('');
+  } else if(item.listType==='sipVerify'){
+    // Each entry carries the client plus which SIP date it refers to, so the
+    // two action buttons can mark exactly that one as handled for this month.
+    rows=item.list.map(function(v,vi){
+      var c=v.client;
+      return '<div id="sipv-row-'+vi+'" style="padding:12px 14px;border-bottom:1px solid var(--border)">'
+        +'<div style="font-size:13px;font-weight:700;color:var(--text)">'+toTitle(c.name)+'</div>'
+        +'<div style="font-size:11px;color:var(--t2);margin-top:3px;line-height:1.5">SIP of '+toTitle(c.name)+' was on '+v.sipDay+'th — check whether it is debited.</div>'
+        +'<div style="display:flex;gap:7px;margin-top:9px">'
+        +'<button class="sipv-confirm" data-vi="'+vi+'" style="flex:1;font-size:11px;font-weight:700;padding:7px;border-radius:8px;border:1px solid rgba(46,204,113,.4);background:rgba(46,204,113,.1);color:#2ecc71;cursor:pointer">✅ Confirmed</button>'
+        +'<button class="sipv-returned" data-vi="'+vi+'" style="flex:1;font-size:11px;font-weight:700;padding:7px;border-radius:8px;border:1px solid rgba(231,76,60,.4);background:rgba(231,76,60,.1);color:#e74c3c;cursor:pointer">↩️ Returned SIP</button>'
+        +'</div></div>';
+    }).join('');
   } else {
     rows=item.list.map(function(c){
       var wn=(c.mobile||'').replace(/\D/g,'');wn=wn.length===10?'91'+wn:wn;
@@ -10172,6 +10238,32 @@ function showTodaysActivityList(idx){
   document.body.appendChild(ov);
   document.getElementById('_talClose').onclick=function(){ov.remove();};
   ov.addEventListener('click',function(e){
+    // ── SIP verification actions ──
+    var confirmBtn=e.target.closest('.sipv-confirm');
+    var returnedBtn=e.target.closest('.sipv-returned');
+    if(confirmBtn||returnedBtn){
+      var vi=parseInt((confirmBtn||returnedBtn).dataset.vi);
+      var v=item.list[vi];
+      if(!v) return;
+      markSipVerified(v.client.mobile, v.which); // both actions mark it handled for this month
+      if(returnedBtn){
+        // Returned — log it, then open a WhatsApp draft to the client.
+        logActivity(v.client.mobile,'client','SIP Returned','SIP of '+v.sipDay+'th returned — client notified');
+        var wn=(v.client.mobile||'').replace(/\D/g,''); wn=wn.length===10?'91'+wn:wn;
+        var msg='Dear '+toTitle(v.client.name)+',\nYour SIP has been returned. Please check and revert\nThanks\nArjun';
+        window.open('https://wa.me/'+wn+'?text='+encodeURIComponent(msg),'_blank');
+      } else {
+        logActivity(v.client.mobile,'client','SIP Confirmed','SIP of '+v.sipDay+'th confirmed as debited');
+      }
+      // Remove just this row; close the whole popup once none are left.
+      var rowEl=document.getElementById('sipv-row-'+vi);
+      if(rowEl) rowEl.remove();
+      if(!ov.querySelectorAll('[id^="sipv-row-"]').length){
+        ov.remove();
+        renderTodaysActivity(); // refresh the dashboard card so the entry disappears
+      }
+      return;
+    }
     var waBtn=e.target.closest('.rem-wa-btn');
     if(waBtn){ var _wt=waBtn.dataset.rwaq; if(_wt==='review')_wt='cas'; if(_wt==='stale90')_wt='greet'; sendWAQuick(waBtn.dataset.rwanum, _wt, waBtn.dataset.rmob); if(_wt==='greet'&&waBtn.dataset.rmob)promptUpdateLastContacted(waBtn.dataset.rmob,'WhatsApp'); return; }
     var row=e.target.closest('.tal-row');
