@@ -11,53 +11,66 @@
 <meta name="apple-mobile-web-app-title" content="WM CRM">
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-192.png">
-<meta name="theme-color" content="#000000">
+<meta name="theme-color" content="#0A1830">
 <title>Wealth Matrix CRM v5.0.0</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
-  /* Wealth Matrix — Black base, navy surfaces, white as the single accent. No crimson. */
-  --bg:#000000;
-  --s1:#0F1D2E;
-  --s2:#16283D;
-  --s3:#1C3347;
-  --border:#1C2B3E;
-  --border2:#2A3F56;
-  --accent:#FFFFFF;
+  /* ═══════════════════════════════════════════════════════════
+     WEALTH MATRIX THEME — every color in the app is defined here
+     and nowhere else that matters. To white-label this app for a
+     different firm, change ONLY the values below — every screen,
+     every capsule, every button updates automatically. Nothing
+     else in this file should need to change for a rebrand.
+     Direction: royal navy base, light blue for color/border areas,
+     white reserved for contrast.
+     ═══════════════════════════════════════════════════════════ */
+  --bg:#0A1830;                        /* base background — royal navy */
+  --s1:#0F2140;                        /* primary card/panel surface */
+  --s2:#132848;                        /* alternating row surface */
+  --s3:#183050;                        /* elevated/nested surface */
+  --border:#2E5C8A;                    /* hairline dividers — light blue */
+  --border2:#4A8FC7;                   /* stronger border, for emphasis — light blue */
+  --accent:#FFFFFF;                    /* contrast color — used for primary buttons/CTAs */
   --accent2:rgba(255,255,255,.12);
   --accent-light:#FFFFFF;
-  --gold:#FFFFFF;
+  --gold:#FFFFFF;                      /* alias of --accent, kept for existing references */
   --gold2:rgba(255,255,255,.12);
-  --text:#FFFFFF;
-  --t2:#8A9AB0;
-  --t3:#5C6B80;
-  --green:#FFFFFF;
-  --gdim:rgba(255,255,255,.12);
-  --blue:#FFFFFF;
-  --bdim:rgba(255,255,255,.10);
-  --orange:#FFFFFF;
-  --odim:rgba(255,255,255,.10);
-  --red:#FFFFFF;
-  --rdim:rgba(255,255,255,.15);
-  --purple:#8A9AB0;
-  --pdim:rgba(138,154,176,.12);
-  --dropped:#5C6B80;
-  --droppeddim:rgba(92,107,128,.15);
+  --text:#FFFFFF;                      /* primary text — white, for contrast against navy */
+  --t2:#8FB4DC;                        /* secondary text — light blue tint */
+  --t3:#5D7A9E;                        /* tertiary text / captions — dimmer light blue */
+  --green:#4C9A6A;                     /* success — muted, not acid-bright */
+  --gdim:rgba(76,154,106,.14);
+  --blue:#4A8FC7;                      /* info — light blue, matching the theme */
+  --bdim:rgba(74,143,199,.14);
+  --orange:#C08A3E;                    /* warning — warm amber */
+  --odim:rgba(192,138,62,.14);
+  --red:#C1553D;                       /* danger — reserved for genuine urgency, never decorative */
+  --rdim:rgba(193,85,61,.15);
+  --purple:#8A7CA8;
+  --pdim:rgba(138,124,168,.12);
+  --dropped:#5D7A9E;
+  --droppeddim:rgba(100,108,119,.15);
   --r:12px;--r2:8px;
+  --font-display:'Fraunces',Georgia,serif;  /* page titles only — restrained, not decorative */
+  --font-body:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;  /* everything else — data, labels, UI */
   --shell-w:520px; /* adaptive shell width — widened at tablet/desktop breakpoints below */
 }
-html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;overscroll-behavior:none;-webkit-font-smoothing:antialiased;transition:background .2s,color .2s}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:14px;overscroll-behavior:none;-webkit-font-smoothing:antialiased;transition:background .2s,color .2s}
 #app{display:flex;flex-direction:column;height:100dvh;height:100vh;max-width:var(--shell-w);margin:0 auto;position:relative;overflow-x:hidden}
-#content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:calc(72px + env(safe-area-inset-bottom, 10px));padding-top:calc(46px + env(safe-area-inset-top,0px))}
-#nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:calc(100% - 24px);max-width:calc(var(--shell-w) - 24px);background:rgba(12,20,32,.97);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--border);border-radius:14px 14px 0 0;display:flex;justify-content:center;z-index:100;padding:6px 16px env(safe-area-inset-bottom,8px);min-height:60px;gap:2px}
-.nb{flex:1;max-width:68px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 2px;font-size:10px;font-weight:700;color:var(--t3);cursor:pointer;border:none;background:none;gap:3px;transition:color .2s,background .2s;border-radius:14px}
+#content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:calc(96px + env(safe-area-inset-bottom, 10px));padding-top:calc(46px + env(safe-area-inset-top,0px))}
+#nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:calc(100% - 24px);max-width:calc(var(--shell-w) - 24px);background:rgba(12,20,32,.97);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--border);border-radius:14px 14px 0 0;display:flex;justify-content:center;z-index:100;padding:8px 21px env(safe-area-inset-bottom,8px);min-height:80px;gap:2px}
+.nb{flex:1;max-width:90px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 3px;font-size:13px;font-weight:700;color:var(--t3);cursor:pointer;border:none;background:none;gap:4px;transition:color .2s,background .2s;border-radius:19px}
 .nb.active{color:var(--accent);background:var(--s2)}
-.nb svg{width:23px;height:23px;flex-shrink:0}
+.nb svg{width:31px;height:31px;flex-shrink:0}
 .nb-badge{position:absolute;top:4px;right:calc(50% - 14px);background:var(--red);color:#fff;font-size:9px;font-weight:800;min-width:16px;height:16px;border-radius:999px;display:flex;align-items:center;justify-content:center;padding:0 3px}
 .page{display:none}
 .page.active{display:block}
 .ph{padding:16px 16px 10px;display:flex;align-items:center;justify-content:space-between}
-.ph h1{font-size:26px;font-weight:900;letter-spacing:-.5px}
+.ph h1{font-family:var(--font-display);font-size:27px;font-weight:600;letter-spacing:-.3px}
 .ph .sub{font-size:10px;color:var(--t2);margin-top:1px}
 .sec{padding:0 12px;margin-bottom:14px}
 .lbl{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin-bottom:8px}
@@ -81,9 +94,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .task-filter-chip.active{border-color:var(--accent);background:var(--accent2);color:var(--accent)}
 .task-card{background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:12px 14px;margin-bottom:8px;cursor:pointer;box-shadow:0 8px 20px rgba(0,0,0,.35),0 2px 6px rgba(0,0,0,.28);transition:transform .12s,box-shadow .12s}
 .task-card:active{transform:scale(.98);box-shadow:0 3px 8px rgba(0,0,0,.3)}
-.task-card.status-due{border-top:4px solid #e74c3c}
-.task-card.status-open{border-top:4px solid #4FC3F7}
-.task-card.status-finished{border-top:4px solid #2ecc71;opacity:.6}
+.task-card.status-due{border-top:4px solid var(--red)}
+.task-card.status-open{border-top:4px solid var(--blue)}
+.task-card.status-finished{border-top:4px solid var(--green);opacity:.6}
 .task-card .tc-name{font-size:15px;font-weight:800;color:var(--text)}
 .task-card .tc-details{font-size:12px;color:var(--t2);margin-top:3px;line-height:1.4}
 .task-card .tc-meta{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
@@ -186,7 +199,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
    white/light-blue; white text only on solid blue fills).
    ═══════════════════════════════════════════════ */
 #ov-lead .acc-section, #ov-client .acc-section{
-  background:#FFFFFF; border:1px solid #D7E6FA; border-radius:16px;
+  background:var(--accent); border:1px solid #D7E6FA; border-radius:16px;
   box-shadow:0 6px 18px rgba(15,50,120,.16), 0 1px 3px rgba(15,50,120,.10);
 }
 #ov-lead .acc-header, #ov-client .acc-header{
@@ -195,10 +208,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 #ov-lead .acc-section:not(.open) .acc-header, #ov-client .acc-section:not(.open) .acc-header{
   border-radius:16px; /* fully rounded when collapsed — no body below to square off against */
 }
-#ov-lead .acc-num, #ov-client .acc-num{ background:#1D6FE0; color:#FFFFFF; }
+#ov-lead .acc-num, #ov-client .acc-num{ background:var(--blue); color:var(--text); }
 #ov-lead .acc-title, #ov-client .acc-title{ color:#0B1E3D; }
-#ov-lead .acc-chevron, #ov-client .acc-chevron{ color:#1D6FE0; font-weight:700; }
-#ov-lead .acc-body, #ov-client .acc-body{ background:#FFFFFF; border-radius:0 0 16px 16px; padding-top:12px; }
+#ov-lead .acc-chevron, #ov-client .acc-chevron{ color:var(--blue); font-weight:700; }
+#ov-lead .acc-body, #ov-client .acc-body{ background:var(--accent); border-radius:0 0 16px 16px; padding-top:12px; }
 
 /* Labels — dark navy, readable on white */
 #ov-lead .fl, #ov-client .fl{ color:#3A557A; }
@@ -206,14 +219,14 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 #ov-lead .fi, #ov-client .fi{
   background:#F5F9FE; border:1.5px solid #C7DCF5; color:#0B1E3D;
 }
-#ov-lead .fi:focus, #ov-client .fi:focus{ border-color:#1D6FE0; background:#FFFFFF; }
+#ov-lead .fi:focus, #ov-client .fi:focus{ border-color:var(--blue); background:var(--accent); }
 #ov-lead .fi::placeholder, #ov-client .fi::placeholder{ color:#8FA5C4; }
 /* Product/status toggle chips */
 #ov-lead .pt, #ov-client .pt{ background:#F5F9FE; border:1.5px solid #C7DCF5; color:#3A557A; }
-#ov-lead .pt.on, #ov-client .pt.on{ background:#1D6FE0; border-color:#1D6FE0; color:#FFFFFF; }
+#ov-lead .pt.on, #ov-client .pt.on{ background:var(--blue); border-color:var(--blue); color:var(--text); }
 /* Save buttons — blue, black text for max contrast (keeps the app's existing
    gold/red accent untouched everywhere else) */
-#ov-lead .btn-gold, #ov-client .btn-gold{ background:#1D6FE0; color:#000000; font-weight:800; }
+#ov-lead .btn-gold, #ov-client .btn-gold{ background:var(--blue); color:#000000; font-weight:800; }
 /* Delete button stays a clear red — status color, not brand color, left alone */
 
 @media (min-width:700px){
@@ -249,7 +262,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .ci-av{width:36px;height:36px;min-width:36px;border-radius:50%;background:var(--gdim);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:var(--green)}
 
 /* Floating Add Button */
-.fab{position:fixed;bottom:86px;right:max(18px, calc(50vw - var(--shell-w)/2 + 18px));width:54px;height:54px;border-radius:50%;background:var(--accent);color:#0C1420;border:none;font-size:26px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(255,255,255,.5);z-index:150;transition:transform .15s,box-shadow .15s;-webkit-user-select:none;user-select:none}
+.fab{position:fixed;bottom:106px;right:max(18px, calc(50vw - var(--shell-w)/2 + 18px));width:54px;height:54px;border-radius:50%;background:var(--accent);color:#0C1420;border:none;font-size:26px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(255,255,255,.5);z-index:150;transition:transform .15s,box-shadow .15s;-webkit-user-select:none;user-select:none}
 .fab:active{transform:scale(.92);box-shadow:0 2px 8px rgba(255,255,255,.3)}
 .fab.hidden{display:none}
 #toast{position:fixed;bottom:152px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--s2);border:1px solid var(--border2);border-radius:999px;padding:7px 14px;font-size:12px;font-weight:600;opacity:0;transition:all .25s;z-index:150000;white-space:nowrap;pointer-events:none;max-width:88vw;text-align:center}
@@ -322,8 +335,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 
 /* FAB fixed buttons — only visible when inside active page */
 .page:not(.active){overflow:hidden}
-.cd-btn{display:flex;flex-direction:column;align-items:center;gap:4px;padding:9px 4px;border-radius:9px;cursor:pointer}.cd-icon{font-size:18px}.cd-btn span:last-child{font-size:10px;font-weight:700}.cd-wa{background:rgba(37,211,102,.08);border:1px solid rgba(37,211,102,.3)}.cd-wa span:last-child{color:#25D366}.cd-call{background:rgba(52,152,219,.08);border:1px solid rgba(52,152,219,.3)}.cd-call span:last-child{color:#3498db}.cd-meet{background:rgba(155,89,182,.08);border:1px solid rgba(155,89,182,.3)}.cd-meet span:last-child{color:#9b59b6}.cd-mail{background:rgba(241,196,15,.08);border:1px solid rgba(241,196,15,.3)}.cd-mail span:last-child{color:#f1c40f}
-.qwa-btn{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 2px;border-radius:8px;cursor:pointer;border:1px solid;background:none}.qwa-ico{font-size:16px}.qwa-lbl{font-size:8px;font-weight:700;line-height:1.2;text-align:center}.qwa-green{border-color:rgba(37,211,102,.25);background:rgba(37,211,102,.06)}.qwa-green .qwa-lbl{color:#25D366}.qwa-blue{border-color:rgba(52,152,219,.25);background:rgba(52,152,219,.06)}.qwa-blue .qwa-lbl{color:#3498db}.qwa-amber{border-color:rgba(243,156,18,.25);background:rgba(243,156,18,.06)}.qwa-amber .qwa-lbl{color:#f39c12}.qwa-purple{border-color:rgba(155,89,182,.25);background:rgba(155,89,182,.06)}.qwa-purple .qwa-lbl{color:#9b59b6}
+.cd-btn{display:flex;flex-direction:column;align-items:center;gap:4px;padding:9px 4px;border-radius:9px;cursor:pointer}.cd-icon{font-size:18px}.cd-btn span:last-child{font-size:10px;font-weight:700}.cd-wa{background:rgba(37,211,102,.08);border:1px solid rgba(37,211,102,.3)}.cd-wa span:last-child{color:#25D366}.cd-call{background:rgba(52,152,219,.08);border:1px solid rgba(52,152,219,.3)}.cd-call span:last-child{color:var(--blue)}.cd-meet{background:color-mix(in srgb, var(--purple) 8%, transparent);border:1px solid color-mix(in srgb, var(--purple) 30%, transparent)}.cd-meet span:last-child{color:var(--purple)}.cd-mail{background:rgba(241,196,15,.08);border:1px solid rgba(241,196,15,.3)}.cd-mail span:last-child{color:#f1c40f}
+.qwa-btn{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 2px;border-radius:8px;cursor:pointer;border:1px solid;background:none}.qwa-ico{font-size:16px}.qwa-lbl{font-size:8px;font-weight:700;line-height:1.2;text-align:center}.qwa-green{border-color:rgba(37,211,102,.25);background:rgba(37,211,102,.06)}.qwa-green .qwa-lbl{color:#25D366}.qwa-blue{border-color:rgba(52,152,219,.25);background:rgba(52,152,219,.06)}.qwa-blue .qwa-lbl{color:var(--blue)}.qwa-amber{border-color:color-mix(in srgb, var(--orange) 25%, transparent);background:color-mix(in srgb, var(--orange) 6%, transparent)}.qwa-amber .qwa-lbl{color:var(--orange)}.qwa-purple{border-color:color-mix(in srgb, var(--purple) 25%, transparent);background:color-mix(in srgb, var(--purple) 6%, transparent)}.qwa-purple .qwa-lbl{color:var(--purple)}
 @keyframes lockShake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
 
 /* ══ Adaptive shell — tablet & desktop ══
@@ -396,7 +409,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 <body>
 
 <!-- APP LOCK SCREEN — shown before the app if a PIN/biometric lock is set up -->
-<div id="lock-screen" style="display:none;position:fixed;inset:0;z-index:2147483647;background:#0a0a0a;flex-direction:column;align-items:center;justify-content:center;padding:24px">
+<div id="lock-screen" style="display:none;position:fixed;inset:0;z-index:2147483647;background:var(--bg);flex-direction:column;align-items:center;justify-content:center;padding:24px">
   <div style="width:72px;height:72px;background:#0F1D2E;border:1px solid #1C2B3E;border-radius:18px;display:flex;align-items:center;justify-content:center;margin-bottom:20px">
     <span style="font-size:26px;font-weight:900;color:#fff">WM</span>
   </div>
@@ -413,45 +426,45 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   </div>
 
   <div id="lock-pin-pad" style="display:grid;grid-template-columns:repeat(3,64px);gap:14px;margin-bottom:20px">
-    <button class="lock-key" data-k="1" style="width:64px;height:64px;border-radius:50%;border:1px solid #2a2a2a;background:#141414;color:#fff;font-size:22px;font-weight:600">1</button>
-    <button class="lock-key" data-k="2" style="width:64px;height:64px;border-radius:50%;border:1px solid #2a2a2a;background:#141414;color:#fff;font-size:22px;font-weight:600">2</button>
-    <button class="lock-key" data-k="3" style="width:64px;height:64px;border-radius:50%;border:1px solid #2a2a2a;background:#141414;color:#fff;font-size:22px;font-weight:600">3</button>
-    <button class="lock-key" data-k="4" style="width:64px;height:64px;border-radius:50%;border:1px solid #2a2a2a;background:#141414;color:#fff;font-size:22px;font-weight:600">4</button>
-    <button class="lock-key" data-k="5" style="width:64px;height:64px;border-radius:50%;border:1px solid #2a2a2a;background:#141414;color:#fff;font-size:22px;font-weight:600">5</button>
-    <button class="lock-key" data-k="6" style="width:64px;height:64px;border-radius:50%;border:1px solid #2a2a2a;background:#141414;color:#fff;font-size:22px;font-weight:600">6</button>
-    <button class="lock-key" data-k="7" style="width:64px;height:64px;border-radius:50%;border:1px solid #2a2a2a;background:#141414;color:#fff;font-size:22px;font-weight:600">7</button>
-    <button class="lock-key" data-k="8" style="width:64px;height:64px;border-radius:50%;border:1px solid #2a2a2a;background:#141414;color:#fff;font-size:22px;font-weight:600">8</button>
-    <button class="lock-key" data-k="9" style="width:64px;height:64px;border-radius:50%;border:1px solid #2a2a2a;background:#141414;color:#fff;font-size:22px;font-weight:600">9</button>
+    <button class="lock-key" data-k="1" style="width:64px;height:64px;border-radius:50%;border:1px solid var(--border);background:var(--s1);color:#fff;font-size:22px;font-weight:600">1</button>
+    <button class="lock-key" data-k="2" style="width:64px;height:64px;border-radius:50%;border:1px solid var(--border);background:var(--s1);color:#fff;font-size:22px;font-weight:600">2</button>
+    <button class="lock-key" data-k="3" style="width:64px;height:64px;border-radius:50%;border:1px solid var(--border);background:var(--s1);color:#fff;font-size:22px;font-weight:600">3</button>
+    <button class="lock-key" data-k="4" style="width:64px;height:64px;border-radius:50%;border:1px solid var(--border);background:var(--s1);color:#fff;font-size:22px;font-weight:600">4</button>
+    <button class="lock-key" data-k="5" style="width:64px;height:64px;border-radius:50%;border:1px solid var(--border);background:var(--s1);color:#fff;font-size:22px;font-weight:600">5</button>
+    <button class="lock-key" data-k="6" style="width:64px;height:64px;border-radius:50%;border:1px solid var(--border);background:var(--s1);color:#fff;font-size:22px;font-weight:600">6</button>
+    <button class="lock-key" data-k="7" style="width:64px;height:64px;border-radius:50%;border:1px solid var(--border);background:var(--s1);color:#fff;font-size:22px;font-weight:600">7</button>
+    <button class="lock-key" data-k="8" style="width:64px;height:64px;border-radius:50%;border:1px solid var(--border);background:var(--s1);color:#fff;font-size:22px;font-weight:600">8</button>
+    <button class="lock-key" data-k="9" style="width:64px;height:64px;border-radius:50%;border:1px solid var(--border);background:var(--s1);color:#fff;font-size:22px;font-weight:600">9</button>
     <div></div>
-    <button class="lock-key" data-k="0" style="width:64px;height:64px;border-radius:50%;border:1px solid #2a2a2a;background:#141414;color:#fff;font-size:22px;font-weight:600">0</button>
+    <button class="lock-key" data-k="0" style="width:64px;height:64px;border-radius:50%;border:1px solid var(--border);background:var(--s1);color:#fff;font-size:22px;font-weight:600">0</button>
     <button id="lock-backspace" style="width:64px;height:64px;border-radius:50%;border:none;background:none;color:#888;font-size:20px">⌫</button>
   </div>
 
-  <button id="lock-biometric-btn" style="display:none;margin-top:8px;background:none;border:1px solid #FFFFFF;border-radius:10px;padding:11px 22px;color:#FFFFFF;font-size:13px;font-weight:700;cursor:pointer">🔓 Unlock with Face ID / Fingerprint</button>
-  <div id="lock-error" style="margin-top:14px;font-size:12px;color:#e74c3c;min-height:16px"></div>
+  <button id="lock-biometric-btn" style="display:none;margin-top:8px;background:none;border:1px solid #FFFFFF;border-radius:10px;padding:11px 22px;color:var(--text);font-size:13px;font-weight:700;cursor:pointer">🔓 Unlock with Face ID / Fingerprint</button>
+  <div id="lock-error" style="margin-top:14px;font-size:12px;color:var(--red);min-height:16px"></div>
   <button id="lock-forgot-btn" style="margin-top:20px;background:none;border:none;color:#666;font-size:12px;text-decoration:underline;cursor:pointer">Forgot PIN? Tap to reset</button>
 </div>
 
 <!-- USER LOGIN SCREEN — shown before the app loads any data, until a valid
      session exists. Different from the App Lock PIN above: this is WHO is
      using the app (role-based), not just a device-level PIN. -->
-<div id="login-screen" style="display:none;position:fixed;inset:0;z-index:2147483646;background:#0a0a0a;flex-direction:column;align-items:center;justify-content:center;padding:24px">
+<div id="login-screen" style="display:none;position:fixed;inset:0;z-index:2147483646;background:var(--bg);flex-direction:column;align-items:center;justify-content:center;padding:24px">
   <div style="width:72px;height:72px;background:#0F1D2E;border:1px solid #1C2B3E;border-radius:18px;display:flex;align-items:center;justify-content:center;margin-bottom:20px">
     <span style="font-size:26px;font-weight:900;color:#fff">WM</span>
   </div>
   <div style="font-size:17px;font-weight:800;color:#fff;margin-bottom:4px">Wealth Matrix CRM</div>
   <div style="font-size:12px;color:#666;margin-bottom:28px">Sign in to continue</div>
   <div style="width:100%;max-width:300px">
-    <input id="login-username" placeholder="Username" autocapitalize="none" autocomplete="username" style="width:100%;background:#111;border:1px solid #2A2A2A;border-radius:10px;padding:13px 14px;color:#fff;font-size:14px;margin-bottom:10px">
-    <input id="login-password" type="password" placeholder="Password" autocomplete="current-password" style="width:100%;background:#111;border:1px solid #2A2A2A;border-radius:10px;padding:13px 14px;color:#fff;font-size:14px;margin-bottom:14px">
-    <div id="login-error" style="font-size:12px;color:#e74c3c;margin-bottom:10px;display:none"></div>
-    <button id="login-submit-btn" onclick="attemptLogin()" style="width:100%;background:#FFFFFF;color:#000;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:800;cursor:pointer">Sign In</button>
+    <input id="login-username" placeholder="Username" autocapitalize="none" autocomplete="username" style="width:100%;background:#111;border:1px solid var(--border);border-radius:10px;padding:13px 14px;color:#fff;font-size:14px;margin-bottom:10px">
+    <input id="login-password" type="password" placeholder="Password" autocomplete="current-password" style="width:100%;background:#111;border:1px solid var(--border);border-radius:10px;padding:13px 14px;color:#fff;font-size:14px;margin-bottom:14px">
+    <div id="login-error" style="font-size:12px;color:var(--red);margin-bottom:10px;display:none"></div>
+    <button id="login-submit-btn" onclick="attemptLogin()" style="width:100%;background:var(--accent);color:#000;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:800;cursor:pointer">Sign In</button>
     <div style="text-align:center;margin-top:16px">
       <span onclick="toggleLoginSetupForm()" style="font-size:11px;color:#666;text-decoration:underline;cursor:pointer">⚙️ App not connected yet? Set up connection</span>
     </div>
-    <div id="login-setup-form" style="display:none;margin-top:12px;padding-top:14px;border-top:1px solid #2A2A2A">
+    <div id="login-setup-form" style="display:none;margin-top:12px;padding-top:14px;border-top:1px solid var(--border)">
       <div style="font-size:11px;color:#999;margin-bottom:8px">Paste the Apps Script Web App URL (from Deploy → Manage deployments) to connect this app to your sheet.</div>
-      <input id="login-setup-url" placeholder="https://script.google.com/macros/s/.../exec" autocapitalize="none" style="width:100%;background:#111;border:1px solid #2A2A2A;border-radius:10px;padding:11px 12px;color:#fff;font-size:12px;margin-bottom:8px">
+      <input id="login-setup-url" placeholder="https://script.google.com/macros/s/.../exec" autocapitalize="none" style="width:100%;background:#111;border:1px solid var(--border);border-radius:10px;padding:11px 12px;color:#fff;font-size:12px;margin-bottom:8px">
       <div id="login-setup-msg" style="font-size:11px;margin-bottom:8px;display:none"></div>
       <button onclick="saveLoginSetupUrl()" style="width:100%;background:none;border:1px solid #FFFFFF;color:#fff;border-radius:10px;padding:10px;font-size:12px;font-weight:700;cursor:pointer">Save Connection</button>
     </div>
@@ -460,17 +473,17 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 
 <!-- FORCED PASSWORD CHANGE — shown once, after first login with an
      admin-set initial password. Blocks access to the app until completed. -->
-<div id="force-pwd-screen" style="display:none;position:fixed;inset:0;z-index:2147483646;background:#0a0a0a;flex-direction:column;align-items:center;justify-content:center;padding:24px">
+<div id="force-pwd-screen" style="display:none;position:fixed;inset:0;z-index:2147483646;background:var(--bg);flex-direction:column;align-items:center;justify-content:center;padding:24px">
   <div style="width:72px;height:72px;background:#0F1D2E;border:1px solid #1C2B3E;border-radius:18px;display:flex;align-items:center;justify-content:center;margin-bottom:20px">
     <span style="font-size:26px;font-weight:900;color:#fff">🔑</span>
   </div>
   <div style="font-size:17px;font-weight:800;color:#fff;margin-bottom:4px">Set a New Password</div>
   <div style="font-size:12px;color:#666;margin-bottom:28px;text-align:center;max-width:280px">This is your first login — choose a password only you will know. Once set, it cannot be viewed by anyone, including an Admin.</div>
   <div style="width:100%;max-width:300px">
-    <input id="force-pwd-new" type="password" placeholder="New password" autocomplete="new-password" style="width:100%;background:#111;border:1px solid #2A2A2A;border-radius:10px;padding:13px 14px;color:#fff;font-size:14px;margin-bottom:10px">
-    <input id="force-pwd-confirm" type="password" placeholder="Confirm new password" autocomplete="new-password" style="width:100%;background:#111;border:1px solid #2A2A2A;border-radius:10px;padding:13px 14px;color:#fff;font-size:14px;margin-bottom:14px">
-    <div id="force-pwd-error" style="font-size:12px;color:#e74c3c;margin-bottom:10px;display:none"></div>
-    <button id="force-pwd-btn" onclick="submitForcedPasswordChange()" style="width:100%;background:#FFFFFF;color:#000;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:800;cursor:pointer">Set Password &amp; Continue</button>
+    <input id="force-pwd-new" type="password" placeholder="New password" autocomplete="new-password" style="width:100%;background:#111;border:1px solid var(--border);border-radius:10px;padding:13px 14px;color:#fff;font-size:14px;margin-bottom:10px">
+    <input id="force-pwd-confirm" type="password" placeholder="Confirm new password" autocomplete="new-password" style="width:100%;background:#111;border:1px solid var(--border);border-radius:10px;padding:13px 14px;color:#fff;font-size:14px;margin-bottom:14px">
+    <div id="force-pwd-error" style="font-size:12px;color:var(--red);margin-bottom:10px;display:none"></div>
+    <button id="force-pwd-btn" onclick="submitForcedPasswordChange()" style="width:100%;background:var(--accent);color:#000;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:800;cursor:pointer">Set Password &amp; Continue</button>
   </div>
 </div>
 
@@ -494,7 +507,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--t2)" stroke-width="2.3"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
     </button>
     <button id="global-logout-btn" onclick="confirmLogout()" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.06);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer" aria-label="Log out">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#e74c3c" stroke-width="2.3"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2.3"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
     </button>
   </div>
 </div>
@@ -531,7 +544,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   <div id="family-filter-wrap" style="padding:0 12px 8px"><select id="family-dropdown" onchange="setFF(this.value)" style="width:100%;padding:9px 10px;font-size:12px;font-weight:600;color:var(--text);background:var(--s2);border:1px solid var(--border);border-radius:8px;-webkit-appearance:none;cursor:pointer"></select></div>
   <div id="lead-list"></div>
   <!-- FAB: Add Lead -->
-  <button onclick="openAddLead()" style="position:fixed;bottom:80px;right:18px;width:54px;height:54px;border-radius:50%;background:#FFFFFF;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:999;box-shadow:0 4px 16px rgba(255,255,255,0.25)" aria-label="Add lead">
+  <button onclick="openAddLead()" style="position:fixed;bottom:100px;right:18px;width:54px;height:54px;border-radius:50%;background:var(--accent);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:999;box-shadow:0 4px 16px rgba(255,255,255,0.25)" aria-label="Add lead">
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
   </button>
 </div>
@@ -544,8 +557,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 
   <!-- 4 count tiles: 2x2 grid -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 14px 12px">
-    <div onclick="showDashList('prospect')" style="background:var(--s1);border:2px solid #f39c12;border-radius:var(--r);padding:12px;text-align:center;cursor:pointer">
-      <div id="dash-count-prospect" style="font-size:30px;font-weight:900;color:#f39c12;line-height:1">—</div>
+    <div onclick="showDashList('prospect')" style="background:var(--s1);border:2px solid var(--orange);border-radius:var(--r);padding:12px;text-align:center;cursor:pointer">
+      <div id="dash-count-prospect" style="font-size:30px;font-weight:900;color:var(--orange);line-height:1">—</div>
       <div style="font-size:10px;color:var(--t2);margin-top:4px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">Prospects</div>
     </div>
     <div onclick="showDashList('active')" style="background:var(--s1);border:2px solid var(--accent);border-radius:var(--r);padding:12px;text-align:center;cursor:pointer">
@@ -553,8 +566,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       <div style="font-size:10px;color:var(--t2);margin-top:4px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">Active Leads</div>
       <div style="font-size:9px;color:var(--t3);margin-top:2px">Contacted + In Progress</div>
     </div>
-    <div onclick="showDashList('clients')" style="background:var(--s1);border:2px solid #4FC3F7;border-radius:var(--r);padding:12px;text-align:center;cursor:pointer">
-      <div id="dash-total-clients" style="font-size:30px;font-weight:900;color:#4FC3F7;line-height:1">—</div>
+    <div onclick="showDashList('clients')" style="background:var(--s1);border:2px solid var(--blue);border-radius:var(--r);padding:12px;text-align:center;cursor:pointer">
+      <div id="dash-total-clients" style="font-size:30px;font-weight:900;color:var(--blue);line-height:1">—</div>
       <div style="font-size:10px;color:var(--t2);margin-top:4px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">Clients</div>
     </div>
     <div onclick="showDashList('dropped')" style="background:var(--s1);border:2px solid #666;border-radius:var(--r);padding:12px;text-align:center;cursor:pointer">
@@ -628,7 +641,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     </div>
   </div>
   <div id="client-list" style="padding:4px 12px 100px"></div>
-  <button onclick="openAddClient()" style="position:fixed;bottom:80px;right:18px;width:54px;height:54px;border-radius:50%;background:#FFFFFF;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:999;box-shadow:0 4px 16px rgba(255,255,255,0.25)" aria-label="Add client">
+  <button onclick="openAddClient()" style="position:fixed;bottom:100px;right:18px;width:54px;height:54px;border-radius:50%;background:var(--accent);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:999;box-shadow:0 4px 16px rgba(255,255,255,0.25)" aria-label="Add client">
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
   </button>
 </div>
@@ -761,7 +774,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div class="sg">
       <div class="si" id="account-info-row"><span>Signed in as</span><span id="account-name-display" style="color:var(--t2)">—</span></div>
       <div class="si" onclick="openChangePasswordForm()" style="cursor:pointer"><span>🔑 Change Password</span><span>›</span></div>
-      <div class="si" onclick="confirmLogout()" style="cursor:pointer;border-bottom:none"><span style="color:#e74c3c">🚪 Log Out</span><span></span></div>
+      <div class="si" onclick="confirmLogout()" style="cursor:pointer;border-bottom:none"><span style="color:var(--red)">🚪 Log Out</span><span></span></div>
     </div>
   </div>
 
@@ -800,13 +813,13 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       </div>
       <div id="chat-chip-grid" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding:0 4px 10px;min-height:34px"></div>
       <div style="text-align:center;padding:2px 4px 10px">
-        <span class="chip" style="border-color:#4FC3F7;color:#4FC3F7;background:rgba(79,195,247,.08)" onclick="askContemporaryInsight()">🌐 Budget, RBI &amp; India/GCC market update</span>
+        <span class="chip" style="border-color:var(--blue);color:var(--blue);background:color-mix(in srgb, var(--blue) 8%, transparent)" onclick="askContemporaryInsight()">🌐 Budget, RBI &amp; India/GCC market update</span>
       </div>
     </div>
   </div>
-  <div id="chat-input-bar" style="position:fixed;bottom:76px;left:50%;transform:translateX(-50%);width:calc(100% - 24px);max-width:calc(var(--shell-w) - 24px);background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:7px;display:none;gap:7px;z-index:99;box-shadow:0 6px 20px rgba(0,0,0,.4)">
+  <div id="chat-input-bar" style="position:fixed;bottom:96px;left:50%;transform:translateX(-50%);width:calc(100% - 24px);max-width:calc(var(--shell-w) - 24px);background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:7px;display:none;gap:7px;z-index:99;box-shadow:0 6px 20px rgba(0,0,0,.4)">
     <input id="chat-input" placeholder="Ask anything…" autocomplete="off" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:11px 12px;color:var(--text);font-size:13px" onkeydown="if(event.key==='Enter')sendChatMessage()" onfocus="stopChatPlaceholderCycle()">
-    <button id="chat-send-btn" onclick="sendChatMessage()" style="width:42px;height:42px;border-radius:10px;background:#FFFFFF;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0">
+    <button id="chat-send-btn" onclick="sendChatMessage()" style="width:42px;height:42px;border-radius:10px;background:var(--accent);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.3"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
     </button>
   </div>
@@ -827,7 +840,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <button class="task-filter-chip" data-filter="FINISHED" onclick="setTaskFilter('FINISHED')">✅ Finished</button>
   </div>
   <div id="task-list" style="padding:4px 12px 100px"></div>
-  <button onclick="openAddTask()" style="position:fixed;bottom:80px;right:18px;width:54px;height:54px;border-radius:50%;background:#FFFFFF;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:999;box-shadow:0 4px 16px rgba(255,255,255,0.25)" aria-label="Add task">
+  <button onclick="openAddTask()" style="position:fixed;bottom:100px;right:18px;width:54px;height:54px;border-radius:50%;background:var(--accent);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:999;box-shadow:0 4px 16px rgba(255,255,255,0.25)" aria-label="Add task">
     <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
   </button>
 </div>
@@ -861,11 +874,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   <button class="nb" onclick="nav('leads',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>Leads</button>
   <button class="nb active" onclick="nav('dash',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dash</button>
   <button class="nb" onclick="nav('analytics',this)" id="nav-analytics" style="gap:1px;position:relative">
-    <span style="position:absolute;top:-22px;left:50%;transform:translateX(-50%);width:52px;height:52px;border-radius:50%;background:linear-gradient(145deg,#3FA073,#2C7A57);border:3px solid var(--bg);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(47,150,105,.5)">
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="#FFFFFF"><path d="M12 2c.3 3.5 1.3 6 3 7.5S19 12 22 12c-3 0-5.3.9-7 2.5S12.3 18.5 12 22c-.3-3.5-1.3-6-3-7.5S4 12 2 12c3 0 5.3-.9 7-2.5S11.7 5.5 12 2z"/></svg>
+    <span style="position:absolute;top:-29px;left:50%;transform:translateX(-50%);width:69px;height:69px;border-radius:50%;background:linear-gradient(145deg,#3FA073,#2C7A57);border:4px solid var(--bg);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(47,150,105,.5)">
+      <svg width="35" height="35" viewBox="0 0 24 24" fill="#FFFFFF"><path d="M12 2c.3 3.5 1.3 6 3 7.5S19 12 22 12c-3 0-5.3.9-7 2.5S12.3 18.5 12 22c-.3-3.5-1.3-6-3-7.5S4 12 2 12c3 0 5.3-.9 7-2.5S11.7 5.5 12 2z"/></svg>
     </span>
-    <span style="height:30px"></span>
-    <span style="font-size:10px;font-weight:800;color:#3FA073">Insights</span>
+    <span style="height:40px"></span>
+    <span style="font-size:13px;font-weight:800;color:#3FA073">Insights</span>
   </button>
   <button class="nb" onclick="nav('tasks',this)" id="nav-tasks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>Task</button>
   <button class="nb" onclick="nav('clients',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Clients</button>
@@ -941,8 +954,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         <div class="fg"><label class="fl">Potential AUM (₹ Lakh)</label><input class="fi" id="lf-potaum" placeholder="e.g. 25 or 1.25" inputmode="decimal" oninput="this.value=this.value.replace(/[^0-9.]/g,'').replace(/(\..*)\./g,'$1').replace(/(\.\d{2}).+/g,'$1')"></div>
       </div>
       <div id="lf-uploadlink-wrap" style="display:none;margin-bottom:10px">
-        <button type="button" class="btn btn-ghost btn-full" style="border-color:rgba(243,156,18,.3);color:#f39c12;margin-bottom:8px" onclick="sendLeadUploadLinkWA(document.getElementById('lf-mob').value)">📤 Send Document Upload Link via WhatsApp</button>
-        <button type="button" class="btn btn-ghost btn-full" style="border-color:rgba(52,152,219,.3);color:#3498db" onclick="(function(){var d=(document.getElementById('lf-mob').value||'').replace(/\D/g,'');var n=d.length===10?'91'+d:d;sendWAQuick(n,'cas',document.getElementById('lf-mob').value);})()">📊 Send CAMS CAS Report via WhatsApp</button>
+        <button type="button" class="btn btn-ghost btn-full" style="border-color:color-mix(in srgb, var(--orange) 30%, transparent);color:var(--orange);margin-bottom:8px" onclick="sendLeadUploadLinkWA(document.getElementById('lf-mob').value)">📤 Send Document Upload Link via WhatsApp</button>
+        <button type="button" class="btn btn-ghost btn-full" style="border-color:rgba(52,152,219,.3);color:var(--blue)" onclick="(function(){var d=(document.getElementById('lf-mob').value||'').replace(/\D/g,'');var n=d.length===10?'91'+d:d;sendWAQuick(n,'cas',document.getElementById('lf-mob').value);})()">📊 Send CAMS CAS Report via WhatsApp</button>
       </div>
       <div class="frow">
         <div class="fg"><label class="fl">Mode of contact</label>
@@ -1212,7 +1225,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     </div>
 
     <button class="btn btn-gold btn-full" onclick="saveClient()" style="padding:14px;font-size:15px;border-radius:10px;margin-bottom:8px">Save Client</button>
-    <button id="cf-delete-btn" onclick="deleteClientFromForm()" style="display:none;width:100%;padding:12px;font-size:13px;font-weight:700;border-radius:10px;border:1px solid #e74c3c;background:none;color:#e74c3c;cursor:pointer;margin-bottom:8px">🗑️ Delete Client</button>
+    <button id="cf-delete-btn" onclick="deleteClientFromForm()" style="display:none;width:100%;padding:12px;font-size:13px;font-weight:700;border-radius:10px;border:1px solid var(--red);background:none;color:var(--red);cursor:pointer;margin-bottom:8px">🗑️ Delete Client</button>
   </div>
 </div></div>
 
@@ -1934,10 +1947,10 @@ function renderClients(){
   // need to open a card to see roughly where each client stands.
   function stageColor(stage){
     var s=(stage||'').toUpperCase();
-    if(s==='KYC PENDING'||s==='DOCUMENT PENDING') return '#e74c3c';
+    if(s==='KYC PENDING'||s==='DOCUMENT PENDING') return 'var(--red)';
     if(s==='PROFILE CREATION PENDING'||s==='MANDATE PENDING') return '#f1c40f';
-    if(s==='INVESTMENT PENDING'||s==='GRATITUDE CALL PENDING') return '#3498db';
-    if(s==='COMPLETED') return '#2ecc71';
+    if(s==='INVESTMENT PENDING'||s==='GRATITUDE CALL PENDING') return 'var(--blue)';
+    if(s==='COMPLETED') return 'var(--green)';
     return '#3A4A5E'; // no stage set — neutral, matches the card's own border tone
   }
   var STAGE_OPTIONS=['KYC PENDING','DOCUMENT PENDING','PROFILE CREATION PENDING','MANDATE PENDING','INVESTMENT PENDING','GRATITUDE CALL PENDING','COMPLETED'];
@@ -1962,19 +1975,19 @@ function renderClients(){
           +'<span style="font-size:15px;font-weight:800;color:var(--text);display:flex;align-items:center;flex-wrap:wrap;gap:4px;min-width:0;overflow:hidden">'
             +'<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+toTitle(c.name)+'</span>'
             +(c.familyName?'<span style="font-size:9px;color:var(--t2);background:var(--s2);border:1px solid var(--border);border-radius:999px;padding:1px 6px;font-weight:600;flex-shrink:0">👪 '+c.familyName+'</span>':'')
-            +(c.folderId?'<span style="font-size:9px;color:#2ecc71;font-weight:700;flex-shrink:0">📁 Docs uploaded</span>':'')
+            +(c.folderId?'<span style="font-size:9px;color:var(--green);font-weight:700;flex-shrink:0">📁 Docs uploaded</span>':'')
           +'</span>'
           +'<select onclick="event.stopPropagation()" onchange="event.stopPropagation();updateClientField(\''+cId+'\',\'stage\',this.value);this.blur();" style="font-size:9px;font-weight:700;color:'+stageCol+';background:var(--bg);border:1px solid '+stageCol+';border-radius:99px;padding:2px 6px;white-space:nowrap;flex-shrink:0;max-width:118px">'
             +STAGE_OPTIONS.map(function(s){return '<option value="'+s+'"'+((c.stage||'').toUpperCase()===s?' selected':'')+'>'+s+'</option>';}).join('')
           +'</select>'
         +'</div>'
         +'<div style="display:flex;justify-content:flex-end;margin-top:4px">'
-          +'<button onclick="event.stopPropagation();openAddTaskForClient(\''+cId+'\')" style="font-size:9px;font-weight:700;color:#1D6FE0;background:rgba(29,111,224,.12);border:1px solid #1D6FE0;border-radius:99px;padding:3px 9px;cursor:pointer">+ Task</button>'
+          +'<button onclick="event.stopPropagation();openAddTaskForClient(\''+cId+'\')" style="font-size:9px;font-weight:700;color:var(--blue);background:color-mix(in srgb, var(--blue) 12%, transparent);border:1px solid var(--blue);border-radius:99px;padding:3px 9px;cursor:pointer">+ Task</button>'
         +'</div>'
         +'<div style="font-size:11px;color:var(--t3);margin-top:3px">'+(c.mobile||'')+(c.country?' · 🌍 '+toTitle(c.country):'')+'</div>'
         +'<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:4px">'
           +(sinceDate?'<span style="font-size:9px;color:var(--t3);background:var(--s2);border-radius:5px;padding:2px 6px">📅 '+sinceDate+'</span>':'')
-          +(c.aum?'<span style="font-size:9px;color:#2ecc71;background:rgba(46,204,113,.1);border-radius:5px;padding:2px 6px;font-weight:700">💰 '+c.aum+'</span>':'')
+          +(c.aum?'<span style="font-size:9px;color:var(--green);background:color-mix(in srgb, var(--green) 10%, transparent);border-radius:5px;padding:2px 6px;font-weight:700">💰 '+c.aum+'</span>':'')
           +(c.age?'<span style="font-size:9px;color:var(--t3);background:var(--s2);border-radius:5px;padding:2px 6px">🎂 '+c.age+'y</span>':'')
         +'</div>'
         +(prods?'<div style="font-size:11px;color:var(--t2);margin-top:4px">'+prods+'</div>':'')
@@ -2042,8 +2055,8 @@ function openDetail(mob,type,nameHint){
     + '<button class="sh-x" data-action="close-client">✕</button>'
     + '</div>'
     + '<div style="display:flex;gap:6px;margin-top:5px">'
-    + '<span id="doc-status-badge-'+mob+'" style="font-size:9px;font-weight:800;padding:2px 8px;border-radius:999px;background:rgba(79,195,247,.15);color:#4FC3F7;border:1px solid rgba(79,195,247,.35)">📁 Documents</span>'
-    + '<span id="data-status-badge-'+mob+'" style="font-size:9px;font-weight:800;padding:2px 8px;border-radius:999px;background:rgba(79,195,247,.15);color:#4FC3F7;border:1px solid rgba(79,195,247,.35)">📝 Data</span>'
+    + '<span id="doc-status-badge-'+mob+'" style="font-size:9px;font-weight:800;padding:2px 8px;border-radius:999px;background:color-mix(in srgb, var(--blue) 15%, transparent);color:var(--blue);border:1px solid color-mix(in srgb, var(--blue) 35%, transparent)">📁 Documents</span>'
+    + '<span id="data-status-badge-'+mob+'" style="font-size:9px;font-weight:800;padding:2px 8px;border-radius:999px;background:color-mix(in srgb, var(--blue) 15%, transparent);color:var(--blue);border:1px solid color-mix(in srgb, var(--blue) 35%, transparent)">📝 Data</span>'
     + '</div>'
     + (c.remarks?'<div style="font-size:12px;color:var(--t2);line-height:1.5;margin-top:6px">📝 '+c.remarks.split('\n').slice(-3).join('<br>')+'</div>':'')
     + '<div style="text-align:center;padding:8px 0 2px">'
@@ -2064,9 +2077,9 @@ function openDetail(mob,type,nameHint){
     + '<div style="color:var(--t3)">SIP Date</div><div style="color:var(--text);text-align:right">'+(c.sipDate?c.sipDate+'th':'—')+(c.sipDate2?' & '+c.sipDate2+'th':'')+'</div>'
     + '<div style="color:var(--t3)">Health Ins.</div><div style="color:var(--text);text-align:right">'+(c.healthInsurance||'—')+(c.healthInsuranceCoverage?' ('+c.healthInsuranceCoverage+')':'')+'</div>'
     + '<div style="color:var(--t3)">Life Ins.</div><div style="color:var(--text);text-align:right">'+(c.lifeInsurance||'—')+(c.lifeInsuranceCoverage?' ('+c.lifeInsuranceCoverage+')':'')+'</div>'
-    + '<div style="color:var(--t3)">App Installed</div><div style="color:'+(c.appInstalled?'#25D366':'#e74c3c')+';text-align:right;font-weight:700">'+(c.appInstalled?'✓ Yes':'✗ No')+'</div>'
-    + '<div style="color:var(--t3)">Welcome Sent</div><div style="color:'+(c.welcomeSent?'#25D366':'#e74c3c')+';text-align:right;font-weight:700">'+(c.welcomeSent?'✓ Yes':'✗ No')+'</div>'
-    + '<div style="color:var(--t3)">Broadcast</div><div style="color:'+(c.broadcastAdded?'#25D366':'#e74c3c')+';text-align:right;font-weight:700">'+(c.broadcastAdded?'✓ Yes':'✗ No')+'</div>'
+    + '<div style="color:var(--t3)">App Installed</div><div style="color:'+(c.appInstalled?'#25D366':'var(--red)')+';text-align:right;font-weight:700">'+(c.appInstalled?'✓ Yes':'✗ No')+'</div>'
+    + '<div style="color:var(--t3)">Welcome Sent</div><div style="color:'+(c.welcomeSent?'#25D366':'var(--red)')+';text-align:right;font-weight:700">'+(c.welcomeSent?'✓ Yes':'✗ No')+'</div>'
+    + '<div style="color:var(--t3)">Broadcast</div><div style="color:'+(c.broadcastAdded?'#25D366':'var(--red)')+';text-align:right;font-weight:700">'+(c.broadcastAdded?'✓ Yes':'✗ No')+'</div>'
     + '</div></div></div>'
     + '<div style="padding:0 14px 8px">'
     + '<div onclick="toggleChipDocs(\''+mob+'\')" style="background:var(--s2);border-radius:9px;padding:10px 12px;cursor:pointer;display:flex;justify-content:space-between;align-items:center">'
@@ -2093,11 +2106,11 @@ function openDetail(mob,type,nameHint){
     + '<button data-uploadlink="'+mob+'" class="qwa-btn qwa-amber" style="padding:8px 4px"><span class="qwa-ico">📤</span><span class="qwa-lbl">Upload<br>Link</span></button>'
     + '</div>'
     + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px">'
-    + '<button onclick="startMeetingInsight(\''+mob+'\')" class="qwa-btn" style="padding:8px 4px;border-color:#9b59b6;color:#9b59b6"><span class="qwa-ico">🧠</span><span class="qwa-lbl">Meeting<br>Insights</span></button>'
+    + '<button onclick="startMeetingInsight(\''+mob+'\')" class="qwa-btn" style="padding:8px 4px;border-color:var(--purple);color:var(--purple)"><span class="qwa-ico">🧠</span><span class="qwa-lbl">Meeting<br>Insights</span></button>'
     + '<button onclick="sendGatherInfoLinkWA(\''+mob+'\')" class="qwa-btn" style="padding:8px 4px;border-color:#16a085;color:#16a085"><span class="qwa-ico">📝</span><span class="qwa-lbl">Gather<br>Info</span></button>'
     + '</div>'
     + '<div style="display:grid;grid-template-columns:1fr;gap:6px;margin-top:6px">'
-    + '<button onclick="startClientReviewReport(\''+mob+'\')" class="qwa-btn" style="padding:8px 4px;border-color:#1D6FE0;color:#1D6FE0"><span class="qwa-ico">💌</span><span class="qwa-lbl">Send Review Report to Client</span></button>'
+    + '<button onclick="startClientReviewReport(\''+mob+'\')" class="qwa-btn" style="padding:8px 4px;border-color:var(--blue);color:var(--blue)"><span class="qwa-ico">💌</span><span class="qwa-lbl">Send Review Report to Client</span></button>'
     + '</div>'
     + '<div id="meeting-insight-body-'+mob+'" style="display:none;padding-top:8px"></div>'
     + '</div>'
@@ -2115,7 +2128,7 @@ function openDetail(mob,type,nameHint){
     + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;padding:0 14px 14px">'
     + '<button data-revert="'+mob+'" style="background:none;border:1px solid var(--border);border-radius:8px;padding:10px 4px;color:var(--t2);font-size:10px;font-weight:700;cursor:pointer">← Back to<br>In Progress</button>'
     + '<button data-editclient="'+mob+'" style="background:var(--accent);border:none;border-radius:8px;padding:10px 4px;color:#000;font-size:10px;font-weight:700;cursor:pointer">✏️ Modify</button>'
-    + '<button data-delclient="'+mob+'" style="background:none;border:1px solid #e74c3c;border-radius:8px;padding:10px 4px;color:#e74c3c;font-size:10px;font-weight:700;cursor:pointer">🗑 Delete</button>'
+    + '<button data-delclient="'+mob+'" style="background:none;border:1px solid var(--red);border-radius:8px;padding:10px 4px;color:var(--red);font-size:10px;font-weight:700;cursor:pointer">🗑 Delete</button>'
     + '</div>';
   document.getElementById('detail-sh').innerHTML = html;  // ← was missing!
   document.getElementById('ov-detail').classList.add('open');
@@ -2360,8 +2373,8 @@ function taskFormHtml(existing, prefill){
     +'</div>'
     +'<div style="display:flex;gap:8px;padding:12px 16px 20px;flex-shrink:0">'
     +(isEdit
-      ? '<button id="task-btn-delete" class="btn btn-ghost" style="flex:1;border-color:#e74c3c;color:#e74c3c" onclick="deleteTaskNow()">🗑 Delete</button>'
-        +'<button id="task-btn-finish" class="btn btn-ghost" style="flex:1;border-color:#2ecc71;color:#2ecc71" onclick="finishTaskNow()">✅ Finish</button>'
+      ? '<button id="task-btn-delete" class="btn btn-ghost" style="flex:1;border-color:var(--red);color:var(--red)" onclick="deleteTaskNow()">🗑 Delete</button>'
+        +'<button id="task-btn-finish" class="btn btn-ghost" style="flex:1;border-color:var(--green);color:var(--green)" onclick="finishTaskNow()">✅ Finish</button>'
         +'<button id="task-btn-save" class="btn btn-gold" style="flex:1" onclick="saveTaskNow()">Save</button>'
       : '<button id="task-btn-save" class="btn btn-gold btn-full" onclick="saveTaskNow()">Save Task</button>')
     +'</div></div>';
@@ -2529,7 +2542,7 @@ function renderRemindersPending(){
   wrap.style.display='block';
   el.innerHTML=due.slice(0,4).map(function(t){
     var overdueTag = t.dueDate < todayStr
-      ? '<span style="color:#e74c3c;font-weight:700">Overdue \u2014 '+fmt(t.dueDate)+'</span>'
+      ? '<span style="color:var(--red);font-weight:700">Overdue \u2014 '+fmt(t.dueDate)+'</span>'
       : 'Due today';
     return '<div onclick="nav(\'tasks\',document.getElementById(\'nav-tasks\'))" style="display:flex;align-items:flex-start;gap:8px;padding:10px 12px;background:var(--s1);border:1px solid var(--border);border-radius:10px;margin-bottom:6px;cursor:pointer">'
       +'<div style="flex:1;min-width:0">'
@@ -3290,7 +3303,7 @@ function showNoClientFolderPopup(c){
     try{
       var res=await sheetWrite({action:'createClientFolder', clientName:c.name, pan:c.pan||'', mobile:c.mobile}, 20000);
       if(!res || !res.success){
-        msgEl.textContent='Could not create the folder: '+(res&&res.error||'unknown error'); msgEl.style.color='#e74c3c';
+        msgEl.textContent='Could not create the folder: '+(res&&res.error||'unknown error'); msgEl.style.color='var(--red)';
         btn.disabled=false; btn.textContent='📁 Create Folder';
         return;
       }
@@ -3300,12 +3313,12 @@ function showNoClientFolderPopup(c){
       await sheetWrite({action:'tagClientFolder', recordId:c.recordId||'', mobile:c.mobile, folderId:res.folderId});
       c.folderId=res.folderId; // update the in-memory record immediately too
       saveC();
-      msgEl.textContent='✅ Folder created and linked to '+toTitle(c.name)+'.'; msgEl.style.color='#2ecc71';
+      msgEl.textContent='✅ Folder created and linked to '+toTitle(c.name)+'.'; msgEl.style.color='var(--green)';
       btn.style.display='none';
       document.getElementById('_ncf_ok').textContent='Done';
       renderClients(); // list capsule's green "Docs uploaded" area depends on folderId being set
     }catch(e){
-      msgEl.textContent='Could not create the folder: '+e.message; msgEl.style.color='#e74c3c';
+      msgEl.textContent='Could not create the folder: '+e.message; msgEl.style.color='var(--red)';
       btn.disabled=false; btn.textContent='📁 Create Folder';
     }
   };
@@ -3720,12 +3733,12 @@ function renderLeads(){
     var d=daysAgo(l.modifiedDate||l.createdDate);var fd=parseInt(cfg_.followUpDays)||14;var hot=['PROSPECT','CONTACTED','IN PROGRESS'].includes((l.status||'').toUpperCase())&&d>=fd;
     var sel=selectedLeads.has(l.mobile);var lastRem=lastRemarkSummary(l.remarks);
     var badge=heatBadge(l);var aumTag=l.potentialSip?'<span style="font-size:9px;color:var(--accent);background:var(--accent2);border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:1px 6px;margin-left:4px">'+aumDisplay(l.potentialSip)+'</span>':'';
-    var potAumTag=l.potentialAum?'<span style="font-size:9px;color:#2ecc71;background:rgba(46,204,113,.1);border:1px solid rgba(46,204,113,.3);border-radius:999px;padding:1px 6px;margin-left:4px">\uD83D\uDCB0'+aumDisplay(l.potentialAum)+'</span>':'';
+    var potAumTag=l.potentialAum?'<span style="font-size:9px;color:var(--green);background:color-mix(in srgb, var(--green) 10%, transparent);border:1px solid color-mix(in srgb, var(--green) 30%, transparent);border-radius:999px;padding:1px 6px;margin-left:4px">\uD83D\uDCB0'+aumDisplay(l.potentialAum)+'</span>':'';
     var lId=l.recordId||l.mobile;
     return '<div class="li'+(sel?' selected':'')+'" onclick="'+(bulkMode?'toggleSelect(\''+l.mobile+'\')':'openDetail(\''+lId+'\',\'lead\',\''+encodeURIComponent(l.name||'')+'\')')+'">'
       +(bulkMode?'<div style="width:20px;height:20px;border-radius:50%;border:2px solid var(--accent);background:'+(sel?'var(--accent)':'transparent')+';display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:8px">'+(sel?'<svg width="10" height="10" viewBox="0 0 24 24" fill="white"><path d="M20 6L9 17l-5-5"/></svg>':'')+'</div>':'')
       +'<div class="av">'+ini(l.name)+'</div>'
-      +'<div class="li-info"><div class="li-name" style="display:flex;align-items:center;flex-wrap:wrap;gap:3px">'+toTitle(l.name)+(l.familyName?'<span style="font-size:9px;color:var(--t2);background:var(--s2);border:1px solid var(--border);border-radius:999px;padding:1px 6px;font-weight:600">👪 '+l.familyName+'</span>':'')+(l.folderId?'<span style="font-size:9px;color:#2ecc71;font-weight:700">📁 Docs uploaded</span>':'')+' <span style="font-size:11px">'+leadHeat(leadScore(l)).emoji+'</span>'+badge+aumTag+potAumTag+'</div>'
+      +'<div class="li-info"><div class="li-name" style="display:flex;align-items:center;flex-wrap:wrap;gap:3px">'+toTitle(l.name)+(l.familyName?'<span style="font-size:9px;color:var(--t2);background:var(--s2);border:1px solid var(--border);border-radius:999px;padding:1px 6px;font-weight:600">👪 '+l.familyName+'</span>':'')+(l.folderId?'<span style="font-size:9px;color:var(--green);font-weight:700">📁 Docs uploaded</span>':'')+' <span style="font-size:11px">'+leadHeat(leadScore(l)).emoji+'</span>'+badge+aumTag+potAumTag+'</div>'
       +'<div class="li-meta">'+(l.mobile||'')+(l.age?' · 🎂'+l.age:'')+(l.country?' · '+l.country:'')+'</div>'
       +((l.products||l.nextFollowUp)?'<div class="li-prod" style="display:flex;gap:6px;flex-wrap:wrap">'+(l.products?'<span>'+l.products+'</span>':'')+(l.nextFollowUp&&/^\d{4}-\d{2}-\d{2}$/.test(l.nextFollowUp)?'<span style="color:var(--accent)">📅 '+fmt(l.nextFollowUp)+'</span>':'')+'</div>':'')
       +(lastRem?'<div style="font-size:10px;color:var(--t3);margin-top:2px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">📝 '+lastRem+'</div>':'')
@@ -4063,7 +4076,7 @@ async function saveFuDateV17(mob, newDate){
   saveL();
   toast('✅ Follow-up: '+fmt(newDate));
   var dateInp=document.getElementById('fnd-'+mob);
-  if(dateInp){var fd=daysUntil(newDate);var fc=fd<=0?'var(--accent)':fd<=3?'#FFB300':'#888';dateInp.style.borderColor=fc;dateInp.style.color=fc;}
+  if(dateInp){var fd=daysUntil(newDate);var fc=fd<=0?'var(--accent)':fd<=3?'var(--orange)':'#888';dateInp.style.borderColor=fc;dateInp.style.color=fc;}
   syncLead(l, 'update'); // update only this lead's row
   setTimeout(function(){renderFU();renderLeads();},300);
 }
@@ -4077,10 +4090,10 @@ function renderFuDetailInner(mob,nameHint){
   var d=daysAgo(l.modifiedDate||l.createdDate);
   var hasCurrent=!!(l.nextFollowUp&&/^\d{4}-\d{2}-\d{2}$/.test(l.nextFollowUp));
   var fuDays=hasCurrent?daysUntil(l.nextFollowUp):null;
-  var fuColor=!hasCurrent?'var(--t3)':fuDays<=0?'var(--accent)':fuDays<=3?'#FFB300':'#888';
+  var fuColor=!hasCurrent?'var(--t3)':fuDays<=0?'var(--accent)':fuDays<=3?'var(--orange)':'#888';
 
   // Status tabs
-  var statusOpts=[['PROSPECT','#C0C0C0'],['CONTACTED','#4FC3F7'],['IN PROGRESS','#FFB300'],['CONVERTED','#FFFFFF'],['DROPPED','#888888']];
+  var statusOpts=[['PROSPECT','#C0C0C0'],['CONTACTED','var(--blue)'],['IN PROGRESS','var(--orange)'],['CONVERTED','#FFFFFF'],['DROPPED','#888888']];
   var statusHtml='<div style="display:flex;overflow-x:auto;scrollbar-width:none;border-bottom:2px solid var(--border);padding:0 14px">'
     +statusOpts.map(function(x){
       var active=(l.status||'').toUpperCase()===x[0];
@@ -4090,7 +4103,7 @@ function renderFuDetailInner(mob,nameHint){
   // Mode of contact — COMPACT 3-per-row wrap grid
   var modes=['Not contacted','Phone','WhatsApp','Botim','Physically met','Zoom/GMeet'];
   var modeEmoji={'Not contacted':'🚫','Phone':'📞','WhatsApp':'💬','Botim':'📱','Physically met':'🤝','Zoom/GMeet':'📹'};
-  var modeColors={'Not contacted':'#777','Phone':'#AAA','WhatsApp':'#25D366','Botim':'#00B4D8','Physically met':'#FFB300','Zoom/GMeet':'#4FC3F7'};
+  var modeColors={'Not contacted':'#777','Phone':'#AAA','WhatsApp':'#25D366','Botim':'#00B4D8','Physically met':'var(--orange)','Zoom/GMeet':'var(--blue)'};
   var curMode=l.contactMode||'Not contacted';
   var modeHtml='<div style="padding:8px 10px 6px;border-bottom:1px solid var(--border);background:var(--s2)">'
     +'<div style="font-size:9px;color:var(--t3);text-transform:uppercase;font-weight:700;letter-spacing:.4px;margin-bottom:5px">Contact mode</div>'
@@ -4182,7 +4195,7 @@ function renderFuDetailInner(mob,nameHint){
     +'<div style="padding:12px 14px 8px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)">'
     +'<div>'
     +'<div style="font-size:16px;font-weight:800">'+toTitle(l.name)+(l.familyName?' <span style="font-weight:700;color:var(--t2)">- '+l.familyName+'</span>':'')+'</div>'
-    +'<div id="lead-folder-badge-'+mob+'" style="display:none;font-size:11px;font-weight:800;color:#2ecc71;margin-top:2px"></div>'
+    +'<div id="lead-folder-badge-'+mob+'" style="display:none;font-size:11px;font-weight:800;color:var(--green);margin-top:2px"></div>'
     +'</div>'
     +'<button class="sh-x" onclick="checkUnsavedNoteAndClose()">✕</button>'
     +'</div>'
@@ -4215,7 +4228,7 @@ function renderFuDetailInner(mob,nameHint){
     +actionIconsHtml
     // Bottom actions: Edit + Delete
     +'<div style="display:flex;gap:8px;padding:10px 14px 20px">'
-    +'<button class="btn btn-ghost" style="flex:1;font-size:12px;border-color:#4FC3F7;color:#4FC3F7" data-action="fu-edit" data-mob="'+mob+'">✏️ Edit Lead</button>'
+    +'<button class="btn btn-ghost" style="flex:1;font-size:12px;border-color:var(--blue);color:var(--blue)" data-action="fu-edit" data-mob="'+mob+'">✏️ Edit Lead</button>'
     +'<button class="btn btn-red" style="flex:1;font-size:12px" data-action="fu-delete" data-mob="'+mob+'">🗑️ Delete</button>'
     +'</div>';
 
@@ -4465,10 +4478,10 @@ function checkPhysicalMeetReminder(){
   var listHtml=notMet.slice(0,5).map(function(l){return '<div style="padding:6px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between"><span style="font-size:12px;font-weight:700">'+toTitle(l.name)+'</span><span style="font-size:11px;color:var(--t3)">Lead · '+daysAgo(l.modifiedDate||l.createdDate)+'d ago</span></div>';}).join('');
   listHtml+=notMetClients.slice(0,5).map(function(c){return '<div style="padding:6px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between"><span style="font-size:12px;font-weight:700">'+toTitle(c.name)+'</span><span style="font-size:11px;color:var(--green)">Client</span></div>';}).join('');
   if(total>10) listHtml+='<div style="font-size:11px;color:var(--t3);padding:6px 0">…and '+(total-10)+' more</div>';
-  ov.innerHTML='<div style="background:var(--s1);border-radius:16px 16px 0 0;width:100%;max-width:520px;border-top:3px solid #FFB300">'
+  ov.innerHTML='<div style="background:var(--s1);border-radius:16px 16px 0 0;width:100%;max-width:520px;border-top:3px solid var(--orange)">'
     +'<div style="padding:14px 16px 10px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)">'
     +'<div style="font-size:24px">🤝</div>'
-    +'<div><div style="font-size:14px;font-weight:800;color:#FFB300">Physical meeting overdue</div>'
+    +'<div><div style="font-size:14px;font-weight:800;color:var(--orange)">Physical meeting overdue</div>'
     +'<div style="font-size:11px;color:var(--t2);margin-top:2px">'+total+' lead'+(total>1?'s/clients':'/client')+' not met physically in 1+ year</div></div>'
     +'<button id="phys-close" style="margin-left:auto;background:none;border:none;font-size:18px;color:var(--t3);cursor:pointer">✕</button>'
     +'</div>'
@@ -4500,7 +4513,7 @@ function makeFuItem(l,itemType){
   var heatTag='<span style="font-size:10px;font-weight:700;color:'+heat.color+'">'+heat.emoji+' '+heat.label+'</span>';
   var aumTag=l.potentialSip?'<span style="font-size:9px;color:var(--accent);font-weight:700;background:var(--accent2);border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:1px 5px">'+aumDisplay(l.potentialSip)+'</span>':'';
   var curDate=l.nextFollowUp&&/^\d{4}-\d{2}-\d{2}$/.test(l.nextFollowUp)?l.nextFollowUp:'';
-  var fuColor=!curDate?'var(--t3)':fuDue?'var(--accent)':daysUntil(curDate)<=3?'#FFB300':'#888';
+  var fuColor=!curDate?'var(--t3)':fuDue?'var(--accent)':daysUntil(curDate)<=3?'var(--orange)':'#888';
 
   return '<div class="fu-item" style="'+borderStyle+'">'
     // Top row — tapping anywhere opens detail
@@ -4540,7 +4553,7 @@ async function saveFuCardDate(mob, newDate){
   saveL();
   toast('📅 '+fmt(newDate));
   var inp=document.getElementById('fucard-date-'+mob);
-  if(inp){var fd=daysUntil(newDate);var fc=fd<=0?'var(--accent)':fd<=3?'#FFB300':'#888';inp.style.borderColor=fc;inp.style.color=fc;}
+  if(inp){var fd=daysUntil(newDate);var fc=fd<=0?'var(--accent)':fd<=3?'var(--orange)':'#888';inp.style.borderColor=fc;inp.style.color=fc;}
   syncLead(l, 'update'); // one row, immediate
   setTimeout(function(){renderFU();},400);
 }
@@ -5126,16 +5139,16 @@ function renderAnalytics(){
 
   // ── Summary tiles ──
   var summaryHtml='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">'
-    +'<div style="background:var(--s2);border-radius:10px;padding:12px;text-align:center"><div style="font-size:26px;font-weight:900;color:var(--accent)">'+active+'</div><div style="font-size:10px;color:var(--t2);margin-top:3px">Active Leads<br><span style="color:#f39c12">'+prospect+' prospects</span></div></div>'
+    +'<div style="background:var(--s2);border-radius:10px;padding:12px;text-align:center"><div style="font-size:26px;font-weight:900;color:var(--accent)">'+active+'</div><div style="font-size:10px;color:var(--t2);margin-top:3px">Active Leads<br><span style="color:var(--orange)">'+prospect+' prospects</span></div></div>'
     +'<div style="background:var(--s2);border-radius:10px;padding:12px;text-align:center"><div style="font-size:26px;font-weight:900;color:var(--green)">'+conv+'</div><div style="font-size:10px;color:var(--t2);margin-top:3px">Total Clients</div></div>'
     +'<div style="background:var(--s2);border-radius:10px;padding:12px;text-align:center"><div style="font-size:26px;font-weight:900;color:var(--green)">'+convRate+'%</div><div style="font-size:10px;color:var(--t2);margin-top:3px">Conversion Rate</div></div>'
-    +'<div style="background:var(--s2);border-radius:10px;padding:12px;text-align:center"><div style="font-size:26px;font-weight:900;color:#e74c3c">'+drop+'</div><div style="font-size:10px;color:var(--t2);margin-top:3px">Dropped</div></div>'
+    +'<div style="background:var(--s2);border-radius:10px;padding:12px;text-align:center"><div style="font-size:26px;font-weight:900;color:var(--red)">'+drop+'</div><div style="font-size:10px;color:var(--t2);margin-top:3px">Dropped</div></div>'
     +'</div>';
 
   // ── North Star Matrix (from Analytics sheet) ──
   var nsRows=[
     {l:'Active Leads',s:'ACTIVE',c:'var(--accent)',tip:'Contacted + In Progress'},
-    {l:'Prospect',s:'PROSPECT',c:'#f39c12',tip:''},
+    {l:'Prospect',s:'PROSPECT',c:'var(--orange)',tip:''},
     {l:'Contacted',s:'CONTACTED',c:'#AAA',tip:''},
     {l:'In Progress',s:'IN PROGRESS',c:'#CCC',tip:''},
     {l:'Converted',s:'CONVERTED',c:'var(--green)',tip:''},
@@ -5171,7 +5184,7 @@ function renderAnalytics(){
   nsHtml+='</tbody></table></div>';
 
   // ── Conversion funnel ──
-  var stages=[{l:'Prospect',n:prospect,c:'#f39c12'},{l:'Active',n:active,c:'var(--accent)'},{l:'Converted',n:conv,c:'var(--green)'},{l:'Dropped',n:drop,c:'#e74c3c'}];
+  var stages=[{l:'Prospect',n:prospect,c:'var(--orange)'},{l:'Active',n:active,c:'var(--accent)'},{l:'Converted',n:conv,c:'var(--green)'},{l:'Dropped',n:drop,c:'var(--red)'}];
   var maxN=Math.max(prospect,active,conv,drop,1);
   var funnelHtml='<div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.5px;margin-bottom:8px">🔽 CONVERSION FUNNEL</div>'
     +'<div style="display:flex;flex-direction:column;gap:6px">';
@@ -5203,8 +5216,8 @@ function openFuOverlay(){
   var todayEvents=calendarEventsOn(todayStr);
   var eventsHtml='';
   if(todayEvents.length){
-    eventsHtml='<div style="padding:10px 14px;background:rgba(79,195,247,.06);border-bottom:1px solid var(--border)">'
-      +'<div style="font-size:9px;color:#4FC3F7;font-weight:700;letter-spacing:.5px;margin-bottom:6px">📅 TODAY\'S CALENDAR EVENTS</div>'
+    eventsHtml='<div style="padding:10px 14px;background:color-mix(in srgb, var(--blue) 6%, transparent);border-bottom:1px solid var(--border)">'
+      +'<div style="font-size:9px;color:var(--blue);font-weight:700;letter-spacing:.5px;margin-bottom:6px">📅 TODAY\'S CALENDAR EVENTS</div>'
       +todayEvents.map(function(ev){
         var isBday=ev.type==='birthday';
         var icon=isBday?'🎂':'📅';
@@ -5448,21 +5461,21 @@ var EXPECTED_BACKEND_VERSION = '2.17.0';
 // gathered fields is enough to count as green. ──
 function setStatusBadgeGreen(el){
   if(!el) return;
-  el.style.background='rgba(46,204,113,.15)';
-  el.style.color='#2ecc71';
-  el.style.borderColor='rgba(46,204,113,.4)';
+  el.style.background='color-mix(in srgb, var(--green) 15%, transparent)';
+  el.style.color='var(--green)';
+  el.style.borderColor='color-mix(in srgb, var(--green) 40%, transparent)';
 }
 function setStatusBadgeBlue(el){
   if(!el) return;
-  el.style.background='rgba(79,195,247,.15)';
-  el.style.color='#4FC3F7';
-  el.style.borderColor='rgba(79,195,247,.35)';
+  el.style.background='color-mix(in srgb, var(--blue) 15%, transparent)';
+  el.style.color='var(--blue)';
+  el.style.borderColor='color-mix(in srgb, var(--blue) 35%, transparent)';
 }
 function setStatusBadgeAmber(el){
   if(!el) return;
-  el.style.background='rgba(243,156,18,.15)';
-  el.style.color='#f39c12';
-  el.style.borderColor='rgba(243,156,18,.35)';
+  el.style.background='color-mix(in srgb, var(--orange) 15%, transparent)';
+  el.style.color='var(--orange)';
+  el.style.borderColor='color-mix(in srgb, var(--orange) 35%, transparent)';
 }
 // 3-tier coloring for the fraction badges: 0 filled = blue, partial = amber, all = green
 function setBadgeTier(el, filled, total){
@@ -5572,7 +5585,7 @@ async function checkLeadFolderStatus(mob, leadName){
 // Header badge — green, bold, shown only when a folder already exists (i.e. the
 // lead uploaded documents via their shared link). Nothing shown otherwise.
 function showLeadFolderLink(el, url){
-  el.innerHTML='<a href="'+url+'" target="_blank" style="color:#2ecc71;text-decoration:none;font-weight:800">📁 Documents uploaded — tap to view</a>';
+  el.innerHTML='<a href="'+url+'" target="_blank" style="color:var(--green);text-decoration:none;font-weight:800">📁 Documents uploaded — tap to view</a>';
   el.style.display='block';
 }
 function buildFolderViewUrl(folderId){ return 'https://drive.google.com/drive/folders/'+folderId; }
@@ -6004,7 +6017,7 @@ async function loadInsightsHistory(){
         var isError=String(r[1]||'').indexOf('ERROR:')===0;
         return '<div style="padding:10px 12px;background:var(--s1);border:1px solid var(--border);border-radius:10px;margin-bottom:6px">'
           +'<div style="font-size:10px;color:var(--t3);margin-bottom:4px">'+r[0]+'</div>'
-          +'<div style="font-size:11px;color:'+(isError?'#e74c3c':'var(--text)')+';line-height:1.5;white-space:pre-wrap">'+(r[1]||'')+'</div>'
+          +'<div style="font-size:11px;color:'+(isError?'var(--red)':'var(--text)')+';line-height:1.5;white-space:pre-wrap">'+(r[1]||'')+'</div>'
           +'</div>';
       }).join('');
     }
@@ -6287,7 +6300,7 @@ function appendChatBubble(role, text){
   var bubble=document.createElement('div');
   if(role==='user'){
     bubble.style.cssText='display:flex;justify-content:flex-end;margin-bottom:10px';
-    bubble.innerHTML='<div style="background:#FFFFFF;color:#000;border-radius:14px 14px 3px 14px;padding:10px 13px;font-size:13px;max-width:80%;line-height:1.5;font-weight:600">'+esc(text)+'</div>';
+    bubble.innerHTML='<div style="background:var(--accent);color:#000;border-radius:14px 14px 3px 14px;padding:10px 13px;font-size:13px;max-width:80%;line-height:1.5;font-weight:600">'+esc(text)+'</div>';
   } else {
     bubble.style.cssText='display:flex;flex-direction:column;align-items:flex-start;margin-bottom:10px';
     // Follow-up chips — auto-rotate every 5s to a fresh set, same mechanism as
@@ -6351,7 +6364,7 @@ function appendSearchingIndicator(){
   bubble.id='chat-searching-indicator';
   bubble.style.cssText='display:flex;justify-content:flex-start;margin-bottom:10px';
   bubble.innerHTML='<div style="background:var(--s1);border:1px solid var(--border);border-radius:14px 14px 14px 3px;padding:12px 16px;display:flex;gap:9px;align-items:center;max-width:85%">'
-    +'<span style="width:14px;height:14px;border:2px solid var(--border);border-top-color:#4FC3F7;border-radius:50%;flex-shrink:0;animation:chatSearchSpin .8s linear infinite"></span>'
+    +'<span style="width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--blue);border-radius:50%;flex-shrink:0;animation:chatSearchSpin .8s linear infinite"></span>'
     +'<span id="chat-searching-text" style="font-size:12.5px;color:var(--t2);transition:opacity .25s ease;flex:1">'+chatSearchingStages[0]+'</span>'
     +'<span id="chat-searching-elapsed" style="font-size:10.5px;color:var(--t3);font-variant-numeric:tabular-nums;flex-shrink:0">0s</span>'
     +'</div>';
@@ -6485,7 +6498,7 @@ async function loadAllBusinessInsights(){
   try{
     var res=await sheetWrite({action:'generateTopBusinessInsights'}, 55000);
     if(!res || !res.success){
-      listEl.innerHTML='<div style="font-size:12px;color:#e74c3c;text-align:center;padding:20px">Could not load insights: '+(res&&res.error||'unknown error')+'</div>';
+      listEl.innerHTML='<div style="font-size:12px;color:var(--red);text-align:center;padding:20px">Could not load insights: '+(res&&res.error||'unknown error')+'</div>';
       return;
     }
     if(!res.insights || !res.insights.length){
@@ -6495,7 +6508,7 @@ async function loadAllBusinessInsights(){
     listEl.innerHTML=res.insights.map(function(item){
       var initials=ini(item.name);
       return '<div style="background:#0F1D2E;border:1px solid #1C2B3E;border-top:4px solid #FFFFFF;border-radius:14px;padding:12px 14px;display:flex;gap:12px;align-items:flex-start;margin-bottom:10px;box-shadow:0 8px 20px rgba(0,0,0,.35),0 2px 6px rgba(0,0,0,.28)">'
-        +'<div style="width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,.10);border:1.5px solid #5C6B80;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#FFFFFF;flex-shrink:0">'+initials+'</div>'
+        +'<div style="width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,.10);border:1.5px solid #5C6B80;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:var(--text);flex-shrink:0">'+initials+'</div>'
         +'<div style="flex:1;min-width:0">'
         +'<div style="font-size:15px;font-weight:800;color:var(--text)">'+esc(toTitle(item.name))+(item.familyName?' <span style="font-weight:600;color:var(--t2);font-size:12px">- '+esc(item.familyName)+'</span>':'')+'</div>'
         +'<div style="font-size:12px;color:var(--t2);line-height:1.5;margin-top:4px">'+esc(item.insight)+'</div>'
@@ -6503,7 +6516,7 @@ async function loadAllBusinessInsights(){
         +'</div>';
     }).join('');
   }catch(e){
-    listEl.innerHTML='<div style="font-size:12px;color:#e74c3c;text-align:center;padding:20px">Could not load insights: '+e.message+'</div>';
+    listEl.innerHTML='<div style="font-size:12px;color:var(--red);text-align:center;padding:20px">Could not load insights: '+e.message+'</div>';
   }
 }
 
@@ -6582,9 +6595,9 @@ function showStaleLeadsListPopup(){
   var ov=document.createElement('div');
   ov.id='stale-leads-list-ov';
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:100000;display:flex;align-items:flex-end;justify-content:center';
-  ov.innerHTML='<div style="background:var(--s1);border-radius:16px 16px 0 0;width:100%;max-width:480px;max-height:85vh;display:flex;flex-direction:column;border:1px solid #e74c3c">'
+  ov.innerHTML='<div style="background:var(--s1);border-radius:16px 16px 0 0;width:100%;max-width:480px;max-height:85vh;display:flex;flex-direction:column;border:1px solid var(--red)">'
     +'<div style="padding:14px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)">'
-    +'<span style="font-size:14px;font-weight:800;color:#e74c3c">🕰️ Stale Leads ('+list.length+')</span>'
+    +'<span style="font-size:14px;font-weight:800;color:var(--red)">🕰️ Stale Leads ('+list.length+')</span>'
     +'<span onclick="document.getElementById(\'stale-leads-list-ov\').remove()" style="font-size:20px;color:var(--t2);cursor:pointer;padding:0 4px">✕</span>'
     +'</div>'
     +'<div id="stale-leads-rows" style="overflow-y:auto;flex:1;padding:8px 12px">'
@@ -6595,7 +6608,7 @@ function showStaleLeadsListPopup(){
         +'<div style="font-size:10px;color:var(--t3);margin-top:2px">'+l.status+' · '+l.daysStale+' days stale'+(l.potentialAum?' · AUM '+l.potentialAum:'')+'</div>'
         +'</div>'
         +'<button onclick="openDetail(\''+(l.recordId||l.mobile)+'\',\'lead\',\''+encodeURIComponent(l.name||'')+'\')" style="font-size:10px;font-weight:700;color:var(--accent);background:none;border:1px solid var(--accent);border-radius:8px;padding:6px 8px;cursor:pointer;flex-shrink:0">View</button>'
-        +'<button onclick="deleteLead(\''+(l.recordId||l.mobile)+'\')" style="font-size:10px;font-weight:700;color:#e74c3c;background:none;border:1px solid #e74c3c;border-radius:8px;padding:6px 8px;cursor:pointer;flex-shrink:0">🗑</button>'
+        +'<button onclick="deleteLead(\''+(l.recordId||l.mobile)+'\')" style="font-size:10px;font-weight:700;color:var(--red);background:none;border:1px solid var(--red);border-radius:8px;padding:6px 8px;cursor:pointer;flex-shrink:0">🗑</button>'
         +'</div>';
     }).join('')
     +'</div></div>';
@@ -7549,9 +7562,9 @@ function showReviewReportPreview(c, mob, reportText){
   var ov=document.createElement('div');
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100000;display:flex;align-items:flex-end;justify-content:center';
   var textId='rr-text-'+Date.now();
-  ov.innerHTML='<div style="background:var(--s1);border-radius:16px 16px 0 0;width:100%;max-width:480px;max-height:85vh;display:flex;flex-direction:column;border:1px solid #1D6FE0">'
+  ov.innerHTML='<div style="background:var(--s1);border-radius:16px 16px 0 0;width:100%;max-width:480px;max-height:85vh;display:flex;flex-direction:column;border:1px solid var(--blue)">'
     +'<div style="padding:14px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)">'
-    +'<span style="font-size:14px;font-weight:800;color:#1D6FE0">💌 Preview before sending</span>'
+    +'<span style="font-size:14px;font-weight:800;color:var(--blue)">💌 Preview before sending</span>'
     +'<span onclick="this.closest(\'div[style*=fixed]\').remove()" style="font-size:20px;color:var(--t2);cursor:pointer">✕</span>'
     +'</div>'
     +'<div id="'+textId+'" style="font-size:13px;color:var(--text);line-height:1.7;white-space:pre-wrap;padding:16px;overflow-y:auto;flex:1">'+reportText+'</div>'
@@ -7690,7 +7703,7 @@ async function runMeetingInsight(c, mob, casFiles){
       +'<button class="btn btn-ghost" style="font-size:11px;flex:1" onclick="startMeetingInsight(\''+mob+'\')">🔄 Regenerate</button>'
       +'</div>';
   } else {
-    body.innerHTML='<div style="font-size:11px;color:#e74c3c;padding:10px">❌ '+(res&&res.error||'Could not generate insight — check backend is deployed and CLAUDE_API_KEY is set')+'</div>';
+    body.innerHTML='<div style="font-size:11px;color:var(--red);padding:10px">❌ '+(res&&res.error||'Could not generate insight — check backend is deployed and CLAUDE_API_KEY is set')+'</div>';
   }
 }
 
@@ -7774,7 +7787,7 @@ async function generateLeadInsight(mob){
       +'</div>';
     body.dataset.loaded='1';
   } else {
-    body.innerHTML='<div style="font-size:11px;color:#e74c3c;padding:8px">❌ '+(res&&res.error||'Could not generate insight — check backend is deployed and CLAUDE_API_KEY is set')+'</div>';
+    body.innerHTML='<div style="font-size:11px;color:var(--red);padding:8px">❌ '+(res&&res.error||'Could not generate insight — check backend is deployed and CLAUDE_API_KEY is set')+'</div>';
   }
 }
 
@@ -7810,7 +7823,7 @@ async function generateClientInsight(mob){
       +'</div>';
     body.dataset.loaded='1';
   } else {
-    body.innerHTML='<div style="font-size:11px;color:#e74c3c;padding:8px">❌ '+(res&&res.error||'Could not generate insight — check backend is deployed and CLAUDE_API_KEY is set')+'</div>';
+    body.innerHTML='<div style="font-size:11px;color:var(--red);padding:8px">❌ '+(res&&res.error||'Could not generate insight — check backend is deployed and CLAUDE_API_KEY is set')+'</div>';
   }
 }
 
@@ -7854,9 +7867,9 @@ function showCasFilePickerPrompt(c, files){
       +'<div style="font-size:10px;color:var(--t3);margin-top:2px">Uploaded '+f.uploadDate+'</div></div>'
       +'</label>';
   }).join('');
-  ov.innerHTML='<div style="background:var(--s1);border-radius:14px 14px 0 0;width:100%;max-width:420px;overflow:hidden;border:1px solid #f39c12;border-bottom:none">'
+  ov.innerHTML='<div style="background:var(--s1);border-radius:14px 14px 0 0;width:100%;max-width:420px;overflow:hidden;border:1px solid var(--orange);border-bottom:none">'
     +'<div style="padding:16px;text-align:center">'
-    +'<div style="font-size:14px;font-weight:800;color:#f39c12">📁 Multiple CAS files found</div>'
+    +'<div style="font-size:14px;font-weight:800;color:var(--orange)">📁 Multiple CAS files found</div>'
     +'<div style="font-size:11px;color:var(--t2);margin-top:4px">Select which one(s) to analyze — check more than one if they represent different registered emails for the same investor.</div>'
     +'</div>'
     +rows
@@ -7895,9 +7908,9 @@ function showCasEmailDraftPrompt(subject, body, tableHtml, filesUsed){
   var ov=document.createElement('div');
   ov.id='cas-email-ov';
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:99999;display:flex;align-items:flex-end;justify-content:center';
-  ov.innerHTML='<div style="background:var(--s1);border-radius:14px 14px 0 0;width:100%;max-width:460px;max-height:88vh;overflow-y:auto;border:1px solid #f39c12;border-bottom:none">'
+  ov.innerHTML='<div style="background:var(--s1);border-radius:14px 14px 0 0;width:100%;max-width:460px;max-height:88vh;overflow-y:auto;border:1px solid var(--orange);border-bottom:none">'
     +'<div style="padding:16px 16px 4px;display:flex;justify-content:space-between;align-items:center">'
-    +'<span style="font-size:15px;font-weight:800;color:#f39c12">📧 AI Portfolio Email Draft</span>'
+    +'<span style="font-size:15px;font-weight:800;color:var(--orange)">📧 AI Portfolio Email Draft</span>'
     +'<span onclick="document.getElementById(\'cas-email-ov\').remove()" style="font-size:20px;color:var(--t2);cursor:pointer">✕</span>'
     +'</div>'
     +(filesUsed&&filesUsed.length?'<div style="padding:4px 16px;font-size:10px;color:var(--t3)">Based on: '+filesUsed.join(', ')+'</div>':'')
@@ -8356,7 +8369,7 @@ function renderReminders(){
   // ── Review meetings due — next 14 days ──
   var reviewDue14=clients.filter(function(c){var d=daysTo(c.reviewDate);return d>=0&&d<=14;});
   if(reviewDue14.length){
-    items.push({icon:'📊',color:'#9b59b6',bg:'rgba(155,89,182,.08)',
+    items.push({icon:'📊',color:'var(--purple)',bg:'color-mix(in srgb, var(--purple) 8%, transparent)',
       title:'Review meeting due — '+reviewDue14.length+' client'+(reviewDue14.length>1?'s':''),
       sub:reviewDue14.map(function(c){return toTitle(c.name)+' ('+fmt(c.reviewDate)+')';}).join(' · '),
       list:reviewDue14, listType:'review'});
@@ -8365,7 +8378,7 @@ function renderReminders(){
   // ── Health insurance due within 45 days ──
   var healthDue=clients.filter(function(c){var d=daysTo(c.dueDateHealth);return d>=0&&d<=45;});
   if(healthDue.length){
-    items.push({icon:'🏥',color:'#e74c3c',bg:'rgba(231,76,60,.08)',
+    items.push({icon:'🏥',color:'var(--red)',bg:'color-mix(in srgb, var(--red) 8%, transparent)',
       title:'Health Insurance due — '+healthDue.length+' client'+(healthDue.length>1?'s':''),
       sub:healthDue.map(function(c){return toTitle(c.name)+' ('+fmt(c.dueDateHealth)+')';}).join(' · '),
       list:healthDue, listType:'health'});
@@ -8374,7 +8387,7 @@ function renderReminders(){
   // ── Life insurance due within 45 days ──
   var lifeDue=clients.filter(function(c){var d=daysTo(c.dueDateLife);return d>=0&&d<=45;});
   if(lifeDue.length){
-    items.push({icon:'🛡️',color:'#9b59b6',bg:'rgba(155,89,182,.08)',
+    items.push({icon:'🛡️',color:'var(--purple)',bg:'color-mix(in srgb, var(--purple) 8%, transparent)',
       title:'Life Insurance due — '+lifeDue.length+' client'+(lifeDue.length>1?'s':''),
       sub:lifeDue.map(function(c){return toTitle(c.name)+' ('+fmt(c.dueDateLife)+')';}).join(' · '),
       list:lifeDue, listType:'life'});
@@ -8388,7 +8401,7 @@ function renderReminders(){
         var dayName=DAYS_OF_WEEK[r.date.getDay()];
         var dateStr=r.date.getDate()+' '+MONTHS[r.date.getMonth()];
         var daysStr=r.days===0?'Today!':r.days===1?'Tomorrow':r.days+' days';
-        items.push({icon:'📅',color:'#8e44ad',bg:'rgba(142,68,173,.08)',
+        items.push({icon:'📅',color:'var(--purple)',bg:'rgba(142,68,173,.08)',
           title:sd.speciality+' — '+daysStr,
           sub:dateStr+' ('+dayName+') · Plan accordingly',
           isSpecialDay:true, spIdx:null});
@@ -8633,10 +8646,10 @@ function renderPipelineFunnel(){
   var el=document.getElementById('dash-funnel');
   if(!el) return;
   var stages=[
-    {label:'Prospect', color:'#4FC3F7', n:leads.filter(function(l){return (l.status||'').toUpperCase()==='PROSPECT';}).length},
-    {label:'Contacted', color:'#2ecc71', n:leads.filter(function(l){return (l.status||'').toUpperCase()==='CONTACTED';}).length},
-    {label:'In Progress', color:'#f39c12', n:leads.filter(function(l){return (l.status||'').toUpperCase()==='IN PROGRESS';}).length},
-    {label:'Converted', color:'#9b59b6', n:clients.length}
+    {label:'Prospect', color:'var(--blue)', n:leads.filter(function(l){return (l.status||'').toUpperCase()==='PROSPECT';}).length},
+    {label:'Contacted', color:'var(--green)', n:leads.filter(function(l){return (l.status||'').toUpperCase()==='CONTACTED';}).length},
+    {label:'In Progress', color:'var(--orange)', n:leads.filter(function(l){return (l.status||'').toUpperCase()==='IN PROGRESS';}).length},
+    {label:'Converted', color:'var(--purple)', n:clients.length}
   ];
   var maxN=Math.max.apply(null, stages.map(function(s){return s.n;}).concat([1]));
   var W=260, rowH=46, gap=4;
@@ -8708,13 +8721,13 @@ function showStageList(stage){
 function showDashList(type){
   var title,items=[],color='var(--accent)';
   if(type==='prospect'){
-    title='🟡 Prospects';color='#f39c12';
+    title='🟡 Prospects';color='var(--orange)';
     items=leads.filter(function(l){return (l.status||'').toUpperCase()==='PROSPECT';});
   } else if(type==='active'){
     title='🔴 Active Leads';color='var(--accent)';
     items=leads.filter(function(l){return ['CONTACTED','IN PROGRESS'].includes((l.status||'').toUpperCase());});
   } else if(type==='clients'){
-    title='🔵 Clients';color='#4FC3F7';
+    title='🔵 Clients';color='var(--blue)';
     items=clients.slice().sort(function(a,b){return parseAumValue(b.aum)-parseAumValue(a.aum);});
   } else if(type==='dropped'){
     title='⚫ Dropped Leads';color='#888';
@@ -8806,7 +8819,7 @@ function renderWeekCalendar(){
       +'</div>'
       +'<div style="display:flex;flex-direction:column;gap:3px">'
       +'<div style="background:'+(d.fuCount>0?'rgba(255,255,255,.15)':'transparent')+';border:1px solid '+(d.fuCount>0?'var(--accent)':'transparent')+';border-radius:6px;padding:2px 3px;font-size:9px;font-weight:800;color:'+(d.fuCount>0?'var(--accent)':'var(--t3)')+'">📋 '+d.fuCount+' FU</div>'
-      +'<div style="background:'+(d.evCount>0?'rgba(79,195,247,.15)':'transparent')+';border:1px solid '+(d.evCount>0?'#4FC3F7':'transparent')+';border-radius:6px;padding:2px 3px;font-size:9px;font-weight:800;color:'+(d.evCount>0?'#4FC3F7':'var(--t3)')+'">📅 '+d.evCount+' Ev</div>'
+      +'<div style="background:'+(d.evCount>0?'color-mix(in srgb, var(--blue) 15%, transparent)':'transparent')+';border:1px solid '+(d.evCount>0?'var(--blue)':'transparent')+';border-radius:6px;padding:2px 3px;font-size:9px;font-weight:800;color:'+(d.evCount>0?'var(--blue)':'var(--t3)')+'">📅 '+d.evCount+' Ev</div>'
       +'</div>'
       +'</div>';
   });
@@ -8833,8 +8846,8 @@ function showWeekDayList(dateStr){
   dayEvents.forEach(function(ev){
     var isBday=ev.type==='birthday';
     var icon=isBday?'🎂':'📅';
-    var color=isBday?'#25D366':'#4FC3F7';
-    var bg=isBday?'rgba(37,211,102,.06)':'rgba(79,195,247,.06)';
+    var color=isBday?'#25D366':'var(--blue)';
+    var bg=isBday?'rgba(37,211,102,.06)':'color-mix(in srgb, var(--blue) 6%, transparent)';
     var label=isBday?'Birthday':'Calendar Event · '+ev.time;
     rows+='<div style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--border);background:'+bg+'">'
       +'<span style="font-size:16px">'+icon+'</span>'
@@ -8852,7 +8865,7 @@ function showWeekDayList(dateStr){
     rows+='<div class="wk-row" data-wkmob="'+c.mobile+'" data-wktype="client" data-wkname="'+encodeURIComponent(c.name||'')+'" style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid var(--border);cursor:pointer">'
       +'<div><div style="font-size:13px;font-weight:700;color:var(--text)">'+toTitle(c.name)+'</div>'
       +'<div style="font-size:10px;color:var(--t3);margin-top:2px">👥 Client</div></div>'
-      +'<span style="font-size:12px;color:#4FC3F7">›</span></div>';
+      +'<span style="font-size:12px;color:var(--blue)">›</span></div>';
   });
 
   var ov=document.createElement('div');
@@ -8886,18 +8899,18 @@ function makeFuClientItem(c){
   if(entries.length){var last=entries[entries.length-1];lastRem=(last.activity||'').substring(0,45);}
   var curDate=c.nextFollowUp&&/^\d{4}-\d{2}-\d{2}$/.test(c.nextFollowUp)?c.nextFollowUp:'';
   var fuDue=curDate&&daysUntil(curDate)<=0;
-  var fuColor=!curDate?'var(--t3)':fuDue?'var(--accent)':daysUntil(curDate)<=3?'#FFB300':'#888';
-  var aumTag=c.aum?'<span style="font-size:9px;color:#4FC3F7;font-weight:700;background:rgba(79,195,247,.1);border:1px solid rgba(79,195,247,.3);border-radius:999px;padding:1px 5px">'+c.aum+'</span>':'';
+  var fuColor=!curDate?'var(--t3)':fuDue?'var(--accent)':daysUntil(curDate)<=3?'var(--orange)':'#888';
+  var aumTag=c.aum?'<span style="font-size:9px;color:var(--blue);font-weight:700;background:color-mix(in srgb, var(--blue) 10%, transparent);border:1px solid color-mix(in srgb, var(--blue) 30%, transparent);border-radius:999px;padding:1px 5px">'+c.aum+'</span>':'';
 
-  return '<div class="fu-item" style="border-left:3px solid #4FC3F7;">'
+  return '<div class="fu-item" style="border-left:3px solid var(--blue);">'
     +'<div class="fu-row" data-caction="fu-client-open" data-cmob="'+mob+'" data-cname="'+encodeURIComponent(c.name||'')+'">'
     +'<div class="av" style="width:36px;height:36px;min-width:36px;font-size:12px">'+ini(c.name)+'</div>'
     +'<div style="flex:1;min-width:0">'
     +'<div style="font-weight:700;font-size:13px">'+toTitle(c.name)+'</div>'
-    +'<div style="display:flex;gap:4px;align-items:center;margin-top:2px;flex-wrap:wrap"><span style="font-size:10px;font-weight:700;color:#4FC3F7">👥 CLIENT</span>'+aumTag+'</div>'
+    +'<div style="display:flex;gap:4px;align-items:center;margin-top:2px;flex-wrap:wrap"><span style="font-size:10px;font-weight:700;color:var(--blue)">👥 CLIENT</span>'+aumTag+'</div>'
     +(lastRem?'<div style="font-size:10px;color:var(--t3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+lastRem+'</div>':'')
     +'</div>'
-    +'<div style="font-size:11px;color:#4FC3F7;font-weight:700;flex-shrink:0">'+d+'d</div>'
+    +'<div style="font-size:11px;color:var(--blue);font-weight:700;flex-shrink:0">'+d+'d</div>'
     +'</div>'
     +'<div class="fu-actions">'
     +'<a href="https://wa.me/'+waNum+'" target="_blank" class="fu-icon-btn wa">'+waIcon()+'</a>'
@@ -9356,7 +9369,7 @@ function renderLockSettingsStatus(){
   if(isLockEnabled()){
     el.textContent='🔒 App lock is ON'+(isBiometricEnabled()?' · Face ID/Fingerprint enabled':' · PIN only')
       +(hasRecoveryPhrase()?' · Recovery phrase set':' · ⚠️ No recovery phrase');
-    el.style.color=hasRecoveryPhrase()?'var(--green)':'#f39c12';
+    el.style.color=hasRecoveryPhrase()?'var(--green)':'var(--orange)';
   } else {
     el.textContent='🔓 App lock is OFF';
     el.style.color='var(--t3)';
@@ -9558,7 +9571,7 @@ function showUploadChoicePopup(mob, recType){
     +'<div style="padding:12px 16px;font-size:12px;color:var(--t2);line-height:1.5">Send the upload link to them via WhatsApp, or upload the documents yourself right now?</div>'
     +'<div style="display:flex;flex-direction:column;border-top:1px solid var(--border)">'
     +'<button id="_uc_send" style="padding:12px;border:none;background:none;color:var(--accent);font-weight:700;cursor:pointer;border-bottom:1px solid var(--border)">💬 Send Link to Them</button>'
-    +'<button id="_uc_self" style="padding:12px;border:none;background:none;color:#f39c12;font-weight:700;cursor:pointer">📤 I\'m Uploading Now</button>'
+    +'<button id="_uc_self" style="padding:12px;border:none;background:none;color:var(--orange);font-weight:700;cursor:pointer">📤 I\'m Uploading Now</button>'
     +'</div></div>';
   document.body.appendChild(ov);
   document.getElementById('_uc_send').onclick=function(){
@@ -9733,13 +9746,13 @@ async function toggleChipDocs(mob){
       var f = fileByType[dt];
       if(f){
         return '<a href="'+f.url+'" target="_blank" style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--s2);border-radius:7px;margin-bottom:5px;text-decoration:none">'
-          +'<span style="font-size:13px;color:#2ecc71">●</span>'
+          +'<span style="font-size:13px;color:var(--green)">●</span>'
           +'<span style="font-size:12px;font-weight:700;color:var(--text);flex:1">'+dt+'</span>'
           +'<span style="font-size:10px;color:var(--accent)">Open ›</span>'
           +'</a>';
       }
       return '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--s2);border-radius:7px;margin-bottom:5px;opacity:.6">'
-        +'<span style="font-size:13px;color:#4FC3F7">●</span>'
+        +'<span style="font-size:13px;color:var(--blue)">●</span>'
         +'<span style="font-size:12px;font-weight:600;color:var(--t2);flex:1">'+dt+'</span>'
         +'<span style="font-size:10px;color:var(--t3)">Missing</span>'
         +'</div>';
@@ -9748,14 +9761,14 @@ async function toggleChipDocs(mob){
     var extra = files.filter(function(f){ return required.indexOf(f.docType)<0; });
     var extraRows = extra.map(function(f){
       return '<a href="'+f.url+'" target="_blank" style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--s2);border-radius:7px;margin-bottom:5px;text-decoration:none">'
-        +'<span style="font-size:13px;color:#2ecc71">●</span>'
+        +'<span style="font-size:13px;color:var(--green)">●</span>'
         +'<span style="font-size:12px;font-weight:700;color:var(--text);flex:1">'+f.docType+'</span>'
         +'<span style="font-size:10px;color:var(--accent)">Open ›</span>'
         +'</a>';
     }).join('');
     body.innerHTML = rows + extraRows;
   }catch(e){
-    body.innerHTML='<div style="text-align:center;padding:10px;font-size:11px;color:#e74c3c">Failed to load documents</div>';
+    body.innerHTML='<div style="text-align:center;padding:10px;font-size:11px;color:var(--red)">Failed to load documents</div>';
   }
 }
 
@@ -9780,13 +9793,13 @@ function toggleChipData(mob){
     if(v){
       var display = (f.key==='appInstalled') ? 'Yes' : v;
       return '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--s2);border-radius:7px;margin-bottom:5px">'
-        +'<span style="font-size:13px;color:#2ecc71">●</span>'
+        +'<span style="font-size:13px;color:var(--green)">●</span>'
         +'<span style="font-size:12px;font-weight:700;color:var(--text);flex:1">'+f.label+'</span>'
         +'<span style="font-size:10px;color:var(--t2)">'+display+'</span>'
         +'</div>';
     }
     return '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--s2);border-radius:7px;margin-bottom:5px;opacity:.6">'
-      +'<span style="font-size:13px;color:#4FC3F7">●</span>'
+      +'<span style="font-size:13px;color:var(--blue)">●</span>'
       +'<span style="font-size:12px;font-weight:600;color:var(--t2);flex:1">'+f.label+'</span>'
       +'<span style="font-size:10px;color:var(--t3)">Not gathered</span>'
       +'</div>';
@@ -9869,7 +9882,7 @@ async function openUploadDocsScreen(client){
   if(folderReady){
     if(statusEl) statusEl.innerHTML='<span style="color:var(--green)">✅ Folder ready — tap any document type below to upload</span>';
   } else {
-    if(statusEl) statusEl.innerHTML='<span style="color:#e74c3c">⚠️ Folder creation had an issue — uploads may still work, or try again from the client\'s page later</span>';
+    if(statusEl) statusEl.innerHTML='<span style="color:var(--red)">⚠️ Folder creation had an issue — uploads may still work, or try again from the client\'s page later</span>';
   }
 
   renderUploadDocsList(client);
@@ -9921,11 +9934,11 @@ async function handleStreamingDocUpload(inputEl){
       toast(docType+' uploaded ✅');
       if(res.folderId && cRec && !(cRec.folderId&&cRec.folderId.trim())) await tagFolderToClient(cRec, res.folderId); // first upload — lock in the folder now
     } else {
-      if(statusEl){ statusEl.textContent='❌ Upload failed'; statusEl.style.color='#e74c3c'; }
+      if(statusEl){ statusEl.textContent='❌ Upload failed'; statusEl.style.color='var(--red)'; }
       toast('❌ '+docType+' upload failed: '+(res&&res.error||'unknown error'));
     }
   }catch(e){
-    if(statusEl){ statusEl.textContent='❌ Upload failed'; statusEl.style.color='#e74c3c'; }
+    if(statusEl){ statusEl.textContent='❌ Upload failed'; statusEl.style.color='var(--red)'; }
     toast('❌ Upload failed: '+e.message);
   }
   inputEl.value='';
@@ -10015,7 +10028,7 @@ function renderTodaysActivity(){
         return parseInt(p[0])-1===now.getMonth() && parseInt(p[1])===now.getDate();
       });
       if(specialToday.length){
-        items.push({icon:'📅',color:'#8e44ad',bg:'rgba(142,68,173,.08)',
+        items.push({icon:'📅',color:'var(--purple)',bg:'rgba(142,68,173,.08)',
           title:specialToday.length+' special day'+(specialToday.length>1?'s':'')+' today',
           sub:specialToday.map(function(sd){return sd.speciality;}).join(' · '),
           action:'showSpecialDaysList()'});
@@ -10032,7 +10045,7 @@ function renderTodaysActivity(){
       var evLabel=[];
       if(evCount) evLabel.push(evCount+' event'+(evCount>1?'s':''));
       if(bdayCount) evLabel.push(bdayCount+' birthday'+(bdayCount>1?'s':''));
-      items.push({icon:'📅',color:'#4FC3F7',bg:'rgba(79,195,247,.08)',
+      items.push({icon:'📅',color:'var(--blue)',bg:'color-mix(in srgb, var(--blue) 8%, transparent)',
         title:'Today — '+evLabel.join(', '),
         sub:todayEvents.map(function(e){return (e.type==='birthday'?'🎂 ':'')+e.title;}).join(' · '),
         list:todayEvents, listType:'calendarEvents'});
@@ -10051,7 +10064,7 @@ function renderTodaysActivity(){
       return (d1due||d2due)&&!isSipReminderSent(c.mobile);
     });
     if(sipDue.length){
-      items.push({icon:'💰',color:'#f39c12',bg:'rgba(243,156,18,.08)',
+      items.push({icon:'💰',color:'var(--orange)',bg:'color-mix(in srgb, var(--orange) 8%, transparent)',
         title:'SIP due — '+sipDue.length+' client'+(sipDue.length>1?'s':''),
         sub:sipDue.map(function(c){
           var dates=[];
@@ -10066,7 +10079,7 @@ function renderTodaysActivity(){
       // Nothing due — say so explicitly rather than showing nothing at all.
       // Silence is ambiguous (did the check run? is it broken?); an explicit
       // all-clear confirms the check actually ran and found nothing.
-      items.push({icon:'💰',color:'#4FC3F7',bg:'rgba(79,195,247,.06)',
+      items.push({icon:'💰',color:'var(--blue)',bg:'color-mix(in srgb, var(--blue) 6%, transparent)',
         title:'No SIP due in the next 5 days',
         sub:'All clear — nothing to follow up on right now.',
         list:null, listType:'sipNone'});
@@ -10094,7 +10107,7 @@ function renderTodaysActivity(){
       });
     });
     if(sipVerify.length){
-      items.push({icon:'🔍',color:'#e67e22',bg:'rgba(230,126,34,.08)',
+      items.push({icon:'🔍',color:'var(--orange)',bg:'rgba(230,126,34,.08)',
         title:'Verify SIP debited — '+sipVerify.length+' client'+(sipVerify.length>1?'s':''),
         sub:sipVerify.map(function(v){
           return toTitle(v.client.name)+' (SIP was on '+v.sipDay+'th)';
@@ -10107,7 +10120,7 @@ function renderTodaysActivity(){
   try{
     var reviewDue=clients.filter(function(c){return daysTo(c.reviewDate)===0;});
     if(reviewDue.length){
-      items.push({icon:'📊',color:'#9b59b6',bg:'rgba(155,89,182,.08)',
+      items.push({icon:'📊',color:'var(--purple)',bg:'color-mix(in srgb, var(--purple) 8%, transparent)',
         title:'Review due today — '+reviewDue.length+' client'+(reviewDue.length>1?'s':''),
         sub:reviewDue.map(function(c){return toTitle(c.name);}).join(' · '),
         list:reviewDue, listType:'review'});
@@ -10118,7 +10131,7 @@ function renderTodaysActivity(){
   try{
     var annsToday=clients.filter(function(c){return daysToAnnual(c.anniversary)===0;});
     if(annsToday.length){
-      items.push({icon:'💑',color:'#3498db',bg:'rgba(52,152,219,.08)',
+      items.push({icon:'💑',color:'var(--blue)',bg:'rgba(52,152,219,.08)',
         title:'Anniversary today — '+annsToday.length+' client'+(annsToday.length>1?'s':''),
         sub:annsToday.map(function(c){return toTitle(c.name);}).join(' · '),
         list:annsToday, listType:'ann'});
@@ -10142,7 +10155,7 @@ function renderTodaysActivity(){
   try{
     var ann1sToday=clients.filter(function(c){return daysToAnnual(c.firstAnniversary)===0;});
     if(ann1sToday.length){
-      items.push({icon:'🏆',color:'#2ecc71',bg:'rgba(46,204,113,.08)',
+      items.push({icon:'🏆',color:'var(--green)',bg:'color-mix(in srgb, var(--green) 8%, transparent)',
         title:'1 Year Anniversary today — '+ann1sToday.length+' client'+(ann1sToday.length>1?'s':''),
         sub:ann1sToday.map(function(c){return toTitle(c.name);}).join(' · '),
         list:ann1sToday, listType:'cas'});
@@ -10153,7 +10166,7 @@ function renderTodaysActivity(){
   try{
     var stale90=clients.filter(function(c){return clientDaysSinceContact(c)>90;});
     if(stale90.length){
-      items.push({icon:'\u23F0',color:'#e67e22',bg:'rgba(230,126,34,.08)',
+      items.push({icon:'\u23F0',color:'var(--orange)',bg:'rgba(230,126,34,.08)',
         title:stale90.length+' client'+(stale90.length>1?'s':'')+' not contacted in 90+ days',
         sub:stale90.map(function(c){return toTitle(c.name);}).join(' \u00B7 '),
         list:stale90, listType:'stale90'});
@@ -10197,7 +10210,7 @@ function showTodaysActivityList(idx){
       return '<div style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--border)">'
         +'<span style="font-size:16px">'+(isBday?'🎂':'📅')+'</span>'
         +'<div><div style="font-size:13px;font-weight:700;color:var(--text)">'+ev.title+'</div>'
-        +'<div style="font-size:10px;color:'+(isBday?'#25D366':'#4FC3F7')+';margin-top:2px">'+(isBday?'Birthday':ev.time)+'</div></div>'
+        +'<div style="font-size:10px;color:'+(isBday?'#25D366':'var(--blue)')+';margin-top:2px">'+(isBday?'Birthday':ev.time)+'</div></div>'
         +'</div>';
     }).join('');
   } else if(item.listType==='sipVerify'){
@@ -10209,8 +10222,8 @@ function showTodaysActivityList(idx){
         +'<div style="font-size:13px;font-weight:700;color:var(--text)">'+toTitle(c.name)+'</div>'
         +'<div style="font-size:11px;color:var(--t2);margin-top:3px;line-height:1.5">SIP of '+toTitle(c.name)+' was on '+v.sipDay+'th — check whether it is debited.</div>'
         +'<div style="display:flex;gap:7px;margin-top:9px">'
-        +'<button class="sipv-confirm" data-vi="'+vi+'" style="flex:1;font-size:11px;font-weight:700;padding:7px;border-radius:8px;border:1px solid rgba(46,204,113,.4);background:rgba(46,204,113,.1);color:#2ecc71;cursor:pointer">✅ Confirmed</button>'
-        +'<button class="sipv-returned" data-vi="'+vi+'" style="flex:1;font-size:11px;font-weight:700;padding:7px;border-radius:8px;border:1px solid rgba(231,76,60,.4);background:rgba(231,76,60,.1);color:#e74c3c;cursor:pointer">↩️ Returned SIP</button>'
+        +'<button class="sipv-confirm" data-vi="'+vi+'" style="flex:1;font-size:11px;font-weight:700;padding:7px;border-radius:8px;border:1px solid color-mix(in srgb, var(--green) 40%, transparent);background:color-mix(in srgb, var(--green) 10%, transparent);color:var(--green);cursor:pointer">✅ Confirmed</button>'
+        +'<button class="sipv-returned" data-vi="'+vi+'" style="flex:1;font-size:11px;font-weight:700;padding:7px;border-radius:8px;border:1px solid color-mix(in srgb, var(--red) 40%, transparent);background:color-mix(in srgb, var(--red) 10%, transparent);color:var(--red);cursor:pointer">↩️ Returned SIP</button>'
         +'</div></div>';
     }).join('');
   } else {
@@ -10329,11 +10342,11 @@ function saveLoginSetupUrl(){
   var msgEl=document.getElementById('login-setup-msg');
   var url=(urlEl?urlEl.value:'').trim();
   if(!url || !url.includes('script.google.com')){
-    if(msgEl){ msgEl.textContent='That doesn\'t look like a valid Apps Script URL.'; msgEl.style.color='#e74c3c'; msgEl.style.display='block'; }
+    if(msgEl){ msgEl.textContent='That doesn\'t look like a valid Apps Script URL.'; msgEl.style.color='var(--red)'; msgEl.style.display='block'; }
     return;
   }
   cfg('scriptUrl', url); // same save mechanism Settings uses — this app has one config store, not a separate one for this form
-  if(msgEl){ msgEl.textContent='✅ Connection saved. You can sign in now.'; msgEl.style.color='#2ecc71'; msgEl.style.display='block'; }
+  if(msgEl){ msgEl.textContent='✅ Connection saved. You can sign in now.'; msgEl.style.color='var(--green)'; msgEl.style.display='block'; }
   setTimeout(function(){
     var sf=document.getElementById('login-setup-form'); if(sf) sf.style.display='none';
     var u=document.getElementById('login-username'); if(u) u.focus();
@@ -10481,7 +10494,7 @@ async function loadAdminUserList(){
   var session=getSession(); if(!session) return;
   try{
     var res=await sheetWrite({action:'listUsers', requestingUserId:session.userId}, 20000);
-    if(!res || !res.success){ listEl.innerHTML='<div style="font-size:11px;color:#e74c3c;text-align:center;padding:8px">'+(res&&res.error||'Could not load users')+'</div>'; return; }
+    if(!res || !res.success){ listEl.innerHTML='<div style="font-size:11px;color:var(--red);text-align:center;padding:8px">'+(res&&res.error||'Could not load users')+'</div>'; return; }
     if(!res.users.length){ listEl.innerHTML='<div style="font-size:11px;color:var(--t3);text-align:center;padding:8px">No users yet.</div>'; return; }
     listEl.innerHTML=res.users.map(function(u){
       return '<div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border)">'
@@ -10489,11 +10502,11 @@ async function loadAdminUserList(){
         +'<div style="font-size:13px;font-weight:700;color:var(--text)">'+esc(u.name)+' <span style="font-size:9px;color:var(--t3);font-weight:400">@'+esc(u.username)+'</span></div>'
         +'<div style="font-size:10px;color:var(--t3);margin-top:1px">'+esc(u.userType)+(u.passwordChangedDate?' · pwd set '+esc(u.passwordChangedDate.split(' ')[0]):' · never changed password')+'</div>'
         +'</div>'
-        +'<button onclick="openResetPasswordConfirm(\''+u.userId+'\',\''+esc(u.name)+'\')" style="font-size:10px;font-weight:700;color:#f39c12;background:none;border:1px solid #f39c12;border-radius:8px;padding:6px 8px;cursor:pointer;flex-shrink:0">Reset PW</button>'
+        +'<button onclick="openResetPasswordConfirm(\''+u.userId+'\',\''+esc(u.name)+'\')" style="font-size:10px;font-weight:700;color:var(--orange);background:none;border:1px solid var(--orange);border-radius:8px;padding:6px 8px;cursor:pointer;flex-shrink:0">Reset PW</button>'
         +'</div>';
     }).join('');
   }catch(e){
-    listEl.innerHTML='<div style="font-size:11px;color:#e74c3c;text-align:center;padding:8px">Error: '+e.message+'</div>';
+    listEl.innerHTML='<div style="font-size:11px;color:var(--red);text-align:center;padding:8px">Error: '+e.message+'</div>';
   }
 }
 
@@ -10620,7 +10633,7 @@ function confirmLogout(){
     +'<div style="padding:14px 16px;font-size:12px;color:var(--t2)">You\'ll need your username and password to sign back in.</div>'
     +'<div style="display:flex;border-top:1px solid var(--border)">'
     +'<button onclick="document.getElementById(\'logout-confirm-ov\').remove()" style="flex:1;padding:12px;border:none;background:none;color:var(--t2);cursor:pointer;border-right:1px solid var(--border)">Cancel</button>'
-    +'<button onclick="logoutUser()" style="flex:1;padding:12px;border:none;background:none;color:#e74c3c;font-weight:700;cursor:pointer">Log Out</button>'
+    +'<button onclick="logoutUser()" style="flex:1;padding:12px;border:none;background:none;color:var(--red);font-weight:700;cursor:pointer">Log Out</button>'
     +'</div></div>';
   document.body.appendChild(ov);
 }
