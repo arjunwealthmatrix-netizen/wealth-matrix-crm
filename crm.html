@@ -61,11 +61,11 @@
 }
 html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:14px;overscroll-behavior:none;-webkit-font-smoothing:antialiased;transition:background .2s,color .2s}
 #app{display:flex;flex-direction:column;height:100dvh;height:100vh;max-width:var(--shell-w);margin:0 auto;position:relative;overflow-x:hidden}
-#content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:calc(96px + env(safe-area-inset-bottom, 10px));padding-top:calc(46px + env(safe-area-inset-top,0px))}
-#nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:calc(100% - 24px);max-width:calc(var(--shell-w) - 24px);background:rgba(12,20,32,.97);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--border);border-radius:14px 14px 0 0;display:flex;justify-content:center;z-index:100;padding:8px 21px env(safe-area-inset-bottom,8px);min-height:80px;gap:2px}
-.nb{flex:1;max-width:90px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 3px;font-size:13px;font-weight:700;color:var(--t3);cursor:pointer;border:none;background:none;gap:4px;transition:color .2s,background .2s;border-radius:19px}
+#content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:calc(88px + env(safe-area-inset-bottom, 10px));padding-top:calc(46px + env(safe-area-inset-top,0px))}
+#nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:calc(100% - 24px);max-width:calc(var(--shell-w) - 24px);background:rgba(12,20,32,.97);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--border);border-radius:14px 14px 0 0;display:flex;justify-content:center;z-index:100;padding:7px 19px env(safe-area-inset-bottom,8px);min-height:72px;gap:2px}
+.nb{flex:1;max-width:81px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:7px 3px;font-size:12px;font-weight:700;color:var(--t3);cursor:pointer;border:none;background:none;gap:4px;transition:color .2s,background .2s;border-radius:17px}
 .nb.active{color:var(--accent);background:var(--s2)}
-.nb svg{width:31px;height:31px;flex-shrink:0}
+.nb svg{width:28px;height:28px;flex-shrink:0}
 .nb-badge{position:absolute;top:4px;right:calc(50% - 14px);background:var(--red);color:#fff;font-size:9px;font-weight:800;min-width:16px;height:16px;border-radius:999px;display:flex;align-items:center;justify-content:center;padding:0 3px}
 .page{display:none}
 .page.active{display:block}
@@ -262,7 +262,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 .ci-av{width:36px;height:36px;min-width:36px;border-radius:50%;background:var(--gdim);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:var(--green)}
 
 /* Floating Add Button */
-.fab{position:fixed;bottom:106px;right:max(18px, calc(50vw - var(--shell-w)/2 + 18px));width:54px;height:54px;border-radius:50%;background:var(--accent);color:#0C1420;border:none;font-size:26px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(255,255,255,.5);z-index:150;transition:transform .15s,box-shadow .15s;-webkit-user-select:none;user-select:none}
+.fab{position:fixed;bottom:98px;right:max(18px, calc(50vw - var(--shell-w)/2 + 18px));width:54px;height:54px;border-radius:50%;background:var(--accent);color:#0C1420;border:none;font-size:26px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(255,255,255,.5);z-index:150;transition:transform .15s,box-shadow .15s;-webkit-user-select:none;user-select:none}
 .fab:active{transform:scale(.92);box-shadow:0 2px 8px rgba(255,255,255,.3)}
 .fab.hidden{display:none}
 #toast{position:fixed;bottom:152px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--s2);border:1px solid var(--border2);border-radius:999px;padding:7px 14px;font-size:12px;font-weight:600;opacity:0;transition:all .25s;z-index:150000;white-space:nowrap;pointer-events:none;max-width:88vw;text-align:center}
@@ -544,7 +544,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
   <div id="family-filter-wrap" style="padding:0 12px 8px"><select id="family-dropdown" onchange="setFF(this.value)" style="width:100%;padding:9px 10px;font-size:12px;font-weight:600;color:var(--text);background:var(--s2);border:1px solid var(--border);border-radius:8px;-webkit-appearance:none;cursor:pointer"></select></div>
   <div id="lead-list"></div>
   <!-- FAB: Add Lead -->
-  <button onclick="openAddLead()" style="position:fixed;bottom:100px;right:18px;width:54px;height:54px;border-radius:50%;background:var(--accent);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:999;box-shadow:0 4px 16px rgba(255,255,255,0.25)" aria-label="Add lead">
+  <button onclick="openAddLead()" style="position:fixed;bottom:92px;right:18px;width:54px;height:54px;border-radius:50%;background:var(--accent);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:999;box-shadow:0 4px 16px rgba(255,255,255,0.25)" aria-label="Add lead">
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
   </button>
 </div>
@@ -641,7 +641,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
     </div>
   </div>
   <div id="client-list" style="padding:4px 12px 100px"></div>
-  <button onclick="openAddClient()" style="position:fixed;bottom:100px;right:18px;width:54px;height:54px;border-radius:50%;background:var(--accent);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:999;box-shadow:0 4px 16px rgba(255,255,255,0.25)" aria-label="Add client">
+  <button onclick="openAddClient()" style="position:fixed;bottom:92px;right:18px;width:54px;height:54px;border-radius:50%;background:var(--accent);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:999;box-shadow:0 4px 16px rgba(255,255,255,0.25)" aria-label="Add client">
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
   </button>
 </div>
@@ -651,140 +651,157 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 <div class="page" id="pg-settings">
   <div class="ph"><h1>Settings</h1></div>
 
-  <!-- Profile header -->
-  <div style="display:flex;flex-direction:column;align-items:center;padding:8px 20px 22px;text-align:center">
-    <div style="width:88px;height:88px;border-radius:50%;background:var(--s2);border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:38px;margin-bottom:12px">🔒</div>
-    <div style="display:flex;align-items:center;gap:8px">
-      <span style="font-size:20px;font-weight:800;color:var(--text)">Wealth Matrix CRM</span>
-    </div>
-    <div style="font-size:12px;color:var(--t3);margin-top:3px">v5.0.0 · Advisor workspace</div>
-  </div>
+  <div style="text-align:center;padding:2px 0 14px;font-size:11px;color:var(--t3)" id="settings-account-line">Signed in as —</div>
 
-  <!-- App Lock -->
-  <div style="padding:0 12px;margin-bottom:7px" class="lbl">🔒 App Lock</div>
-  <div class="sg">
-    <div class="si"><span id="lock-status-text" style="font-size:12px;font-weight:700">🔓 App lock is OFF</span></div>
-    <div class="syc"><button class="btn btn-gold btn-full" id="lock-setup-btn" onclick="promptSetupPin()">🔒 Set Up PIN Lock</button></div>
-    <div class="syc"><button class="btn btn-ghost btn-full" id="lock-setup-bio-btn" style="display:none" onclick="setupBiometric()">👆 Enable Face ID / Fingerprint</button></div>
-    <div class="syc"><button class="btn btn-ghost btn-full" id="lock-recovery-btn" style="display:none" onclick="promptSetupRecoveryPhrase()">🔑 Change Recovery Phrase</button></div>
-    <div class="syc"><button class="btn btn-red btn-full" id="lock-remove-btn" style="display:none" onclick="removeLock()">🗑️ Remove App Lock</button></div>
-    <div class="si" style="font-size:10px;color:var(--t3);font-style:italic"><span>Locks the app when reopened or resumed from background. Uses your phone's own Face ID/Fingerprint/PIN — nothing is sent anywhere.</span></div>
-  </div>
+  <div style="padding:0 12px 12px">
 
-  <!-- Connection -->
-  <div style="padding:0 12px;margin-bottom:7px" class="lbl">🔗 Connection</div>
-  <div class="sg">
-    <div class="si"><span>Apps Script URL</span></div>
-    <div style="padding:0 12px 8px"><input class="fi" id="s-script-url" placeholder="Paste your /exec URL" style="font-size:11px" oninput="cfg('scriptUrl',this.value)"></div>
-    <div class="si" style="font-size:10px;color:var(--t3)"><span id="sync-status-text">Not synced</span></div>
-  </div>
-
-  <!-- Sync -->
-  <div style="padding:0 12px;margin-bottom:7px;margin-top:14px" class="lbl">☁️ Sync</div>
-  <div class="sg">
-    <div class="syc"><button class="btn btn-ghost btn-full" onclick="pullFromSheet()">⬇️ Pull from Sheet</button></div>
-    <div class="syc"><button class="btn btn-ghost btn-full" onclick="forcePushAll()">⬆️ Push All to Sheet</button>
-      <div id="push-result" style="font-size:10px;color:var(--t3);margin-top:5px"></div>
-    </div>
-    <div class="si"><span>🔔 Browser Notifications</span>
-      <label style="position:relative;display:inline-block;width:44px;height:24px">
-        <input type="checkbox" id="s-notif-toggle" onchange="toggleNotifications(this.checked)" style="opacity:0;width:0;height:0">
-        <span style="position:absolute;inset:0;background:var(--border);border-radius:12px;cursor:pointer;transition:.3s"></span>
-        <span id="notif-slider" style="position:absolute;left:2px;top:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:.3s"></span>
-      </label>
-    </div>
-    <div class="si" style="font-size:10px;color:var(--t3)"><span>Auto-sync runs every 5 minutes. Daily summary at 9 AM.</span></div>
-  </div>
-
-  <!-- Monthly Goals -->
-  <div style="padding:0 12px;margin-bottom:7px;margin-top:14px" class="lbl">🎯 Monthly Goals</div>
-  <div class="sg">
-    <div class="si"><span>Target leads/month</span><input class="fi" id="s-goal-leads" type="number" style="width:70px;text-align:center" value="30" onchange="cfg('goalLeads',this.value)"></div>
-    <div class="si"><span>Target conversions/month</span><input class="fi" id="s-goal-conv" type="number" style="width:70px;text-align:center" value="5" onchange="cfg('goalConv',this.value)"></div>
-  </div>
-
-  <!-- Backup & Import -->
-  <div style="padding:0 12px;margin-bottom:7px;margin-top:14px" class="lbl">💾 Backup & Import</div>
-  <div class="sg">
-    <div class="si" style="font-size:10px;color:var(--t3)"><span>☁️ Automatic weekly backups run every Sunday 2 AM to Google Drive (once enabled — see below). Keeps last 8 backups.</span></div>
-    <div class="syc"><button class="btn btn-gold btn-full" onclick="triggerBackupNow()">☁️ Backup Now to Drive</button></div>
-    <div class="syc"><button class="btn btn-ghost btn-full" onclick="exportData()">📥 Export JSON Backup</button></div>
-    <div class="syc"><button class="btn btn-ghost btn-full" onclick="exportCSV()">📥 Export CSV (Excel)</button></div>
-    <div class="syc">
-      <div class="sy-d" style="font-size:10px;margin-bottom:6px">Import tab name from sheet:</div>
-      <div style="padding:0 0 6px"><input class="fi" id="s-import-tab" value="MASTER LIST"></div>
-      <button class="btn btn-green btn-full" onclick="importFromSheet()">📤 Import from MASTER LIST</button>
-    </div>
-  </div>
-
-  <!-- Apps Script Code -->
-  <div style="padding:0 12px;margin-bottom:7px;margin-top:14px" class="lbl">⚙️ Apps Script</div>
-  <div class="sg">
-    <div class="syc"><button class="btn btn-ghost btn-full" onclick="showAppsScriptCode()">📋 View / Copy Code</button></div>
-  </div>
-
-  <!-- Automated Business Insights — now lives on its own dedicated tab (bottom nav: Insights) -->
-  <div style="padding:0 12px;margin-bottom:7px;margin-top:14px" class="lbl">🤖 Automated Insights</div>
-  <div class="sg">
-    <div class="si" style="font-size:10px;color:var(--t3)"><span>Weekly AI-written CRM briefings now have their own tab — tap "Insights" in the bottom navigation to view history, toggle the weekly schedule, or generate one on demand.</span></div>
-  </div>
-
-  <!-- System Health Check -->
-  <div style="padding:0 12px;margin-bottom:7px;margin-top:14px" class="lbl">🩺 System Health Check</div>
-  <div class="sg">
-    <div class="si" style="font-size:10px;color:var(--t3)"><span>Full end-to-end test: leads &amp; clients add·update·delete, field-to-column sync, duplicate-proofing, activity-log add/dedupe/delete-by-RawID, Drive folder, and backup. Writes temporary test rows then deletes them.</span></div>
-    <div class="syc"><button class="btn btn-gold btn-full" style="font-weight:700" onclick="runHealthCheck()">🩺 Run Full Health Check</button></div>
-    <div class="syc"><pre id="health-result" style="font-size:10px;background:var(--s2);border-radius:8px;padding:10px;white-space:pre-wrap;max-height:340px;overflow-y:auto;margin:0"></pre></div>
-  </div>
-
-  <!-- Clients Diagnostic Check -->
-  <div style="padding:0 12px;margin-bottom:7px;margin-top:14px" class="lbl">🗂️ Clients Diagnostic Check</div>
-  <div class="sg">
-    <div class="si" style="font-size:10px;color:var(--t3)"><span>Checks every real client (not test data): field sync to the sheet, and whether each one has a Drive folder. Offers to create any missing folders.</span></div>
-    <div class="syc"><button class="btn btn-gold btn-full" style="font-weight:700" onclick="runClientsDiagnostic()">🗂️ Run Clients Diagnostic Check</button></div>
-    <div class="syc"><pre id="clients-diag-result" style="font-size:10px;background:var(--s2);border-radius:8px;padding:10px;white-space:pre-wrap;max-height:340px;overflow-y:auto;margin:0"></pre></div>
-  </div>
-
-  <!-- Folder Check Only -->
-  <div style="padding:0 12px;margin-bottom:7px;margin-top:14px" class="lbl">📁 Client Folder Check</div>
-  <div class="sg">
-    <div class="si" style="font-size:10px;color:var(--t3)"><span>Quick check only — does every client have a Drive folder, correctly matched? No test data written, just a read-only scan.</span></div>
-    <div class="syc"><button class="btn btn-ghost btn-full" style="font-weight:700;border-color:var(--accent);color:var(--accent)" onclick="runFolderCheckOnly()">📁 Check All Client Folders</button></div>
-    <div class="syc"><pre id="folder-check-result" style="font-size:10px;background:var(--s2);border-radius:8px;padding:10px;white-space:pre-wrap;max-height:340px;overflow-y:auto;margin:0"></pre></div>
-  </div>
-
-  <!-- Special Days -->
-  <div style="padding:0 12px;margin-bottom:7px;margin-top:14px" class="lbl">📅 Special Days</div>
-  <div class="sg">
-    <div class="si" style="font-size:11px;color:var(--t3);font-style:italic"><span>App alerts you 14 days before each special day. Built-in list has 33 events. Add custom ones below.</span></div>
-    <div style="padding:0 12px 8px">
-      <div style="font-size:11px;color:var(--t2);margin-bottom:5px;font-weight:700">Add New Special Day</div>
-      <div style="display:flex;flex-direction:column;gap:6px">
-        <div class="fg"><label class="fl">Date</label><input class="fi" type="date" id="sd-date" placeholder="Select date"></div>
-        <div class="fg"><label class="fl">Speciality / Event Name</label><input class="fi" id="sd-name" placeholder="e.g. Doctors Day, Ugadi…"></div>
-        <button class="btn btn-gold btn-full" onclick="saveSpecialDay()" style="margin-top:4px">💾 Save Special Day</button>
+    <!-- 1. Application Lock -->
+    <div class="acc-section" id="acc-set-lock">
+      <div class="acc-header" onclick="toggleSettingsSection('set-lock')">
+        <span class="acc-icon">🔒</span><span class="acc-title">Application Lock</span><span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="sg">
+          <div class="si"><span id="lock-status-text" style="font-size:12px;font-weight:700">🔓 App lock is OFF</span></div>
+          <div class="syc"><button class="btn btn-gold btn-full" id="lock-setup-btn" onclick="promptSetupPin()">🔒 Set Up PIN Lock</button></div>
+          <div class="syc"><button class="btn btn-ghost btn-full" id="lock-setup-bio-btn" style="display:none" onclick="setupBiometric()">👆 Enable Face ID / Fingerprint</button></div>
+          <div class="syc"><button class="btn btn-ghost btn-full" id="lock-recovery-btn" style="display:none" onclick="promptSetupRecoveryPhrase()">🔑 Change Recovery Phrase</button></div>
+          <div class="syc"><button class="btn btn-red btn-full" id="lock-remove-btn" style="display:none" onclick="removeLock()">🗑️ Remove App Lock</button></div>
+          <div class="si" style="font-size:10px;color:var(--t3);font-style:italic"><span>Locks the app when reopened or resumed from background. Uses your phone's own Face ID/Fingerprint/PIN — nothing is sent anywhere.</span></div>
+        </div>
       </div>
     </div>
-    <div class="syc"><button class="btn btn-ghost btn-full" onclick="showSpecialDaysList()">📋 View Upcoming Special Days</button></div>
-  </div>
 
-  <!-- ACCOUNT — visible to everyone, shows who's logged in -->
-  <div class="sec">
-    <div class="lbl" style="color:var(--accent)">👤 Account</div>
-    <div class="sg">
-      <div class="si" id="account-info-row"><span>Signed in as</span><span id="account-name-display" style="color:var(--t2)">—</span></div>
-      <div class="si" onclick="openChangePasswordForm()" style="cursor:pointer"><span>🔑 Change Password</span><span>›</span></div>
-      <div class="si" onclick="confirmLogout()" style="cursor:pointer;border-bottom:none"><span style="color:var(--red)">🚪 Log Out</span><span></span></div>
+    <!-- 2. Connection — Admin only. Also folds in Sync, Monthly Goals, and the
+         Apps Script code viewer, since these are all "how the app is wired
+         up" settings, not things a Maker/Checker/Authorizer needs to see. -->
+    <div class="acc-section" id="acc-set-connection" style="display:none">
+      <div class="acc-header" onclick="toggleSettingsSection('set-connection')">
+        <span class="acc-icon">🔗</span><span class="acc-title">Connection</span><span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="sg">
+          <div class="si"><span>Apps Script URL</span></div>
+          <div style="padding:0 12px 8px"><input class="fi" id="s-script-url" placeholder="Paste your /exec URL" style="font-size:11px" oninput="cfg('scriptUrl',this.value)"></div>
+          <div class="si" style="font-size:10px;color:var(--t3)"><span id="sync-status-text">Not synced</span></div>
+        </div>
+        <div class="sg" style="margin-top:10px">
+          <div class="syc"><button class="btn btn-ghost btn-full" onclick="pullFromSheet()">⬇️ Pull from Sheet</button></div>
+          <div class="syc"><button class="btn btn-ghost btn-full" onclick="forcePushAll()">⬆️ Push All to Sheet</button>
+            <div id="push-result" style="font-size:10px;color:var(--t3);margin-top:5px"></div>
+          </div>
+          <div class="si"><span>🔔 Browser Notifications</span>
+            <label style="position:relative;display:inline-block;width:44px;height:24px">
+              <input type="checkbox" id="s-notif-toggle" onchange="toggleNotifications(this.checked)" style="opacity:0;width:0;height:0">
+              <span style="position:absolute;inset:0;background:var(--border);border-radius:12px;cursor:pointer;transition:.3s"></span>
+              <span id="notif-slider" style="position:absolute;left:2px;top:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:.3s"></span>
+            </label>
+          </div>
+          <div class="si" style="font-size:10px;color:var(--t3)"><span>Auto-sync runs every 5 minutes. Daily summary at 9 AM.</span></div>
+        </div>
+        <div class="sg" style="margin-top:10px">
+          <div class="si"><span>Target leads/month</span><input class="fi" id="s-goal-leads" type="number" style="width:70px;text-align:center" value="30" onchange="cfg('goalLeads',this.value)"></div>
+          <div class="si"><span>Target conversions/month</span><input class="fi" id="s-goal-conv" type="number" style="width:70px;text-align:center" value="5" onchange="cfg('goalConv',this.value)"></div>
+        </div>
+        <div class="sg" style="margin-top:10px">
+          <div class="syc"><button class="btn btn-ghost btn-full" onclick="showAppsScriptCode()">📋 View / Copy Apps Script Code</button></div>
+        </div>
+      </div>
     </div>
-  </div>
 
-  <!-- ADMIN — user management, only visible/functional for the Admin role -->
-  <div class="sec" id="admin-panel-sec" style="display:none">
-    <div class="lbl" style="color:var(--accent)">🛡️ User Management (Admin)</div>
-    <div class="card" style="padding:12px 14px">
-      <button class="btn btn-gold btn-full" style="margin-bottom:10px" onclick="openCreateUserForm()">➕ Add User</button>
-      <div id="admin-user-list"><div style="font-size:11px;color:var(--t3);text-align:center;padding:8px">Loading…</div></div>
+    <!-- 3. Backup & Import -->
+    <div class="acc-section" id="acc-set-backup">
+      <div class="acc-header" onclick="toggleSettingsSection('set-backup')">
+        <span class="acc-icon">💾</span><span class="acc-title">Backup &amp; Import</span><span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="sg">
+          <div class="si" style="font-size:10px;color:var(--t3)"><span>☁️ Automatic weekly backups run every Sunday 2 AM to Google Drive (once enabled). Keeps last 8 backups.</span></div>
+          <div class="syc"><button class="btn btn-gold btn-full" onclick="triggerBackupNow()">☁️ Backup Now to Drive</button></div>
+          <div class="syc"><button class="btn btn-ghost btn-full" onclick="exportData()">📥 Export JSON Backup</button></div>
+          <div class="syc"><button class="btn btn-ghost btn-full" onclick="exportCSV()">📥 Export CSV (Excel)</button></div>
+          <div class="syc">
+            <div class="sy-d" style="font-size:10px;margin-bottom:6px">Import tab name from sheet:</div>
+            <div style="padding:0 0 6px"><input class="fi" id="s-import-tab" value="MASTER LIST"></div>
+            <button class="btn btn-green btn-full" onclick="importFromSheet()">📤 Import from MASTER LIST</button>
+          </div>
+        </div>
+      </div>
     </div>
+
+    <!-- 4. System Checking — bundles the three diagnostic tools together -->
+    <div class="acc-section" id="acc-set-syscheck">
+      <div class="acc-header" onclick="toggleSettingsSection('set-syscheck')">
+        <span class="acc-icon">🩺</span><span class="acc-title">System Checking</span><span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="sg">
+          <div class="si" style="font-size:10px;color:var(--t3)"><span>Full end-to-end test: leads &amp; clients add·update·delete, field-to-column sync, duplicate-proofing, activity-log add/dedupe/delete-by-RawID, Drive folder, and backup. Writes temporary test rows then deletes them.</span></div>
+          <div class="syc"><button class="btn btn-gold btn-full" style="font-weight:700" onclick="runHealthCheck()">🩺 Run Full Health Check</button></div>
+          <div class="syc"><pre id="health-result" style="font-size:10px;background:var(--s2);border-radius:8px;padding:10px;white-space:pre-wrap;max-height:340px;overflow-y:auto;margin:0"></pre></div>
+        </div>
+        <div class="sg" style="margin-top:10px">
+          <div class="si" style="font-size:10px;color:var(--t3)"><span>Checks every real client (not test data): field sync to the sheet, and whether each one has a Drive folder. Offers to create any missing folders.</span></div>
+          <div class="syc"><button class="btn btn-gold btn-full" style="font-weight:700" onclick="runClientsDiagnostic()">🗂️ Run Clients Diagnosis Check</button></div>
+          <div class="syc"><pre id="clients-diag-result" style="font-size:10px;background:var(--s2);border-radius:8px;padding:10px;white-space:pre-wrap;max-height:340px;overflow-y:auto;margin:0"></pre></div>
+        </div>
+        <div class="sg" style="margin-top:10px">
+          <div class="si" style="font-size:10px;color:var(--t3)"><span>Quick check only — does every client have a Drive folder, correctly matched? No test data written, just a read-only scan.</span></div>
+          <div class="syc"><button class="btn btn-ghost btn-full" style="font-weight:700;border-color:var(--accent);color:var(--accent)" onclick="runFolderCheckOnly()">📁 Client Folder Creation Check</button></div>
+          <div class="syc"><pre id="folder-check-result" style="font-size:10px;background:var(--s2);border-radius:8px;padding:10px;white-space:pre-wrap;max-height:340px;overflow-y:auto;margin:0"></pre></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. Special Days -->
+    <div class="acc-section" id="acc-set-special">
+      <div class="acc-header" onclick="toggleSettingsSection('set-special')">
+        <span class="acc-icon">📅</span><span class="acc-title">Special Days</span><span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="sg">
+          <div class="si" style="font-size:11px;color:var(--t3);font-style:italic"><span>App alerts you 14 days before each special day. Built-in list has 33 events. Add custom ones below.</span></div>
+          <div style="padding:0 12px 8px">
+            <div style="font-size:11px;color:var(--t2);margin-bottom:5px;font-weight:700">Add New Special Day</div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div class="fg"><label class="fl">Date</label><input class="fi" type="date" id="sd-date" placeholder="Select date"></div>
+              <div class="fg"><label class="fl">Speciality / Event Name</label><input class="fi" id="sd-name" placeholder="e.g. Doctors Day, Ugadi…"></div>
+              <button class="btn btn-gold btn-full" onclick="saveSpecialDay()" style="margin-top:4px">💾 Save Special Day</button>
+            </div>
+          </div>
+          <div class="syc"><button class="btn btn-ghost btn-full" onclick="showSpecialDaysList()">📋 View Upcoming Special Days</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6. Change Password -->
+    <div class="acc-section" id="acc-set-password">
+      <div class="acc-header" onclick="toggleSettingsSection('set-password')">
+        <span class="acc-icon">🔑</span><span class="acc-title">Change Password</span><span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="sg">
+          <div class="si" style="font-size:10px;color:var(--t3)"><span>Set a new password for your own account. You'll need your current password to confirm.</span></div>
+          <div class="syc"><button class="btn btn-gold btn-full" onclick="openChangePasswordForm()">🔑 Change Password</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. User Management — Admin only -->
+    <div class="acc-section" id="acc-set-users" style="display:none">
+      <div class="acc-header" onclick="toggleSettingsSection('set-users')">
+        <span class="acc-icon">🛡️</span><span class="acc-title">User Management</span><span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="card" style="padding:12px 14px">
+          <button class="btn btn-gold btn-full" style="margin-bottom:10px" onclick="openCreateUserForm()">➕ Add User</button>
+          <div id="admin-user-list"><div style="font-size:11px;color:var(--t3);text-align:center;padding:8px">Loading…</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="si" onclick="confirmLogout()" style="cursor:pointer;text-align:center;padding:14px 0 4px;font-size:12px;font-weight:700;color:var(--red);border:none"><span>🚪 Log Out</span></div>
+
   </div>
 
   <div style="text-align:center;padding:20px 0 40px;font-size:10px;color:var(--t3)">Wealth Matrix CRM v5.0.0</div>
@@ -817,7 +834,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
       </div>
     </div>
   </div>
-  <div id="chat-input-bar" style="position:fixed;bottom:96px;left:50%;transform:translateX(-50%);width:calc(100% - 24px);max-width:calc(var(--shell-w) - 24px);background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:7px;display:none;gap:7px;z-index:99;box-shadow:0 6px 20px rgba(0,0,0,.4)">
+  <div id="chat-input-bar" style="position:fixed;bottom:88px;left:50%;transform:translateX(-50%);width:calc(100% - 24px);max-width:calc(var(--shell-w) - 24px);background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:7px;display:none;gap:7px;z-index:99;box-shadow:0 6px 20px rgba(0,0,0,.4)">
     <input id="chat-input" placeholder="Ask anything…" autocomplete="off" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:11px 12px;color:var(--text);font-size:13px" onkeydown="if(event.key==='Enter')sendChatMessage()" onfocus="stopChatPlaceholderCycle()">
     <button id="chat-send-btn" onclick="sendChatMessage()" style="width:42px;height:42px;border-radius:10px;background:var(--accent);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.3"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
@@ -840,7 +857,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
     <button class="task-filter-chip" data-filter="FINISHED" onclick="setTaskFilter('FINISHED')">✅ Finished</button>
   </div>
   <div id="task-list" style="padding:4px 12px 100px"></div>
-  <button onclick="openAddTask()" style="position:fixed;bottom:100px;right:18px;width:54px;height:54px;border-radius:50%;background:var(--accent);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:999;box-shadow:0 4px 16px rgba(255,255,255,0.25)" aria-label="Add task">
+  <button onclick="openAddTask()" style="position:fixed;bottom:92px;right:18px;width:54px;height:54px;border-radius:50%;background:var(--accent);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:999;box-shadow:0 4px 16px rgba(255,255,255,0.25)" aria-label="Add task">
     <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
   </button>
 </div>
@@ -874,11 +891,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
   <button class="nb" onclick="nav('leads',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>Leads</button>
   <button class="nb active" onclick="nav('dash',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dash</button>
   <button class="nb" onclick="nav('analytics',this)" id="nav-analytics" style="gap:1px;position:relative">
-    <span style="position:absolute;top:-29px;left:50%;transform:translateX(-50%);width:69px;height:69px;border-radius:50%;background:linear-gradient(145deg,#3FA073,#2C7A57);border:4px solid var(--bg);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(47,150,105,.5)">
-      <svg width="35" height="35" viewBox="0 0 24 24" fill="#FFFFFF"><path d="M12 2c.3 3.5 1.3 6 3 7.5S19 12 22 12c-3 0-5.3.9-7 2.5S12.3 18.5 12 22c-.3-3.5-1.3-6-3-7.5S4 12 2 12c3 0 5.3-.9 7-2.5S11.7 5.5 12 2z"/></svg>
+    <span style="position:absolute;top:-26px;left:50%;transform:translateX(-50%);width:62px;height:62px;border-radius:50%;background:linear-gradient(145deg,#3FA073,#2C7A57);border:4px solid var(--bg);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(47,150,105,.5)">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="#FFFFFF"><path d="M12 2c.3 3.5 1.3 6 3 7.5S19 12 22 12c-3 0-5.3.9-7 2.5S12.3 18.5 12 22c-.3-3.5-1.3-6-3-7.5S4 12 2 12c3 0 5.3-.9 7-2.5S11.7 5.5 12 2z"/></svg>
     </span>
-    <span style="height:40px"></span>
-    <span style="font-size:13px;font-weight:800;color:#3FA073">Insights</span>
+    <span style="height:36px"></span>
+    <span style="font-size:12px;font-weight:800;color:#3FA073">Insights</span>
   </button>
   <button class="nb" onclick="nav('tasks',this)" id="nav-tasks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>Task</button>
   <button class="nb" onclick="nav('clients',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Clients</button>
@@ -906,7 +923,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
       </div>
       <div class="acc-body">
       <div class="frow">
-        <div class="fg"><label class="fl">Name *</label><input class="fi" id="lf-name" placeholder="Full name" autocomplete="off" oninput="autoCaps(this);deriveFamilyName(this,document.getElementById('lf-family'),'_lfFamilyLocked')"><div class="ac-list" id="lf-ac-list"></div></div>
+        <div class="fg"><label class="fl" style="display:flex;align-items:center;gap:6px">Name * <span onclick="pickContactInto('lf')" style="cursor:pointer;font-size:14px" title="Pick from contacts">👤📱</span></label><input class="fi" id="lf-name" placeholder="Full name" autocomplete="off" oninput="autoCaps(this);deriveFamilyName(this,document.getElementById('lf-family'),'_lfFamilyLocked')"><div class="ac-list" id="lf-ac-list"></div></div>
         <div class="fg"><label class="fl">Family Name</label><input class="fi" id="lf-family" list="familyname-suggestions" placeholder="e.g. Nair Family" oninput="autoCaps(this);_lfFamilyLocked=true"></div>
       </div>
       <div class="fg"><label class="fl">Mobile *</label><input class="fi" id="lf-mob" type="tel" inputmode="numeric" placeholder="9847012345" required oninput="this.value=normalizeMobileInput(this.value)"></div>
@@ -1028,7 +1045,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
       </div>
       <div class="acc-body">
       <div class="frow">
-        <div class="fg"><label class="fl">Name *</label><input class="fi" id="cf-name" placeholder="Full name" oninput="autoCaps(this);deriveFamilyName(this,document.getElementById('cf-family'),'_cfFamilyLocked')"><div class="ac-list" id="cf-ac-list"></div></div>
+        <div class="fg"><label class="fl" style="display:flex;align-items:center;gap:6px">Name * <span onclick="pickContactInto('cf')" style="cursor:pointer;font-size:14px" title="Pick from contacts">👤📱</span></label><input class="fi" id="cf-name" placeholder="Full name" oninput="autoCaps(this);deriveFamilyName(this,document.getElementById('cf-family'),'_cfFamilyLocked')"><div class="ac-list" id="cf-ac-list"></div></div>
         <div class="fg"><label class="fl">Family Name</label><input class="fi" id="cf-family" list="familyname-suggestions" placeholder="e.g. Nair Family" oninput="autoCaps(this);_cfFamilyLocked=true"></div>
       </div>
       <div class="fg"><label class="fl">Mobile *</label><input class="fi" id="cf-mob" type="tel" inputmode="numeric" placeholder="9847012345" oninput="this.value=normalizeMobileInput(this.value)"></div>
@@ -1410,6 +1427,97 @@ var _lfFamilyLocked=false, _cfFamilyLocked=false;
 // all non-digits, then trims a leading "91" (12 digits total) or leading "0" (11
 // digits total) down to a clean 10-digit number. Anything else is left as typed,
 // up to a generous 15-digit cap for genuinely international numbers.
+// ═══════════════════════════════════════════════
+// CONTACT PICKER — pulls Name, Mobile, Email from the device's own contacts
+// into the Lead/Client form for the user to review. Deliberately never
+// auto-saves anything — it only fills the fields; the user still has to
+// look them over and press Save themselves, same as if they'd typed it in.
+// Excludes date of birth entirely: the Contact Picker API's spec simply has
+// no birthday field at all (confirmed against the official spec — name,
+// tel, email, address, icon are the only five properties that exist),
+// so there's no version of this that could fill DOB even in principle.
+// ═══════════════════════════════════════════════
+function detectMobileOS(){
+  var ua=navigator.userAgent||'';
+  if(/iPhone|iPad|iPod/.test(ua)) return 'ios';
+  if(/Android/.test(ua)) return 'android';
+  return 'other';
+}
+
+async function pickContactInto(prefix){
+  var os=detectMobileOS();
+  var supported = ('contacts' in navigator) && ('ContactsManager' in window);
+
+  if(os==='ios' || !supported){
+    showContactPickerIOSHelp(os);
+    return;
+  }
+
+  try{
+    var props=await navigator.contacts.getProperties();
+    var wanted=['name','tel','email'].filter(function(p){ return props.indexOf(p)>=0; });
+    if(!wanted.length){ toast('No usable contact fields available on this device'); return; }
+    var picked=await navigator.contacts.select(wanted, {multiple:false});
+    if(!picked || !picked.length) return; // user cancelled the native picker
+    var c=picked[0];
+
+    var nameEl=document.getElementById(prefix+'-name');
+    var mobEl=document.getElementById(prefix+'-mob');
+    var emailEl=document.getElementById(prefix+'-email');
+
+    if(c.name && c.name.length && nameEl){
+      nameEl.value=c.name[0];
+      autoCaps(nameEl); // matches what typing into this field would normally trigger
+    }
+    if(c.tel && c.tel.length && mobEl){
+      mobEl.value=normalizeMobileInput(c.tel[0]); // same cleanup as manual typing
+    }
+    if(c.email && c.email.length && emailEl){
+      emailEl.value=c.email[0];
+    }
+    toast('📇 Contact details filled in — please check them before saving');
+  }catch(e){
+    if(e && e.name==='AbortError') return; // user cancelled — not an error worth showing
+    toast('Could not access contacts: '+e.message);
+  }
+}
+
+// iOS disclosure + enable-steps popup — shown instead of a silently broken
+// button, since Safari doesn't support this by default even today. Includes
+// the explicit reliability disclosure: even after enabling it, this remains
+// an experimental Apple feature that can stop working after an iOS update
+// with no warning, so it's never presented as a guaranteed fix.
+function showContactPickerIOSHelp(os){
+  var ov=document.createElement('div');
+  ov.id='contact-picker-ios-ov';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+  var isIOS=os==='ios';
+  ov.innerHTML='<div style="background:var(--s1);border-radius:12px;width:100%;max-width:340px;overflow:hidden">'
+    +'<div style="padding:16px;font-size:14px;font-weight:800;border-bottom:1px solid var(--border)">📇 Pick from Contacts</div>'
+    +'<div style="padding:14px 16px;font-size:12px;color:var(--t2);line-height:1.7">'
+    +(isIOS
+      ? '<div style="font-weight:700;color:var(--text);margin-bottom:8px">On iPhone, this needs to be turned on once in Safari:</div>'
+        +'<ol style="margin:0 0 12px;padding-left:18px">'
+        +'<li>Open <b>Settings</b></li>'
+        +'<li>Scroll down and tap <b>Safari</b></li>'
+        +'<li>Tap <b>Advanced</b></li>'
+        +'<li>Tap <b>Feature Flags</b></li>'
+        +'<li>Find <b>Contact Picker API</b> and turn it on</li>'
+        +'<li>Come back here and try again</li>'
+        +'</ol>'
+      : '<div style="margin-bottom:12px">This device/browser doesn\u2019t support picking from contacts.</div>')
+    +'<div style="padding:10px;background:rgba(230,126,34,.08);border:1px solid rgba(230,126,34,.3);border-radius:8px;font-size:11px;color:var(--orange)">'
+    +'\u26A0\uFE0F <b>Disclosure:</b> on iOS, this is an experimental Apple feature, not a standard one. Even after enabling it, it may not work reliably, and an iOS update can silently turn it back off. You can always type the details in manually instead.'
+    +'</div>'
+    +'</div>'
+    +'<div style="display:flex;border-top:1px solid var(--border)">'
+    +'<button id="_cpih_ok" style="flex:1;padding:12px;border:none;background:none;color:var(--accent);font-weight:700;cursor:pointer">Got it</button>'
+    +'</div></div>';
+  document.body.appendChild(ov);
+  document.getElementById('_cpih_ok').onclick=function(){ov.remove();};
+  ov.addEventListener('click',function(e){ if(e.target===ov) ov.remove(); });
+}
+
 function normalizeMobileInput(v){
   var d=(v||'').replace(/[^0-9]/g,'');
   if(d.length===12 && d.indexOf('91')===0) d=d.slice(2);
@@ -2544,7 +2652,7 @@ function renderRemindersPending(){
     var overdueTag = t.dueDate < todayStr
       ? '<span style="color:var(--red);font-weight:700">Overdue \u2014 '+fmt(t.dueDate)+'</span>'
       : 'Due today';
-    return '<div onclick="nav(\'tasks\',document.getElementById(\'nav-tasks\'))" style="display:flex;align-items:flex-start;gap:8px;padding:10px 12px;background:var(--s1);border:1px solid var(--border);border-radius:10px;margin-bottom:6px;cursor:pointer">'
+    return '<div onclick="openOverdueTaskFromDash(\''+t.taskId+'\')" style="display:flex;align-items:flex-start;gap:8px;padding:10px 12px;background:var(--s1);border:1px solid var(--border);border-radius:10px;margin-bottom:6px;cursor:pointer">'
       +'<div style="flex:1;min-width:0">'
       +'<div style="font-size:12px;color:var(--text);line-height:1.4">'+(t.name?toTitle(t.name):t.taskDetails.slice(0,40))+'</div>'
       +'<div style="font-size:10px;color:var(--t3);margin-top:3px">'+(t.name?t.taskDetails:'')+' \u00B7 '+overdueTag+'</div>'
@@ -2552,6 +2660,15 @@ function renderRemindersPending(){
       +'</div>';
   }).join('')
   +(due.length>4?'<div onclick="nav(\'tasks\',document.getElementById(\'nav-tasks\'))" style="text-align:center;padding:8px;font-size:11px;color:var(--accent);cursor:pointer;font-weight:700">View all '+due.length+' in Task menu \u203A</div>':'');
+}
+
+// Deep-links from the Dashboard's overdue-task card straight into that
+// specific task's detail view — navigates to the Task page (so the
+// background context is correct) and immediately opens the task's popup on
+// top of it, skipping the extra "find and tap it again" step.
+function openOverdueTaskFromDash(taskId){
+  nav('tasks', document.getElementById('nav-tasks'));
+  setTimeout(function(){ openTaskDetail(taskId); }, 60);
 }
 
 function openAddClient(pre){
@@ -10433,13 +10550,35 @@ async function submitForcedPasswordChange(){
 
 function renderAccountSection(){
   var session=getSession();
-  var nameEl=document.getElementById('account-name-display');
-  if(nameEl) nameEl.textContent=session?(session.name+' ('+session.userType+')'):'—';
-  var adminSec=document.getElementById('admin-panel-sec');
-  if(adminSec){
-    if(isAdmin()){ adminSec.style.display='block'; loadAdminUserList(); }
-    else adminSec.style.display='none';
+  var lineEl=document.getElementById('settings-account-line');
+  if(lineEl) lineEl.textContent=session?('Signed in as '+session.name+' ('+session.userType+')'):'Signed in as —';
+  var connSec=document.getElementById('acc-set-connection');
+  var usersSec=document.getElementById('acc-set-users');
+  if(isAdmin()){
+    if(connSec) connSec.style.display='block';
+    if(usersSec){ usersSec.style.display='block'; loadAdminUserList(); }
+  } else {
+    if(connSec) connSec.style.display='none';
+    if(usersSec) usersSec.style.display='none';
   }
+}
+
+// Dedicated Settings accordion toggle — kept separate from the existing
+// toggleAccSection() used by the Lead/Client forms (which scopes to the
+// closest .ov overlay) since Settings is a .page, not an overlay. Building a
+// separate function avoids any risk of changing behavior for the existing,
+// already-proven form accordion elsewhere in the app.
+function toggleSettingsSection(id){
+  var el=document.getElementById('acc-'+id);
+  if(!el) return;
+  var willOpen=!el.classList.contains('open');
+  var container=el.closest('.page');
+  if(willOpen && container){
+    container.querySelectorAll('.acc-section.open').forEach(function(other){
+      if(other!==el) other.classList.remove('open');
+    });
+  }
+  el.classList.toggle('open', willOpen);
 }
 
 // ── Change own password — available to every role ──
