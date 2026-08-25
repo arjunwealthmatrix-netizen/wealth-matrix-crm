@@ -97,6 +97,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 .task-card.status-due{border-top:4px solid var(--red)}
 .task-card.status-open{border-top:4px solid var(--blue)}
 .task-card.status-finished{border-top:4px solid var(--green);opacity:.6}
+.task-card.status-pending-review{border-top:4px solid var(--orange)}
 .task-card .tc-name{font-size:15px;font-weight:800;color:var(--text)}
 .task-card .tc-details{font-size:12px;color:var(--t2);margin-top:3px;line-height:1.4}
 .task-card .tc-meta{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
@@ -497,7 +498,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
       <span style="font-size:10px;font-weight:900;color:#000">WM</span>
     </div>
     <span style="font-size:12px;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Wealth Matrix CRM</span>
-    <span style="font-size:9px;color:var(--t3);flex-shrink:0">v5.0.0</span>
+    <span id="global-user-label" style="font-size:9px;color:var(--t3);flex-shrink:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Logged in as —</span>
   </div>
   <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
     <button id="global-refresh-btn" onclick="manualTopBarRefresh()" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.06);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer" aria-label="Refresh">
@@ -1362,12 +1363,12 @@ function onSharedSearch(){
 var LEAD_COLS = ['name','mobile','email','age','country','status','source',
                  'referral','potentialSip','nextFollowUp','products','contactMode',
                  'remarks','modifiedDate','createdDate','geoTag','potentialAum','recordId','familyName',
-                 'folderId','uploadToken'];
+                 'folderId','uploadToken','userId'];
 var LEAD_HDRS = ['Name','Mobile','Email','Age','Country','Status','Source',
                  'Referred By','Potential SIP','Next Follow-up',
                  'Investment Products','Mode of Contact','Remarks',
                  'Modified Date','Created Date','Geo Tag','Potential AUM','Record ID','Family Name',
-                 'Folder ID','Upload Token'];
+                 'Folder ID','Upload Token','User ID'];
 
 // Convert a lead object → sheet row using LEAD_COLS order
 function leadToRow(l){
@@ -1403,11 +1404,42 @@ function load(){
     if(l.potentialSip===undefined){l.potentialSip='';_normChanged=true;}
   });
   if(_normChanged) saveL();
+  // Applied even to cached/offline data at boot — never trust that a
+  // previously-cached array was already filtered correctly.
+  leads=filterRecordsForRole(leads);
+  clients=filterRecordsForRole(clients);
 }
 function saveL(){localStorage.setItem('wm_leads',JSON.stringify(leads));}
 function saveC(){localStorage.setItem('wm_clients',JSON.stringify(clients));}
 function saveCfg(){localStorage.setItem('wm_cfg',JSON.stringify(cfg_));}
 function cfg(k,v){cfg_[k]=v;saveCfg();}
+
+// ── Role-based data visibility — Stage 1 of the multi-user architecture.
+// A Maker's leads/clients arrays are filtered to ONLY their own records at
+// the source (boot load + every sheet pull), not at individual render
+// points. This is deliberate: this app reads the global leads/clients
+// arrays directly in dozens of places (dashboard stats, search, task
+// linking, exports...) — filtering at every one of those individually
+// would be far easier to get wrong and leave a gap. Filtering once at the
+// source means the data simply isn't in memory for a Maker to begin with,
+// which is a structurally stronger guarantee than remembering to filter
+// correctly everywhere it's read.
+// Checker/Authorizer/Admin see everything — no filtering applied.
+//
+// NOTE ON MATCHING BY NAME: the "User ID" column stores each person's full
+// NAME, not their internal user ID — deliberately, so the raw Google Sheet
+// is readable by anyone glancing at it, not just decodable by someone with
+// the Admin sheet open. The real tradeoff this creates: if two Makers were
+// ever given the exact same full name, this filter would show them each
+// other's records, since matching is by name text, not a unique ID. With a
+// small team and full names (not just first names), this is a low but real
+// risk — worth deliberately avoiding duplicate display names when creating
+// new users in Settings > User Management.
+function filterRecordsForRole(records){
+  var session=getSession();
+  if(!session || session.userType!=='MAKER') return records;
+  return records.filter(function(r){ return r.userId===session.name; });
+}
 
 // ═══════════════════════════════════════════════
 // UTILS
@@ -2346,6 +2378,7 @@ function setTaskFilter(f){
 function effectiveTaskStatus(t){
   var s=(t.status||'').toUpperCase();
   if(s==='FINISHED') return 'FINISHED';
+  if(s==='PENDING REVIEW') return 'PENDING REVIEW';
   if(t.dueDate && t.dueDate<=today()) return 'DUE';
   return 'OPEN';
 }
@@ -2380,7 +2413,7 @@ function renderTasks(){
 
   list.innerHTML=filtered.map(function(x){
     var t=x.t, eff=x.eff;
-    var statusCls=eff==='DUE'?'status-due':eff==='FINISHED'?'status-finished':'status-open';
+    var statusCls=eff==='DUE'?'status-due':eff==='FINISHED'?'status-finished':eff==='PENDING REVIEW'?'status-pending-review':'status-open';
     var forTag=(t.taskFor||'OTHERS').toUpperCase();
     var forLabel=forTag==='CLIENT'?'👤 Client':forTag==='LEAD'?'🎯 Lead':'📌 Other';
     var dueLabel=t.dueDate?fmt(t.dueDate):'No due date';
@@ -2566,8 +2599,9 @@ async function saveTaskNow(){
       return;
     }
   } else {
-    var newTask={createdDate:today(), name:name, taskDetails:details, dueDate:dueDate, status:'Open', taskFor:forType, linkedRecordId:window._taskLinkedRecordId||'', assignedTo:''};
-    var res2=await sheetWrite({action:'addTask', createdDate:newTask.createdDate, name:newTask.name, taskDetails:newTask.taskDetails, dueDate:newTask.dueDate, status:newTask.status, taskFor:newTask.taskFor, linkedRecordId:newTask.linkedRecordId, assignedTo:''});
+    var _taskCreatorSession=getSession();
+    var newTask={createdDate:today(), name:name, taskDetails:details, dueDate:dueDate, status:'Open', taskFor:forType, linkedRecordId:window._taskLinkedRecordId||'', createdBy:_taskCreatorSession?_taskCreatorSession.name:'', createdByRole:_taskCreatorSession?_taskCreatorSession.userType:''};
+    var res2=await sheetWrite({action:'addTask', createdDate:newTask.createdDate, name:newTask.name, taskDetails:newTask.taskDetails, dueDate:newTask.dueDate, status:newTask.status, taskFor:newTask.taskFor, linkedRecordId:newTask.linkedRecordId, createdBy:newTask.createdBy, createdByRole:newTask.createdByRole});
     if(res2 && res2.success){
       newTask.taskId=res2.taskId;
       tasks.unshift(newTask);
@@ -2603,13 +2637,13 @@ async function finishTaskNow(){
   var btnFinish=document.getElementById('task-btn-finish');
   var origText=btnFinish?btnFinish.textContent:'';
   setTaskButtonsBusy(true, btnFinish, 'Finishing…');
-  var res=await sheetWrite({action:'updateTask', taskId:taskId, status:'Finished'});
+  var res=await sheetWrite({action:'submitTaskDone', taskId:taskId});
   if(res && res.success){
-    t.status='Finished';
+    t.status=res.newStatus||'Finished';
     saveTasks(); renderTasks();
     var ov=document.getElementById('task-form-ov'); if(ov) ov.remove();
     window._editingTaskId=null;
-    toast('✅ Task finished');
+    toast(t.status==='Pending Review' ? '📋 Sent for Checker review' : '✅ Task finished');
   } else {
     toast('❌ Could not update: '+(res&&res.error||'unknown error'));
     setTaskButtonsBusy(false, btnFinish, origText);
@@ -2819,6 +2853,8 @@ async function saveClient(){
     if(clients.find(function(c){return c.mobile===mob&&(c.name||'').toUpperCase().trim()===name.toUpperCase().trim();})){toast('A client with this exact name and mobile already exists');return;}
     data.createdDate=today();
     data.modifiedDate=now();
+    var _clientCreatorSession=getSession();
+    data.userId=_clientCreatorSession?_clientCreatorSession.name:'';
     // Guaranteed-unique TEMPORARY Record ID, assigned immediately — the real
     // server-assigned Client ID (C1, C2...) only arrives after the async
     // round-trip below completes, and Apps Script needs to scan the sheet to
@@ -2886,7 +2922,7 @@ async function autoConvert(l){
     // matching "folder is not mandatory for leads."
     folderId:l.folderId||'',
     products:l.products||'', remarks:l.remarks||'',
-    familyName:l.familyName||'',
+    familyName:l.familyName||'', userId:l.userId||'', // ownership carries forward from lead — whoever brought this person in stays the owner
     convertedDate:onboard, createdDate:l.createdDate||today(),
     dob:'', spouseDob:'', anniversary:'',
     reviewDate:reviewD, firstAnniversary:firstAnn,
@@ -3922,9 +3958,12 @@ async function logActivity(mob, type, activity, notes){
   activityLog.push(entry);
   saveActivityLog();
 
-  // Append to ACTIVITY_LOG sheet — row includes rowId (col G) and recordId (col H)
+  // Append to ACTIVITY_LOG sheet — row includes rowId (col G), recordId (col H),
+  // and who performed it (col I) — used for Checker/Authorizer accountability views.
   if(hasScript()){
-    var row = [ts, name, actualMobile, type.toUpperCase(), activity, notes||'', rowId, recordId];
+    var _logSession=getSession();
+    var loggedBy=_logSession?_logSession.name:'';
+    var row = [ts, name, actualMobile, type.toUpperCase(), activity, notes||'', rowId, recordId, loggedBy];
     var res = await sheetWrite({action:'appendLog', row:row});
     if(res && res.error){ console.warn('appendLog failed:', res.error); }
 
@@ -4022,7 +4061,7 @@ async function pullFromSheet(manual){
         var existing=leads.find(function(l){return (obj.recordId&&l.recordId===obj.recordId)||l.mobile===obj.mobile;});
         if(existing&&existing.notes) obj.notes=existing.notes; else obj.notes=[];
       });
-      leads=sheetLeads; saveL();
+      leads=filterRecordsForRole(sheetLeads); saveL();
     }
 
     // Pull CLIENTS — never destructively clear local data on an empty-looking
@@ -4030,7 +4069,7 @@ async function pullFromSheet(manual){
     var cd=await _pClients; // already fetching in parallel since boot start
     var sheetClients=parseClientsFromRows(cd&&cd.rows);
     if(sheetClients){
-      clients=sheetClients; // replace (handles deletions from sheet)
+      clients=filterRecordsForRole(sheetClients); // replace (handles deletions from sheet)
       saveC();
     }
     // Pull Activity Log
@@ -4894,10 +4933,11 @@ async function saveLead(){
     // slightly differently (extra space, added middle name, etc). Warn, don't block.
     var mobileMatch=leads.find(function(x){return x.mobile===mob;});
     function finishAddNewLead(){
+      var _creatorSession=getSession();
       var newLead={name:name,mobile:mob,email:email,country:country,age:age,gender:gender,
         status:status,source:source,referral:referral,products:prods,potentialSip:aum,potentialAum:potentialAum,
         contactMode:contactMode,nextFollowUp:nextFU,remarks:remarks,geoTag:geoTag,familyName:familyName,notes:[],
-        createdDate:today(),modifiedDate:''};
+        createdDate:today(),modifiedDate:'',userId:_creatorSession?_creatorSession.name:''};
       // Guaranteed-unique TEMPORARY Record ID, assigned immediately — see the
       // matching fix in saveClient() for the full explanation. Same gap here:
       // this exact code path supports two leads sharing a mobile (the
@@ -5186,7 +5226,7 @@ async function bootSequenceV17(){
         if(existing&&existing.notes) obj.notes=existing.notes; else obj.notes=[];
       });
       // REPLACE local leads with sheet (sheet is source of truth — handles deletions)
-      leads=sheetLeads; saveL();
+      leads=filterRecordsForRole(sheetLeads); saveL();
     }
 
     // NOTE: never destructively clear local clients on an empty-looking response —
@@ -5194,7 +5234,7 @@ async function bootSequenceV17(){
     // during redeployment) would otherwise wipe the local client list permanently.
     var sheetClients=parseClientsFromRows(_fetches[1]&&_fetches[1].rows);
     if(sheetClients){
-      clients=sheetClients; saveC();
+      clients=filterRecordsForRole(sheetClients); saveC();
     }
 
     // Activity log fetched in background — not needed for initial render
@@ -8234,12 +8274,12 @@ var CLIENT_COLS = ['name','mobile','email','country','source','referral','nextFo
   'age','gender','remarks','createdDate','pan','dob','spouseDob','anniversary',
   'convertedDate','reviewDate','firstAnniversary','appInstalled','broadcastAdded',
   'sipDate','healthInsurance','lifeInsurance','willDone','dueDateHealth','dueDateLife',
-  'aum','potentialAum','welcomeSent','products','lastContacted','stage','uploadToken','potentialSip','folderId','familyName','recordId','sipDate2','modifiedDate','healthInsuranceCoverage','lifeInsuranceCoverage'];
+  'aum','potentialAum','welcomeSent','products','lastContacted','stage','uploadToken','potentialSip','folderId','familyName','recordId','sipDate2','modifiedDate','healthInsuranceCoverage','lifeInsuranceCoverage','userId'];
 var CLIENT_HDRS = ['Name','Mobile','Email','Country','Source','Referred By','Next Follow up date',
   'Age','Gender','Remarks','Created date','PAN','DOB','Spouse DOB','Anniversary',
   'Converted Date','Review Date','1st Anniversary','App Installed','Broadcast Added',
   'SIP date','Health insurance','Life insurance','WILL','Due date Health','Due date Life',
-  'AUM','Potential AUM','Welcome Message send','Products','Last Contacted','Stage','Upload Token','Potential SIP','Record ID','Family Name','Client ID','SIP date 2','Modified Date','Health Insurance Coverage','Life Insurance Coverage'];
+  'AUM','Potential AUM','Welcome Message send','Products','Last Contacted','Stage','Upload Token','Potential SIP','Record ID','Family Name','Client ID','SIP date 2','Modified Date','Health Insurance Coverage','Life Insurance Coverage','User ID'];
 
 // ── Client lifecycle stages (single current stage, sequential) ──
 var CLIENT_STAGES = ['KYC PENDING','DOCUMENT PENDING','PROFILE CREATION PENDING','MANDATE PENDING','INVESTMENT PENDING','GRATITUDE CALL PENDING'];
@@ -9101,10 +9141,18 @@ var _calendarEvents = []; // [{date:'YYYY-MM-DD', title, time}, ...]
 
 // ── Tasks (formerly Quick Reminders) — proper unique Task ID, type-aware
 // linking to a Client, Lead, or a free-standing "Others" task. ──
-var tasks = []; // [{taskId, createdDate, name, taskDetails, dueDate, status, taskFor, linkedRecordId, assignedTo}, ...]
+var tasks = []; // [{taskId, createdDate, name, taskDetails, dueDate, status, taskFor, linkedRecordId, createdBy, createdByRole, reviewedBy, reviewedDate, reviewComment}, ...]
 function loadTasks(){
   try{ tasks = JSON.parse(localStorage.getItem('wm_tasks') || '[]'); }
   catch(e){ tasks = []; }
+  tasks = filterTasksForRole(tasks);
+}
+// Same pattern as filterRecordsForRole (Leads/Clients) — matched by
+// createdBy name, same tradeoff/mitigation noted there applies here too.
+function filterTasksForRole(taskList){
+  var session=getSession();
+  if(!session || session.userType!=='MAKER') return taskList;
+  return taskList.filter(function(t){ return t.createdBy===session.name; });
 }
 function saveTasks(){
   try{ localStorage.setItem('wm_tasks', JSON.stringify(tasks)); }catch(e){}
@@ -9124,8 +9172,9 @@ async function pullTasks(){
       tasks = rows.map(function(r){
         var taskId = r[6]||'';
         if(!taskId) missingIdCount++;
-        return { createdDate:r[0]||'', name:r[1]||'', taskDetails:r[2]||'', dueDate:r[3]||'', status:r[4]||'Open', taskFor:r[5]||'OTHERS', taskId:taskId, linkedRecordId:r[7]||'', assignedTo:r[8]||'' };
+        return { createdDate:r[0]||'', name:r[1]||'', taskDetails:r[2]||'', dueDate:r[3]||'', status:r[4]||'Open', taskFor:r[5]||'OTHERS', taskId:taskId, linkedRecordId:r[7]||'', createdBy:r[8]||'', createdByRole:(r[9]||'').toUpperCase(), reviewedBy:r[10]||'', reviewedDate:r[11]||'', reviewComment:r[12]||'' };
       }).filter(function(t){ return t.name || t.taskDetails; }); // keep any row with real content, ID or not
+      tasks = filterTasksForRole(tasks);
       saveTasks();
       if(typeof renderRemindersPending==='function') renderRemindersPending();
       if(document.getElementById('pg-tasks') && document.getElementById('pg-tasks').classList.contains('active')) renderTasks();
@@ -9186,7 +9235,7 @@ function parseLeadsFromRows(rows){
   if(!rows||rows.length<2) return null;
   var hdr=rows[0].map(function(h){return (h||'').toLowerCase().trim();});
   var ci=function(keys){for(var ki=0;ki<keys.length;ki++)for(var hi=0;hi<hdr.length;hi++)if(hdr[hi].includes(keys[ki]))return hi;return -1;};
-  var C={name:ci(['name']),mob:ci(['mobile','phone']),email:ci(['email']),age:ci(['age']),country:ci(['country']),contactMode:ci(['mode','contact']),status:ci(['status']),source:ci(['source']),ref:ci(['referred','referral']),aum:ci(['sip']),fu:ci(['follow']),prod:ci(['product','investment']),rem:ci(['remark','note']),mod:ci(['modified']),created:ci(['created']),geo:ci(['geo']),potAum:ci(['aum']),recordId:ci(['record id']),familyName:ci(['family']),folderId:ci(['folder']),token:ci(['upload token','token'])};
+  var C={name:ci(['name']),mob:ci(['mobile','phone']),email:ci(['email']),age:ci(['age']),country:ci(['country']),contactMode:ci(['mode','contact']),status:ci(['status']),source:ci(['source']),ref:ci(['referred','referral']),aum:ci(['sip']),fu:ci(['follow']),prod:ci(['product','investment']),rem:ci(['remark','note']),mod:ci(['modified']),created:ci(['created']),geo:ci(['geo']),potAum:ci(['aum']),recordId:ci(['record id']),familyName:ci(['family']),folderId:ci(['folder']),token:ci(['upload token','token']),userId:ci(['user id','user'])};
   function g(r,k,fb){var i=C[k]>=0?C[k]:fb;return i>=0&&i<r.length?String(r[i]||''):'';}
   var out=[];
   rows.slice(1).forEach(function(r){
@@ -9201,7 +9250,7 @@ function parseLeadsFromRows(rows){
       modifiedDate:g(r,'mod',12),createdDate:g(r,'created',13)||today(),
       geoTag:caps(g(r,'geo',15)), potentialAum:g(r,'potAum',16),
       recordId:g(r,'recordId',17), familyName:caps(g(r,'familyName',18)),
-      folderId:g(r,'folderId',19), uploadToken:g(r,'token',20)
+      folderId:g(r,'folderId',19), uploadToken:g(r,'token',20), userId:g(r,'userId',21)
     });
   });
   return out;
@@ -9231,7 +9280,8 @@ function parseClientsFromRows(rows){
     lastContacted:cci(['last contact']), stage:cci(['stage']), uploadToken:cci(['upload token']),
     potentialSip:cci(['potential sip']), folderId:cci(['record id']), familyName:cci(['family']),
     recordId:cci(['client id']), sipDate2:cci(['sip date 2']), modifiedDate:cci(['modified date']),
-    healthInsuranceCoverage:cci(['health insurance coverage']), lifeInsuranceCoverage:cci(['life insurance coverage'])
+    healthInsuranceCoverage:cci(['health insurance coverage']), lifeInsuranceCoverage:cci(['life insurance coverage']),
+    userId:cci(['user id'])
   };
   function gcc(r,k){var i=CC2[k];return(i>=0&&i<r.length)?String(r[i]||''):'';}
   var out=[];
@@ -9263,7 +9313,8 @@ function parseClientsFromRows(rows){
       uploadToken:gcc(r,'uploadToken'), potentialSip:gcc(r,'potentialSip'),
       folderId:gcc(r,'folderId'), familyName:caps(gcc(r,'familyName')),
       recordId:gcc(r,'recordId'), sipDate2:gcc(r,'sipDate2'), modifiedDate:gcc(r,'modifiedDate'),
-      healthInsuranceCoverage:gcc(r,'healthInsuranceCoverage'), lifeInsuranceCoverage:gcc(r,'lifeInsuranceCoverage')
+      healthInsuranceCoverage:gcc(r,'healthInsuranceCoverage'), lifeInsuranceCoverage:gcc(r,'lifeInsuranceCoverage'),
+      userId:gcc(r,'userId')
     });
   });
   return out;
@@ -10788,6 +10839,11 @@ function startAppAfterAuth(){
   if(isLockEnabled()){ showLockScreen(); }
   load();loadActivityLog();loadTasks();bootSequenceV17();
   var topBar=document.getElementById('global-topbar'); if(topBar) topBar.style.display='flex';
+  var userLabel=document.getElementById('global-user-label');
+  if(userLabel){
+    var _authSession=getSession();
+    userLabel.textContent=_authSession?('Logged in as '+_authSession.name):'Logged in as —';
+  }
   if(!isAdmin()){
     var navBtn=document.getElementById('nav-analytics'); if(navBtn) navBtn.style.display='none';
     var sideBtn=document.getElementById('sidebar-nav-analytics'); if(sideBtn) sideBtn.style.display='none';
