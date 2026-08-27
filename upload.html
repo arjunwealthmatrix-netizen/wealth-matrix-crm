@@ -8,10 +8,10 @@
 <title>Upload Documents — Wealth Matrix Finserv</title>
 <style>
 :root{
-  --bg:#000000; --s1:#111111; --s2:#1A1A1A; --border:#2A2A2A;
-  --accent:#1D6FE0; --accent2:rgba(29,111,224,.12);
-  --text:#FFFFFF; --t2:#AAAAAA; --t3:#666666;
-  --green:#2ecc71; --r:12px; --r2:8px;
+  --bg:#0A1830; --s1:#0F2140; --s2:#132848; --border:#2E5C8A;
+  --accent:#FFFFFF; --accent2:rgba(255,255,255,.12);
+  --text:#FFFFFF; --t2:#8FB4DC; --t3:#5D7A9E;
+  --green:#4C9A6A; --orange:#C08A3E; --red:#C1553D; --r:12px; --r2:8px;
   --page-w:460px; --grid-cols:1;
 }
 *{box-sizing:border-box}
@@ -47,9 +47,9 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,B
 .slot .btn{display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff !important;background:var(--accent);padding:9px 14px;border-radius:var(--r2);cursor:pointer;flex-shrink:0;text-align:center;border:none;-webkit-appearance:none;appearance:none;line-height:normal;min-width:64px}
 .slot.done{border-color:var(--green)}
 .slot.done .s{color:var(--green)}
-.slot.err .s{color:#e74c3c}
-.slot.staged{border-color:#f39c12}
-.slot.staged .s{color:#f39c12}
+.slot.err .s{color:var(--red)}
+.slot.staged{border-color:var(--orange)}
+.slot.staged .s{color:var(--orange)}
 .slot .btn.done{background:var(--s2);color:var(--green);border:1px solid var(--green)}
 .form-block{margin:6px 14px 0;background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:14px}
 .fg{margin-bottom:12px}
@@ -62,7 +62,7 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,B
 .savebtn:disabled{opacity:.5}
 .savemsg{font-size:11px;margin-top:8px;text-align:center}
 .savemsg.ok{color:var(--green)}
-.savemsg.err{color:#e74c3c}
+.savemsg.err{color:var(--red)}
 .footer-note{padding:18px 24px 4px;text-align:center;font-size:10px;color:var(--t3);line-height:1.6}
 input[type=file]{display:none}
 .spin{display:inline-block;width:14px;height:14px;border:2px solid var(--t3);border-top-color:var(--accent);border-radius:50%;animation:sp .7s linear infinite;vertical-align:middle;margin-right:4px}
@@ -154,7 +154,7 @@ async function apiPost(data, timeoutMs){
 
 function renderError(title, msg){
   document.getElementById('app').innerHTML =
-    '<div class="state"><div class="ico">⚠️</div><h2>'+title+'</h2><p>'+msg+'</p></div>';
+    '<div class="state"><div class="ico">⚠️</div><h2>'+esc(title)+'</h2><p>'+esc(msg)+'</p></div>';
 }
 
 function renderSlots(){

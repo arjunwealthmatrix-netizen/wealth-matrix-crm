@@ -8,7 +8,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="WM CRM">
+<meta name="apple-mobile-web-app-title" content="Wealth Matrix">
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <meta name="theme-color" content="#0A1830">
@@ -704,9 +704,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
           <div class="si"><span>Target leads/month</span><input class="fi" id="s-goal-leads" type="number" style="width:70px;text-align:center" value="30" onchange="cfg('goalLeads',this.value)"></div>
           <div class="si"><span>Target conversions/month</span><input class="fi" id="s-goal-conv" type="number" style="width:70px;text-align:center" value="5" onchange="cfg('goalConv',this.value)"></div>
         </div>
-        <div class="sg" style="margin-top:10px">
-          <div class="syc"><button class="btn btn-ghost btn-full" onclick="showAppsScriptCode()">📋 View / Copy Apps Script Code</button></div>
-        </div>
       </div>
     </div>
 
@@ -797,6 +794,31 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
         <div class="card" style="padding:12px 14px">
           <button class="btn btn-gold btn-full" style="margin-bottom:10px" onclick="openCreateUserForm()">➕ Add User</button>
           <div id="admin-user-list"><div style="font-size:11px;color:var(--t3);text-align:center;padding:8px">Loading…</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="acc-section" id="acc-set-feedback">
+      <div class="acc-header" onclick="toggleSettingsSection('set-feedback')">
+        <span class="acc-icon">💬</span><span class="acc-title">Feedback to Deep Pocket</span><span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="sg">
+          <div class="si" style="font-size:10px;color:var(--t3)"><span>This goes to Deep Pocket Fintech, the team that builds this app — not to your own firm's data. Use it for a bug, an idea, or anything that would make this better.</span></div>
+          <div style="padding:0 12px 8px">
+            <div style="font-size:11px;color:var(--t2);margin-bottom:6px;font-weight:700">Category</div>
+            <select class="fi" id="dp-fb-category">
+              <option value="Suggestion">Suggestion / Idea</option>
+              <option value="Bug">Something's not working</option>
+              <option value="Praise">Something I like</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div style="padding:0 12px 8px">
+            <div style="font-size:11px;color:var(--t2);margin-bottom:6px;font-weight:700">Your message</div>
+            <textarea class="fi" id="dp-fb-message" rows="4" placeholder="Be as specific as you like — screen names, what you expected, what actually happened."></textarea>
+          </div>
+          <div class="syc"><button class="btn btn-gold btn-full" id="dp-fb-send-btn" onclick="sendProductFeedback()">Send Feedback</button></div>
         </div>
       </div>
     </div>
@@ -1383,6 +1405,13 @@ function leadToRow(l){
 }
 
 
+// Deep Pocket's own product-feedback endpoint — the SAME URL across every
+// deployed CRM, owned and run entirely on Deep Pocket's Google account,
+// completely separate from this firm's own cfg_.scriptUrl. Deliberately a
+// fixed constant, not a Settings field: no firm should ever need to (or be
+// able to) redirect this to somewhere else.
+var PRODUCT_FEEDBACK_URL = 'PASTE_DEEP_POCKET_FEEDBACK_ENDPOINT_URL_HERE';
+
 var DEFMSG={
   PROSPECT:'Hi {name},\nHope you are doing great.\nI have started my own Financial Advisory / Wealth Management Firm - Wealth Matrix Finserv LLP. Office at Ernakulam.\nRegards\nArjun',
   CONTACTED:'Dear {name},\nThank you for your time earlier. I wanted to follow up on our conversation. Looking forward to helping you with {products}.\nRegards\nArjun',
@@ -1480,7 +1509,13 @@ async function pickContactInto(prefix){
   var os=detectMobileOS();
   var supported = ('contacts' in navigator) && ('ContactsManager' in window);
 
-  if(os==='ios' || !supported){
+  // Check actual support FIRST, regardless of OS — this is the fix: the
+  // previous version showed the iOS help popup for every iOS device
+  // unconditionally, even ones where the feature flag was already enabled
+  // and the API was genuinely working. Now: if it's supported (Android
+  // always, or an iOS device with the flag on), use it directly. Only fall
+  // back to the help popup when it's genuinely not available.
+  if(!supported){
     showContactPickerIOSHelp(os);
     return;
   }
@@ -1787,53 +1822,72 @@ function openFuDetail(mob,nameHint){
   if(hasScript()){
     var histEl = document.getElementById('fu-hist-'+mob);
     if(histEl){
-      histEl.innerHTML = '<div style="color:var(--t3);font-size:11px;padding:10px 0;text-align:center">🔄 Loading…</div>';
+      // Show cached content immediately when available — same approach as the
+      // lead and client chip windows, so no path is left showing a needless spinner.
+      var hasCachedFu=activityLog.some(function(e){
+        if(e.recordId && l.recordId) return e.recordId===l.recordId;
+        if(!e.recordId) return mobMatch(e.mobile, l.mobile);
+        return false;
+      });
+      if(hasCachedFu){ histEl.innerHTML=buildHistoryHtml(mob,'lead'); histEl.scrollTop=histEl.scrollHeight; }
+      else histEl.innerHTML = '<div style="color:var(--t3);font-size:11px;padding:10px 0;text-align:center">🔄 Loading…</div>';
     }
-    pullLeadActivity(mob).then(function(){
+    pullLeadActivity(mob, 'lead').then(function(){
       var el = document.getElementById('fu-hist-'+mob);
       if(el){ el.innerHTML = buildHistoryHtml(mob,'lead'); el.scrollTop = el.scrollHeight; }
     });
   }
 }
 
-async function pullLeadActivity(mob){
+async function pullLeadActivity(mob, recType){
   if(!hasScript()) return;
   mob = String(mob||'').trim();
-  var targetRec = leads.find(function(x){ return x.recordId===mob||x.mobile===mob; });
+  // Look in the correct array for this record type. This matters: the client
+  // chip window also calls this, and previously it only ever searched leads —
+  // so for a client the lookup failed, targetRecordId came back empty, and
+  // Record ID matching silently degraded to mobile-only. Defaults to checking
+  // both (leads first) when no type is given, for older callers.
+  var targetRec;
+  if(recType==='client'){
+    targetRec = clients.find(function(x){ return x.recordId===mob||x.mobile===mob; });
+  } else if(recType==='lead'){
+    targetRec = leads.find(function(x){ return x.recordId===mob||x.mobile===mob; });
+  } else {
+    targetRec = leads.find(function(x){ return x.recordId===mob||x.mobile===mob; })
+             || clients.find(function(x){ return x.recordId===mob||x.mobile===mob; });
+  }
   var targetRecordId = targetRec ? targetRec.recordId : '';
   var targetMobile = targetRec ? targetRec.mobile : mob;
   try{
-    var url = cfg_.scriptUrl + '?tab=ACTIVITY_LOG&t=' + Date.now();
+    // Targeted fetch — asks the backend for ONLY this record's rows rather
+    // than pulling the whole ACTIVITY_LOG sheet and discarding 99% of it
+    // client-side. The backend applies the identical Record-ID-first
+    // matching rule, so nothing is lost by filtering there instead of here.
+    var url = cfg_.scriptUrl + '?action=pullLog'
+      + '&mobile=' + encodeURIComponent(targetMobile)
+      + '&recordId=' + encodeURIComponent(targetRecordId)
+      + '&t=' + Date.now();
     var resp = await fetch(url);
     if(!resp.ok) throw new Error('HTTP '+resp.status);
     var d = await resp.json();
-    if(d && d.rows && d.rows.length > 1){
+    if(d && d.rows){
       // Columns: A=Timestamp B=Name C=Mobile D=Type E=Activity F=Notes G=RawId H=RecordId
-      var fresh = d.rows.slice(1).map(function(r){
+      // Rows arrive pre-filtered to this record — no header row here (pullLog
+      // slices it off), unlike the full-tab read this used to do.
+      var fresh = d.rows.map(function(r){
         return {
           ts:String(r[0]||'').trim(), name:String(r[1]||'').trim(),
           mobile:String(r[2]||'').trim(), type:String(r[3]||'LEAD').trim(),
           activity:String(r[4]||'').trim(), notes:String(r[5]||'').trim(),
           rowId:String(r[6]||'').trim(), recordId:String(r[7]||'').trim()
         };
-      }).filter(function(e){
-        if(!e.activity) return false;
-        // Match by Record ID when both sides have one (exact, unambiguous even
-        // when two leads share a mobile) — fall back to mobile only for legacy
-        // entries with no Record ID stored.
-        if(e.recordId && targetRecordId) return e.recordId===targetRecordId;
-        if(!e.recordId) return mobMatch(e.mobile, targetMobile);
-        return false;
-      });
+      }).filter(function(e){ return !!e.activity; });
       // Replace this lead's local entries with fresh sheet data — same matching rule
       activityLog = activityLog.filter(function(e){
         if(e.recordId && targetRecordId) return e.recordId!==targetRecordId;
         if(!e.recordId) return !mobMatch(e.mobile, targetMobile);
         return true;
       });
-      // No longer overwriting f.mobile — that was replacing each entry's real
-      // mobile with whatever identifier was passed in (sometimes a Record ID),
-      // corrupting the data shown for it.
       activityLog = activityLog.concat(fresh);
       saveActivityLog();
     }
@@ -2166,10 +2220,22 @@ function openDetail(mob,type,nameHint){
     // but the DOM element id must match what renderFuDetailInner actually rendered (recId).
     if(hasScript()){
       var histEl=document.getElementById('fu-hist-'+recId);
-      if(histEl&&activityLog.filter(function(e){return e.mobile===rec.mobile;}).length===0){
-        histEl.innerHTML='<div style="color:var(--t3);font-size:12px;padding:8px 0;text-align:center">🔄 Loading history from sheet...</div>';
+      // Render whatever's already cached IMMEDIATELY — in normal use this is
+      // already correct and complete, so the user sees real content instantly
+      // rather than a spinner. Only show a loading message when there is
+      // genuinely nothing cached to show. Either way the background refresh
+      // below silently replaces it once fresh data arrives.
+      if(histEl){
+        var cachedHtml=buildHistoryHtml(rec.mobile,'lead');
+        var hasCached=activityLog.some(function(e){
+          if(e.recordId && rec.recordId) return e.recordId===rec.recordId;
+          if(!e.recordId) return mobMatch(e.mobile, rec.mobile);
+          return false;
+        });
+        if(hasCached){ histEl.innerHTML=cachedHtml; histEl.scrollTop=histEl.scrollHeight; }
+        else histEl.innerHTML='<div style="color:var(--t3);font-size:12px;padding:8px 0;text-align:center">🔄 Loading history from sheet...</div>';
       }
-      pullLeadActivity(rec.mobile).then(function(){
+      pullLeadActivity(rec.mobile, 'lead').then(function(){
         var el=document.getElementById('fu-hist-'+recId);
         if(el){ el.innerHTML=buildHistoryHtml(rec.mobile,'lead'); el.scrollTop=el.scrollHeight; }
       });
@@ -2248,6 +2314,12 @@ function openDetail(mob,type,nameHint){
     + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px">'
     + '<button onclick="startMeetingInsight(\''+mob+'\')" class="qwa-btn" style="padding:8px 4px;border-color:var(--purple);color:var(--purple)"><span class="qwa-ico">🧠</span><span class="qwa-lbl">Meeting<br>Insights</span></button>'
     + '<button onclick="sendGatherInfoLinkWA(\''+mob+'\')" class="qwa-btn" style="padding:8px 4px;border-color:#16a085;color:#16a085"><span class="qwa-ico">📝</span><span class="qwa-lbl">Gather<br>Info</span></button>'
+    + '</div>'
+    + '<div style="display:grid;grid-template-columns:1fr;gap:6px;margin-top:6px">'
+    + '<button onclick="sendFinDocLinkWA(\''+mob+'\')" class="qwa-btn" style="padding:8px 4px;border-color:var(--orange);color:var(--orange)"><span class="qwa-ico">🗂️</span><span class="qwa-lbl">Fin Doc \u2014 Family Financial Organizer</span></button>'
+    + '</div>'
+    + '<div style="display:grid;grid-template-columns:1fr;gap:6px;margin-top:6px">'
+    + '<button onclick="showFeedbackChoicePopup(\''+mob+'\')" class="qwa-btn" style="padding:8px 4px;border-color:var(--green);color:var(--green)"><span class="qwa-ico">\u{1F4AC}</span><span class="qwa-lbl">Request Feedback</span></button>'
     + '</div>'
     + '<div style="display:grid;grid-template-columns:1fr;gap:6px;margin-top:6px">'
     + '<button onclick="startClientReviewReport(\''+mob+'\')" class="qwa-btn" style="padding:8px 4px;border-color:var(--blue);color:var(--blue)"><span class="qwa-ico">💌</span><span class="qwa-lbl">Send Review Report to Client</span></button>'
@@ -2334,8 +2406,18 @@ function openDetail(mob,type,nameHint){
   // Pull fresh activity
   if(hasScript()){
     var hEl = document.getElementById('cl-hist-'+mob);
-    if(hEl) hEl.innerHTML='<div style="color:var(--t3);font-size:11px;text-align:center;padding:8px">🔄 Loading...</div>';
-    pullLeadActivity(mob).then(function(){
+    // Same approach as the lead window: show cached content immediately when
+    // there is any, so the panel isn't blocked by a spinner on every open.
+    if(hEl){
+      var hasCachedCl=activityLog.some(function(e){
+        if(e.recordId && c.recordId) return e.recordId===c.recordId;
+        if(!e.recordId) return mobMatch(e.mobile, c.mobile);
+        return false;
+      });
+      if(hasCachedCl){ hEl.innerHTML=buildHistoryHtml(mob,'client'); hEl.scrollTop=hEl.scrollHeight; }
+      else hEl.innerHTML='<div style="color:var(--t3);font-size:11px;text-align:center;padding:8px">🔄 Loading...</div>';
+    }
+    pullLeadActivity(mob, 'client').then(function(){
       var el2=document.getElementById('cl-hist-'+mob);
       if(el2){el2.innerHTML=buildHistoryHtml(mob,'client');el2.scrollTop=el2.scrollHeight;}
     });
@@ -2637,7 +2719,8 @@ async function finishTaskNow(){
   var btnFinish=document.getElementById('task-btn-finish');
   var origText=btnFinish?btnFinish.textContent:'';
   setTaskButtonsBusy(true, btnFinish, 'Finishing…');
-  var res=await sheetWrite({action:'submitTaskDone', taskId:taskId});
+  var _finishSession=getSession();
+  var res=await sheetWrite({action:'submitTaskDone', expectsResponse:true, taskId:taskId, requestingUserId:_finishSession?_finishSession.userId:''});
   if(res && res.success){
     t.status=res.newStatus||'Finished';
     saveTasks(); renderTasks();
@@ -3188,9 +3271,14 @@ async function sheetWrite(data, timeoutMs){
     var text = await resp.text();
     try{ return JSON.parse(text); }
     catch(pe){
-      // Response wasn't JSON (could be Apps Script HTML). If HTTP was OK, the action ran.
-      if(resp.ok) return {success:true, noResponse:true};
-      throw pe;
+      // Response wasn't JSON — usually an Apps Script HTML error/timeout page.
+      // For a plain write this is survivable (the action almost certainly
+      // ran), but for anything expecting DATA back it is NOT: returning
+      // {success:true} with no payload made the chat render an empty bubble
+      // with no error, which is exactly the "no reply from the AI" symptom.
+      // Requests that need a real response must surface a real error instead.
+      if(resp.ok && !data.expectsResponse) return {success:true, noResponse:true};
+      return {success:false, error:'The server returned an unreadable response (this usually means it timed out or hit a quota limit). Please try again in a moment.'};
     }
   }catch(e){
     if(timer) clearTimeout(timer);
@@ -3278,27 +3366,6 @@ async function importFromSheet(){
   if(!hasScript()){toast('Add Apps Script URL first');return;}
   var tabEl=document.getElementById('s-import-tab');var tab=tabEl?tabEl.value.trim()||'MASTER LIST':'MASTER LIST';toast('Importing…',4000);
   try{var d=await scriptGet(tab);if(!d.rows||d.rows.length<2){showSyncMsg('No data in tab: '+tab,false);return;}var hdr=d.rows[0].map(function(h){return (h||'').toString().toLowerCase().trim();});var nameI=hdr.findIndex(function(h){return h.includes('name');});var mobI=hdr.findIndex(function(h){return h.includes('mobile')||h.includes('phone');});if(nameI<0||mobI<0){showSyncMsg('No Name/Mobile columns found',false);return;}var added=0,skipped=0;d.rows.slice(1).forEach(function(r){var mob=String(r[mobI]||'').trim();var name=caps(String(r[nameI]||''));if(!mob||!name){skipped++;return;}if(leads.find(function(l){return l.recordId===mob||l.mobile===mob;})){skipped++;return;}leads.push({name:name,mobile:mob,email:'',country:'',status:'PROSPECT',source:'',referral:'',products:'',age:'',gender:'',remarks:'',notes:[],createdDate:today(),modifiedDate:today()});added++;});saveL();pushLeads();renderLeads();renderDash();showSyncMsg('Imported '+added+' leads. Skipped '+skipped+'.',true);}catch(e){showSyncMsg('Import failed: '+e.message,false);}
-}
-function showAppsScriptCode(){
-  var code='// Wealth Matrix CRM — Apps Script backend v2.8 (idempotent / duplicate-proof)\n// Changes vs v2.7: appendLead & appendClient are now UPSERTS (match by mobile),\n// appendLog dedupes by Raw ID, and all writes are serialized with LockService.\n// These four changes make every write safe to retry — the root fix for duplicate rows.\n\nconst SHEET_ID=\'1oPQMj6KB39M20RnEoix9PCvSA8RFhVhOV4BG2M4TXlQ\';\nconst LEADS_TAB=\'LEADS\',CLIENTS_TAB=\'CLIENTS\',LOG_TAB=\'ACTIVITY_LOG\',SPECIAL_TAB=\'Special Days\',REMINDERS_TAB=\'REMINDERS\',INSIGHTS_TAB=\'Insights\';\nconst VERSION=\'2.16.0\';\n\n// ── Generate the next sequential human-readable ID (L1, L2... or C1, C2...).\n// Scans the whole ID column, finds the highest existing number for this prefix,\n// returns max+1. Robust against gaps from deleted rows — never reuses a number. ──\nfunction nextSequentialId(sheet, colIndex, prefix){\n  var lr=sheet.getLastRow();\n  if(lr<2) return prefix+\'1\';\n  var vals=sheet.getRange(2,colIndex,lr-1,1).getValues();\n  var maxNum=0;\n  var re=new RegExp(\'^\'+prefix+\'(\\\\d+)$\',\'i\');\n  for(var i=0;i<vals.length;i++){\n    var v=String(vals[i][0]||\'\').trim();\n    var m=v.match(re);\n    if(m){ var n=parseInt(m[1],10); if(n>maxNum) maxNum=n; }\n  }\n  return prefix+(maxNum+1);\n}\n\n// ═══════════════════════════════════════════════════════════════\n// AUTOMATED BUSINESS INSIGHTS — a scheduled trigger reads a compact summary\n// of the CRM data, sends it to Claude for a genuine writeup (not raw stats),\n// then logs the result to an "Insights" tab and emails it to the script owner.\n// ═══════════════════════════════════════════════════════════════\n\n// Gathers a CONCISE summary — never raw row dumps — so the prompt sent to\n// Claude stays focused and the resulting insight is genuinely useful rather\n// than a restatement of numbers the person already has in front of them.\nfunction buildInsightsSummaryText(){\n  var ss=SpreadsheetApp.openById(SHEET_ID);\n  var lines=[];\n  var today=new Date();\n  function daysAgo(n){ var d=new Date(today); d.setDate(d.getDate()-n); return d; }\n  function dateOnly(d){ return d instanceof Date ? new Date(d.getFullYear(),d.getMonth(),d.getDate()) : null; }\n\n  // ── PRODUCTIVITY: funnel velocity, from the daily-bucketed ANALYTICS sheet.\n  // This tracks NEW leads reaching each status each day — not current totals —\n  // so it answers "how much did I generate" for today / this week / this month. ──\n  var anaSh=ss.getSheetByName(\'ANALYTICS\');\n  if(anaSh && anaSh.getLastRow()>1){\n    var anaRows=anaSh.getRange(2,1,anaSh.getLastRow()-1,7).getValues();\n    var todayStr0=Utilities.formatDate(today,Session.getScriptTimeZone(),\'yyyy-MM-dd\');\n    var week0=daysAgo(7), month0=daysAgo(30);\n    var sums={today:[0,0,0,0,0], week:[0,0,0,0,0], month:[0,0,0,0,0]}; // [Prospects,Contacted,InProgress,Converted,Dropped]\n    anaRows.forEach(function(r){\n      var rDate=String(r[0]||\'\').trim();\n      var isToday=rDate===todayStr0;\n      var rd=rDate?new Date(rDate):null;\n      var inWeek=rd && rd>=week0;\n      var inMonth=rd && rd>=month0;\n      for(var i=0;i<5;i++){\n        var v=parseInt(r[i+2])||0;\n        if(v<=0) continue; // only count positive (new) movements, not corrections/removals\n        if(isToday) sums.today[i]+=v;\n        if(inWeek) sums.week[i]+=v;\n        if(inMonth) sums.month[i]+=v;\n      }\n    });\n    var labels=[\'Prospects\',\'Contacted\',\'In Progress\',\'Converted\',\'Dropped\'];\n    function fmtSums(arr){ return labels.map(function(l,i){return l+\'=\'+arr[i];}).join(\', \'); }\n    lines.push(\'PRODUCTIVITY (new movements into each stage):\');\n    lines.push(\'Today: \'+fmtSums(sums.today)+\'.\');\n    lines.push(\'Last 7 days: \'+fmtSums(sums.week)+\'.\');\n    lines.push(\'Last 30 days: \'+fmtSums(sums.month)+\'.\');\n  }\n\n  // ── Leads funnel + Potential AUM/SIP ──\n  var lSh=ss.getSheetByName(LEADS_TAB);\n  var highValueStaleLeads=[];\n  if(lSh && lSh.getLastRow()>1){\n    var lRows=lSh.getRange(2,1,lSh.getLastRow()-1,19).getValues();\n    var statusCounts={}, staleCount=0, hotStale=[];\n    var totalPotAum=0, totalPotSip=0;\n    lRows.forEach(function(r){\n      var status=String(r[5]||\'\').trim().toUpperCase();\n      if(status) statusCounts[status]=(statusCounts[status]||0)+1;\n      var modDate=r[13]instanceof Date?r[13]:(r[13]?new Date(r[13]):null);\n      var daysSince=modDate?Math.floor((today-modDate)/86400000):999;\n      var potAum=parseFloat(r[16])||0, potSip=parseFloat(r[8])||0; // col Q=potentialAum, col I=potentialSip(labelled aum internally)\n      totalPotAum+=potAum; totalPotSip+=potSip;\n      if([\'PROSPECT\',\'CONTACTED\',\'IN PROGRESS\'].indexOf(status)>=0 && daysSince>=14){\n        staleCount++;\n        if(daysSince>=21) hotStale.push(String(r[0]||\'\')+\' (\'+daysSince+\'d)\');\n      }\n      // "Connect potentials at least monthly" — high potential value, not touched in 30+ days\n      if([\'PROSPECT\',\'CONTACTED\',\'IN PROGRESS\'].indexOf(status)>=0 && daysSince>=30 && (potAum>0||potSip>0)){\n        highValueStaleLeads.push({name:String(r[0]||\'\'), days:daysSince, potAum:potAum, potSip:potSip});\n      }\n    });\n    lines.push(\'\');\n    lines.push(\'LEADS: \'+lRows.length+\' total. By status: \'+Object.keys(statusCounts).map(function(k){return k+\'=\'+statusCounts[k];}).join(\', \')+\'.\');\n    lines.push(\'Leads not followed up in 14+ days: \'+staleCount+(hotStale.length?\' (notably: \'+hotStale.slice(0,8).join(\'; \')+\')\':\'.\'));\n    lines.push(\'Total Potential AUM across active leads: \\u20B9\'+totalPotAum.toFixed(1)+\'L. Total Potential SIP: \\u20B9\'+totalPotSip.toFixed(1)+\'.\');\n  } else {\n    lines.push(\'\'); lines.push(\'LEADS: none yet.\');\n  }\n\n  // ── Clients + family + stale contacts + Potential AUM/SIP ──\n  var cSh=ss.getSheetByName(CLIENTS_TAB);\n  if(cSh && cSh.getLastRow()>1){\n    var cRows=cSh.getRange(2,1,cSh.getLastRow()-1,36).getValues();\n    var stale90=[], familyMap={};\n    var cTotalPotAum=0, cTotalPotSip=0;\n    cRows.forEach(function(r){\n      var name=String(r[0]||\'\'), lastContacted=r[30], createdDate=r[10];\n      var refDate=lastContacted instanceof Date?lastContacted:(createdDate instanceof Date?createdDate:null);\n      var daysSince=refDate?Math.floor((today-refDate)/86400000):999;\n      if(daysSince>90) stale90.push(name+\' (\'+daysSince+\'d)\');\n      var fam=String(r[35]||\'\').trim();\n      if(fam){ familyMap[fam]=familyMap[fam]||[]; familyMap[fam].push(name); }\n      var potAum=parseFloat(r[27])||0, potSip=parseFloat(r[33])||0; // col AB=potentialAum, col AH=potentialSip\n      cTotalPotAum+=potAum; cTotalPotSip+=potSip;\n      // "Connect potentials at least monthly" — same check for clients with open potential\n      if(daysSince>=30 && (potAum>0||potSip>0)){\n        highValueStaleLeads.push({name:name, days:daysSince, potAum:potAum, potSip:potSip});\n      }\n    });\n    lines.push(\'\');\n    lines.push(\'CLIENTS: \'+cRows.length+\' total.\');\n    lines.push(\'Clients not contacted in 90+ days: \'+stale90.length+(stale90.length?\' (notably: \'+stale90.slice(0,8).join(\'; \')+\')\':\'.\'));\n    lines.push(\'Total Potential AUM across clients (top-up opportunity): \\u20B9\'+cTotalPotAum.toFixed(1)+\'L. Total Potential SIP: \\u20B9\'+cTotalPotSip.toFixed(1)+\'.\');\n    var famEntries=Object.keys(familyMap).filter(function(f){return familyMap[f].length>1;});\n    if(famEntries.length){\n      lines.push(\'Families with 2+ tagged members: \'+famEntries.slice(0,10).map(function(f){return f+\' (\'+familyMap[f].length+\')\';}).join(\', \')+\'.\');\n    }\n\n    // Upcoming this week: reviews, SIP dates\n    var upcoming=[];\n    cRows.forEach(function(r){\n      var name=String(r[0]||\'\');\n      var reviewDate=r[16];\n      if(reviewDate instanceof Date){\n        var d=Math.floor((reviewDate-today)/86400000);\n        if(d>=0 && d<=7) upcoming.push(name+\': review in \'+d+\'d\');\n      }\n      var sipDay=parseInt(r[20]);\n      if(sipDay>=1 && sipDay<=28){\n        var sipDate=new Date(today.getFullYear(),today.getMonth(),sipDay);\n        if(sipDate<today) sipDate=new Date(today.getFullYear(),today.getMonth()+1,sipDay);\n        var sd=Math.floor((sipDate-today)/86400000);\n        if(sd<=7) upcoming.push(name+\': SIP due in \'+sd+\'d\');\n      }\n    });\n    if(upcoming.length) lines.push(\'Upcoming this week: \'+upcoming.slice(0,15).join(\'; \')+\'.\');\n  } else {\n    lines.push(\'\'); lines.push(\'CLIENTS: none yet.\');\n  }\n\n  // ── "Connect potentials at least once a month" — the direct answer to that ask.\n  // Sorted by combined potential value so the highest-stakes names surface first. ──\n  if(highValueStaleLeads.length){\n    highValueStaleLeads.sort(function(a,b){ return (b.potAum+b.potSip)-(a.potAum+a.potSip); });\n    lines.push(\'\');\n    lines.push(\'HIGH-POTENTIAL, NOT TOUCHED IN 30+ DAYS (overdue for a monthly check-in): \'\n      +highValueStaleLeads.slice(0,10).map(function(x){\n        return x.name+\' (\\u20B9\'+x.potAum.toFixed(1)+\'L AUM / \\u20B9\'+x.potSip.toFixed(1)+\' SIP, \'+x.days+\'d since contact)\';\n      }).join(\'; \')+\'.\');\n  }\n\n  // ── Pending reminders ──\n  var rSh=ss.getSheetByName(REMINDERS_TAB);\n  if(rSh && rSh.getLastRow()>1){\n    var rRows=rSh.getRange(2,1,rSh.getLastRow()-1,4).getValues();\n    var pending=rRows.filter(function(r){\n      var rd=r[3] instanceof Date?r[3]:(r[3]?new Date(r[3]):null);\n      return rd && rd<=today;\n    });\n    lines.push(\'\');\n    lines.push(\'Reminders currently due/overdue: \'+pending.length+\'.\');\n  }\n\n  // ── Touch points — activity volume AND type breakdown, last 7 and 30 days ──\n  var aSh=ss.getSheetByName(LOG_TAB);\n  if(aSh && aSh.getLastRow()>1){\n    var aRows=aSh.getRange(2,1,aSh.getLastRow()-1,6).getValues();\n    var week0b=daysAgo(7), month0b=daysAgo(30);\n    var last7=[], last30=[], typeCounts7={};\n    aRows.forEach(function(r){\n      var ts=String(r[1]||\'\');\n      var d=ts?new Date(ts.split(\' \')[0]):null;\n      if(!d) return;\n      if(d>=month0b) last30.push(r);\n      if(d>=week0b){\n        last7.push(r);\n        var activity=String(r[4]||\'\').trim();\n        // Group by the activity\'s emoji+label prefix as a rough touch-point type\n        var typeKey=activity.split(\'-\')[0].trim()||\'Other\';\n        typeCounts7[typeKey]=(typeCounts7[typeKey]||0)+1;\n      }\n    });\n    lines.push(\'\');\n    lines.push(\'TOUCH POINTS: \'+last7.length+\' in the last 7 days, \'+last30.length+\' in the last 30 days.\');\n    var typeList=Object.keys(typeCounts7).sort(function(a,b){return typeCounts7[b]-typeCounts7[a];});\n    if(typeList.length){\n      lines.push(\'Touch point types this week: \'+typeList.slice(0,6).map(function(t){return t+\'=\'+typeCounts7[t];}).join(\', \')+\'.\');\n    }\n  }\n\n  return lines.join(\'\\n\');\n}\n\n// Calls the Claude API directly. Requires CLAUDE_API_KEY to be set in\n// Script Properties (Project Settings → Script Properties in the Apps\n// Script editor) — never hardcoded in source, never transmitted anywhere\n// except directly from this script to Anthropic\'s API.\nfunction callClaudeAPI(summaryText){\n  var apiKey=PropertiesService.getScriptProperties().getProperty(\'CLAUDE_API_KEY\');\n  if(!apiKey) throw new Error(\'CLAUDE_API_KEY not set in Script Properties\');\n\n  var prompt=\'You are a productivity analyst for Wealth Matrix Finserv, an Indian wealth-management advisory firm. \'\n    +\'The advisor measures their own productivity by funnel velocity (how many prospects, contacted, and in-progress leads \'\n    +\'are generated per day/week/month, and how many convert), how consistently they re-engage high-potential leads and \'\n    +\'clients (at least once a month), and touch-point frequency. Below is a compact summary of the current CRM state. \'\n    +\'Write a short, direct briefing (under 320 words) for the advisor, covering: \'\n    +\'(1) funnel velocity \\u2014 is this week/month\\\'s pace up or down, and where is the bottleneck stage; \'\n    +\'(2) Potential AUM/SIP holders who have gone 30+ days without contact \\u2014 name them, they are overdue for the monthly touch; \'\n    +\'(3) touch-point pattern \\u2014 volume and whether it is concentrated in one type or spread out; \'\n    +\'(4) any family cross-sell opportunity visible in the data. \'\n    +\'End with ONE specific, decisive recommendation labeled "This week, do this:" \\u2014 the single highest-value action, \'\n    +\'naming a specific person or group, not generic advice. \'\n    +\'Be specific and reference names/numbers from the data throughout. Use short paragraphs or a tight bullet list, \'\n    +\'no headers, no preamble.\\n\\nCRM SUMMARY:\\n\'+summaryText;\n\n  var resp=UrlFetchApp.fetch(\'https://api.anthropic.com/v1/messages\',{\n    method:\'post\',\n    contentType:\'application/json\',\n    headers:{\'x-api-key\':apiKey,\'anthropic-version\':\'2023-06-01\'},\n    payload:JSON.stringify({\n      model:\'claude-sonnet-5\',\n      max_tokens:600,\n      messages:[{role:\'user\',content:prompt}]\n    }),\n    muteHttpExceptions:true\n  });\n  var json=JSON.parse(resp.getContentText());\n  if(json.error) throw new Error(json.error.message||\'Claude API error\');\n  var textBlock=(json.content||[]).find(function(b){return b.type===\'text\';});\n  return textBlock?textBlock.text:\'(no text returned)\';\n}\n\n// Extracts a first name (Title Case) from a full name stored in UPPERCASE,\n// and computes a time-aware greeting based on the CURRENT hour in IST —\n// computed here deterministically rather than left for the AI to guess,\n// since it has no reliable access to the real current time.\nfunction getFirstName(fullName){\n  var first=(fullName||\'\').trim().split(/\\s+/)[0]||\'\';\n  return first.charAt(0).toUpperCase()+first.slice(1).toLowerCase();\n}\nfunction getTimeAwareGreeting(){\n  var hour=parseInt(Utilities.formatDate(new Date(), \'Asia/Kolkata\', \'H\'), 10);\n  if(hour<12) return \'Good morning\';\n  if(hour<17) return \'Good afternoon\';\n  return \'Good evening\'; // covers evening through late night, including after 8 PM\n}\n\n// The orchestrator — called by the weekly trigger, or manually for testing.\n// Drafts a short, personalized WhatsApp message for one specific lead.\n// Returns the draft text only — never sends anything itself. Sending always\n// happens from the app after the advisor has reviewed (and possibly edited) it.\nfunction draftLeadMessage(data){\n  var apiKey=PropertiesService.getScriptProperties().getProperty(\'CLAUDE_API_KEY\');\n  if(!apiKey) throw new Error(\'CLAUDE_API_KEY not set in Script Properties\');\n\n  var today=new Date();\n  var modDate=data.modifiedDate?new Date(data.modifiedDate):null;\n  var daysSince=modDate?Math.floor((today-modDate)/86400000):null;\n\n  // ── Activity log deep-dive: full history for this specific lead, not just\n  // the last few entries — so the draft has real continuity of everything\n  // that\'s actually been discussed, not a shallow recent snapshot. ──\n  var historyText=\'\';\n  try{\n    var ss=SpreadsheetApp.openById(SHEET_ID);\n    var logSh=ss.getSheetByName(LOG_TAB);\n    if(logSh && logSh.getLastRow()>1){\n      var logRows=logSh.getRange(2,1,logSh.getLastRow()-1,7).getValues();\n      var mobileClean=String(data.mobile||\'\').trim();\n      var leadEntries=logRows.filter(function(r){\n        return String(r[2]||\'\').trim()===mobileClean && String(r[3]||\'\').trim().toUpperCase()===\'LEAD\';\n      });\n      // Sort chronologically, oldest first — needed to identify the FIRST activity\n      leadEntries.sort(function(a,b){ return new Date(a[0])-new Date(b[0]); });\n\n      if(leadEntries.length>0){\n        var firstEntry=leadEntries[0];\n        var createdDate=data.createdDate||\'\';\n        historyText+=\'Lead created: \'+createdDate+\'. First activity logged: \'+firstEntry[0]+\' (\'+firstEntry[4]+(firstEntry[5]?\' — \'+firstEntry[5]:\'\')+\').\\n\';\n\n        // Full chronological history, capped at 20 entries to keep the prompt\n        // focused — a genuine deep-dive without unbounded growth for very\n        // long-running leads.\n        var capped=leadEntries.slice(-20);\n        historyText+=\'Full conversation history (\'+leadEntries.length+\' logged interactions\'+(leadEntries.length>20?\', showing most recent 20\':\'\')+\'):\\n\';\n        capped.forEach(function(r){\n          historyText+=\'- \'+r[0]+\': \'+r[4]+(r[5]?\' — \'+r[5]:\'\')+\'\\n\';\n        });\n      } else {\n        historyText=\'Lead created: \'+(data.createdDate||\'\')+\'. No activity logged yet — this would be the first outreach.\\n\';\n      }\n    }\n  }catch(e){\n    console.warn(\'Activity history lookup failed:\', e.message);\n  }\n\n  var context=\'Name: \'+(data.name||\'\')+\'\\n\'\n    +\'Status: \'+(data.status||\'\')+\'\\n\'\n    +\'Source: \'+(data.source||\'\')+(data.referral?\' (referred by \'+data.referral+\')\':\'\')+\'\\n\'\n    +(data.products?\'Interested products: \'+data.products+\'\\n\':\'\')\n    +(data.potentialAum?\'Potential AUM: \\u20B9\'+data.potentialAum+\'L\\n\':\'\')\n    +(data.aum?\'Potential SIP: \\u20B9\'+data.aum+\'\\n\':\'\')\n    +(daysSince!==null?\'Days since last contact: \'+daysSince+\'\\n\':\'\')\n    +(data.remarks?\'Advisor notes: \'+data.remarks+\'\\n\':\'\')\n    +(data.familyName?\'Family: \'+data.familyName+\' (already has family members with the firm)\\n\':\'\')\n    +\'\\n\'+historyText;\n\n  var firstName=getFirstName(data.name);\n  var greeting=getTimeAwareGreeting();\n  var prompt=\'You are drafting a short WhatsApp message from a wealth management advisor at Wealth Matrix Finserv \'\n    +\'to a LEAD (not yet a client) based on the context below, which includes their FULL conversation history.\\n\\n\'\n    +\'FORMAT — this is mandatory: the very first line must be exactly \\\'Hi \'+firstName+\', \'+greeting+\'!\\\' followed by \'\n    +\'a blank line, then the message itself.\\n\\n\'\n    +\'TONE — this matters a lot: write it exactly like a real person quickly typing a WhatsApp text to someone they \'\n    +\'know, not a business message. Short, casual, natural everyday words — not corporate or formal phrasing. This \'\n    +\'must NOT read as a sales pitch or a broadcast/spam message — it should feel fresh, personal, and specific to \'\n    +\'THIS person, like the advisor genuinely remembered something about them. Keep the message itself (after the \'\n    +\'greeting) as short as a real manually-typed text — 2 to 3 short sentences at most, not a paragraph. Reference \'\n    +\'something SPECIFIC from what has actually been discussed before — a concern they raised, a topic they asked \'\n    +\'about, timing they mentioned — do not write a generic template, and do not repeat something already fully \'\n    +\'addressed. Do NOT promise any specific returns, performance, or give investment advice. No emojis unless it \'\n    +\'reads naturally. End with a soft next step (a call, a quick meeting, or sharing more info) — not a hard sell.\\n\\n\'\n    +\'Output ONLY the greeting line, a blank line, then the message — nothing else, no preamble, no quotation marks, \'\n    +\'no "Here is a draft:".\'\n    +\'\\n\\nLEAD CONTEXT:\\n\'+context;\n\n  var resp=UrlFetchApp.fetch(\'https://api.anthropic.com/v1/messages\',{\n    method:\'post\',\n    contentType:\'application/json\',\n    headers:{\'x-api-key\':apiKey,\'anthropic-version\':\'2023-06-01\'},\n    payload:JSON.stringify({\n      model:\'claude-sonnet-5\',\n      max_tokens:220,\n      messages:[{role:\'user\', content:prompt}]\n    }),\n    muteHttpExceptions:true\n  });\n  var json=JSON.parse(resp.getContentText());\n  if(json.error) throw new Error(json.error.message||\'Claude API error\');\n  var textBlock=(json.content||[]).find(function(b){return b.type===\'text\';});\n  return textBlock?textBlock.text.trim():\'(no text returned)\';\n}\n\n// Drafts a short, personalized WhatsApp message for one specific CLIENT.\n// Mirrors draftLeadMessage but with client-specific context (actual AUM,\n// SIP/review dates, tenure) and retention/engagement framing rather than\n// conversion framing. Returns the draft text only — never sends anything.\nfunction draftClientMessage(data){\n  var apiKey=PropertiesService.getScriptProperties().getProperty(\'CLAUDE_API_KEY\');\n  if(!apiKey) throw new Error(\'CLAUDE_API_KEY not set in Script Properties\');\n\n  var today=new Date();\n  var lastContacted=data.lastContacted?new Date(data.lastContacted):null;\n  var daysSince=lastContacted?Math.floor((today-lastContacted)/86400000):null;\n  var convertedDate=data.convertedDate?new Date(data.convertedDate):null;\n  var tenureDays=convertedDate?Math.floor((today-convertedDate)/86400000):null;\n\n  // ── Activity log deep-dive — same approach as leads, querying the CLIENT\n  // side of the log so the draft has real continuity of the relationship. ──\n  var historyText=\'\';\n  try{\n    var ss=SpreadsheetApp.openById(SHEET_ID);\n    var logSh=ss.getSheetByName(LOG_TAB);\n    if(logSh && logSh.getLastRow()>1){\n      var logRows=logSh.getRange(2,1,logSh.getLastRow()-1,7).getValues();\n      var mobileClean=String(data.mobile||\'\').trim();\n      var clientEntries=logRows.filter(function(r){\n        return String(r[2]||\'\').trim()===mobileClean && String(r[3]||\'\').trim().toUpperCase()===\'CLIENT\';\n      });\n      clientEntries.sort(function(a,b){ return new Date(a[0])-new Date(b[0]); });\n\n      if(clientEntries.length>0){\n        var firstEntry=clientEntries[0];\n        historyText+=\'Became a client: \'+(data.convertedDate||\'\')+\'. First activity logged as a client: \'+firstEntry[0]+\' (\'+firstEntry[4]+(firstEntry[5]?\' — \'+firstEntry[5]:\'\')+\').\\n\';\n        var capped=clientEntries.slice(-20);\n        historyText+=\'Full conversation history (\'+clientEntries.length+\' logged interactions\'+(clientEntries.length>20?\', showing most recent 20\':\'\')+\'):\\n\';\n        capped.forEach(function(r){\n          historyText+=\'- \'+r[0]+\': \'+r[4]+(r[5]?\' — \'+r[5]:\'\')+\'\\n\';\n        });\n      } else {\n        historyText=\'Became a client: \'+(data.convertedDate||\'\')+\'. No activity logged yet as a client.\\n\';\n      }\n    }\n  }catch(e){\n    console.warn(\'Activity history lookup failed:\', e.message);\n  }\n\n  var context=\'Name: \'+(data.name||\'\')+\'\\n\'\n    +\'Stage: \'+(data.stage||\'\')+\'\\n\'\n    +(data.age?\'Age: \'+data.age+\'\\n\':\'\')\n    +(data.gender?\'Gender: \'+data.gender+\'\\n\':\'\')\n    +(data.products?\'Products held: \'+data.products+\'\\n\':\'\')\n    +(data.aum?\'Current AUM: \\u20B9\'+data.aum+\'L\\n\':\'\')\n    +(data.potentialAum?\'Potential AUM (top-up opportunity): \\u20B9\'+data.potentialAum+\'L\\n\':\'\')\n    +(data.potentialSip?\'Potential SIP (not yet started): \\u20B9\'+data.potentialSip+\'\\n\':\'\')\n    +(daysSince!==null?\'Days since last contact: \'+daysSince+\'\\n\':\'\')\n    +(tenureDays!==null?\'Client for: \'+Math.floor(tenureDays/30)+\' months\\n\':\'\')\n    +(data.sipDate?\'SIP date: \'+data.sipDate+\'th of the month\\n\':\'\')\n    +(data.reviewDate?\'Next review date: \'+data.reviewDate+\'\\n\':\'\')\n    +(data.dob?\'Date of birth: \'+data.dob+\'\\n\':\'\')\n    +(data.anniversary?\'Wedding anniversary: \'+data.anniversary+\'\\n\':\'\')\n    +(data.healthInsurance?\'Health insurance: \'+data.healthInsurance+\'\\n\':\'\')\n    +(data.lifeInsurance?\'Life insurance: \'+data.lifeInsurance+\'\\n\':\'\')\n    +(data.willDone?\'Will done: \'+data.willDone+\'\\n\':\'\')\n    +(data.remarks?\'Advisor notes (may include family/profession context): \'+data.remarks+\'\\n\':\'\')\n    +(data.familyName?\'Family: \'+data.familyName+\' (other family members also with the firm)\\n\':\'\')\n    +\'\\n\'+historyText;\n\n  var firstName=getFirstName(data.name);\n  var greeting=getTimeAwareGreeting();\n  var prompt=\'You are drafting a short WhatsApp message from a wealth management advisor at Wealth Matrix Finserv \'\n    +\'to an EXISTING CLIENT based on the RICH context below, which includes their FULL conversation history, personal \'\n    +\'details, and protection status. This is about relationship maintenance, re-engagement, or a natural top-up/cross-sell \'\n    +\'opportunity — NOT converting them, they are already a client.\\n\\n\'\n    +\'FORMAT — this is mandatory: the very first line must be exactly \\\'Hi \'+firstName+\', \'+greeting+\'!\\\' followed by \'\n    +\'a blank line, then the message itself.\\n\\n\'\n    +\'TONE — this matters a lot: write it exactly like a real person quickly typing a WhatsApp text to someone they \'\n    +\'know, not a business message. Short, casual, natural everyday words — not corporate or formal phrasing. This \'\n    +\'must NOT read as a sales pitch or a broadcast/spam message — it should feel fresh, personal, and specific to \'\n    +\'THIS person, like the advisor genuinely remembered something about them. Keep the message itself (after the \'\n    +\'greeting) as short as a real manually-typed text — 2 to 3 short sentences at most, not a paragraph. Reference \'\n    +\'something SPECIFIC from what has actually been discussed before, or a specific upcoming date (SIP, review) if \'\n    +\'relevant — do not write a generic template. Do NOT promise any specific returns, performance, or give investment \'\n    +\'advice. No emojis unless it reads naturally. End with a soft next step — not a hard sell.\\n\\n\'\n    +\'Output ONLY the greeting line, a blank line, then the message — nothing else, no preamble, no quotation marks, \'\n    +\'no "Here is a draft:".\'\n    +\'\\n\\nCLIENT CONTEXT:\\n\'+context;\n\n  var resp=UrlFetchApp.fetch(\'https://api.anthropic.com/v1/messages\',{\n    method:\'post\',\n    contentType:\'application/json\',\n    headers:{\'x-api-key\':apiKey,\'anthropic-version\':\'2023-06-01\'},\n    payload:JSON.stringify({\n      model:\'claude-sonnet-5\',\n      max_tokens:220,\n      messages:[{role:\'user\', content:prompt}]\n    }),\n    muteHttpExceptions:true\n  });\n  var json=JSON.parse(resp.getContentText());\n  if(json.error) throw new Error(json.error.message||\'Claude API error\');\n  var textBlock=(json.content||[]).find(function(b){return b.type===\'text\';});\n  return textBlock?textBlock.text.trim():\'(no text returned)\';\n}\n\n// ── AI Insights (per-person deep profile) — distinct from the WhatsApp\n// drafting functions above: this is an internal analysis FOR the advisor,\n// not a message TO the person. Pulls the fullest available picture: every\n// tracked field plus the complete activity log, with special attention to\n// the Remarks field since the advisor manually adds family/profession\n// context there. ──\nfunction buildFullActivityHistory(mobile, type){\n  var ss=SpreadsheetApp.openById(SHEET_ID);\n  var logSh=ss.getSheetByName(LOG_TAB);\n  var out=\'\';\n  if(logSh && logSh.getLastRow()>1){\n    var logRows=logSh.getRange(2,1,logSh.getLastRow()-1,7).getValues();\n    var mobileClean=String(mobile||\'\').trim();\n    var entries=logRows.filter(function(r){\n      return String(r[2]||\'\').trim()===mobileClean && String(r[3]||\'\').trim().toUpperCase()===type.toUpperCase();\n    });\n    entries.sort(function(a,b){ return new Date(a[0])-new Date(b[0]); });\n    if(entries.length>0){\n      out+=\'First logged activity: \'+entries[0][0]+\' (\'+entries[0][4]+(entries[0][5]?\' — \'+entries[0][5]:\'\')+\').\\n\';\n      out+=\'Full history (\'+entries.length+\' interactions\'+(entries.length>25?\', showing most recent 25\':\'\')+\'):\\n\';\n      entries.slice(-25).forEach(function(r){\n        out+=\'- \'+r[0]+\': \'+r[4]+(r[5]?\' — \'+r[5]:\'\')+\'\\n\';\n      });\n    } else {\n      out=\'No activity logged yet.\\n\';\n    }\n  }\n  return out;\n}\n\nfunction generateLeadProfileInsight(data){\n  var apiKey=PropertiesService.getScriptProperties().getProperty(\'CLAUDE_API_KEY\');\n  if(!apiKey) throw new Error(\'CLAUDE_API_KEY not set in Script Properties\');\n\n  var history=buildFullActivityHistory(data.mobile, \'LEAD\');\n  var context=\'Name: \'+(data.name||\'\')+\'\\n\'\n    +\'Status: \'+(data.status||\'\')+\'\\n\'\n    +\'Source: \'+(data.source||\'\')+(data.referral?\' (referred by \'+data.referral+\')\':\'\')+\'\\n\'\n    +(data.age?\'Age: \'+data.age+\'\\n\':\'\')\n    +(data.country?\'Country: \'+data.country+\'\\n\':\'\')\n    +(data.products?\'Interested products: \'+data.products+\'\\n\':\'\')\n    +(data.contactMode?\'Preferred contact mode: \'+data.contactMode+\'\\n\':\'\')\n    +(data.potentialAum?\'Potential AUM: \\u20B9\'+data.potentialAum+\'L\\n\':\'\')\n    +(data.aum?\'Potential SIP: \\u20B9\'+data.aum+\'\\n\':\'\')\n    +(data.geoTag?\'Location: \'+data.geoTag+\'\\n\':\'\')\n    +(data.familyName?\'Family: \'+data.familyName+\' (has family members already with the firm)\\n\':\'\')\n    +(data.remarks?\'\\nADVISOR REMARKS (may contain family, profession, and other personal context the advisor has noted):\\n\'+data.remarks+\'\\n\':\'\')\n    +\'\\nACTIVITY HISTORY:\\n\'+history;\n\n  var prompt=\'You are helping a wealth management advisor at Wealth Matrix Finserv understand a LEAD (not yet converted) \'\n    +\'in depth, using everything tracked about them below. This is an internal profile for the advisor\\\'s own understanding — \'\n    +\'not a message to send. Write a genuine, specific profile covering: (1) who this person appears to be and what matters \'\n    +\'to them, drawing on the remarks and activity history — infer their profession, family situation, or goals if the notes \'\n    +\'suggest them, but do not invent anything not supported by the data; (2) their engagement pattern — responsive, hesitant, \'\n    +\'going cold, etc.; (3) the clearest conversion opportunity and what seems to be the actual blocker, if any; (4) one \'\n    +\'concrete suggestion for how to move this relationship forward. Under 350 words, specific, no generic advice, no headers, \'\n    +\'no preamble.\\n\\nLEAD DATA:\\n\'+context;\n\n  var resp=UrlFetchApp.fetch(\'https://api.anthropic.com/v1/messages\',{\n    method:\'post\', contentType:\'application/json\',\n    headers:{\'x-api-key\':apiKey,\'anthropic-version\':\'2023-06-01\'},\n    payload:JSON.stringify({model:\'claude-sonnet-5\', max_tokens:600, messages:[{role:\'user\', content:prompt}]}),\n    muteHttpExceptions:true\n  });\n  var json=JSON.parse(resp.getContentText());\n  if(json.error) throw new Error(json.error.message||\'Claude API error\');\n  var textBlock=(json.content||[]).find(function(b){return b.type===\'text\';});\n  return textBlock?textBlock.text.trim():\'(no text returned)\';\n}\n\nfunction generateClientProfileInsight(data){\n  var apiKey=PropertiesService.getScriptProperties().getProperty(\'CLAUDE_API_KEY\');\n  if(!apiKey) throw new Error(\'CLAUDE_API_KEY not set in Script Properties\');\n\n  var history=buildFullActivityHistory(data.mobile, \'CLIENT\');\n  var context=\'Name: \'+(data.name||\'\')+\'\\n\'\n    +\'Stage: \'+(data.stage||\'\')+\'\\n\'\n    +(data.age?\'Age: \'+data.age+\'\\n\':\'\')\n    +(data.gender?\'Gender: \'+data.gender+\'\\n\':\'\')\n    +(data.country?\'Country: \'+data.country+\'\\n\':\'\')\n    +(data.products?\'Products held: \'+data.products+\'\\n\':\'\')\n    +(data.aum?\'Current AUM: \\u20B9\'+data.aum+\'L\\n\':\'\')\n    +(data.potentialAum?\'Potential AUM (top-up opportunity): \\u20B9\'+data.potentialAum+\'L\\n\':\'\')\n    +(data.potentialSip?\'Potential SIP (not yet started): \\u20B9\'+data.potentialSip+\'\\n\':\'\')\n    +(data.convertedDate?\'Client since: \'+data.convertedDate+\'\\n\':\'\')\n    +(data.sipDate?\'SIP date: \'+data.sipDate+\'th of the month\\n\':\'\')\n    +(data.reviewDate?\'Next review date: \'+data.reviewDate+\'\\n\':\'\')\n    +(data.dob?\'Date of birth: \'+data.dob+\'\\n\':\'\')\n    +(data.anniversary?\'Wedding anniversary: \'+data.anniversary+\'\\n\':\'\')\n    +(data.healthInsurance?\'Health insurance: \'+data.healthInsurance+\'\\n\':\'\')\n    +(data.lifeInsurance?\'Life insurance: \'+data.lifeInsurance+\'\\n\':\'\')\n    +(data.willDone?\'Will done: \'+data.willDone+\'\\n\':\'\')\n    +(data.familyName?\'Family: \'+data.familyName+\' (other family members also with the firm)\\n\':\'\')\n    +(data.remarks?\'\\nADVISOR REMARKS (may contain family, profession, and other personal context the advisor has noted):\\n\'+data.remarks+\'\\n\':\'\')\n    +\'\\nACTIVITY HISTORY:\\n\'+history;\n\n  var prompt=\'You are helping a wealth management advisor at Wealth Matrix Finserv understand an EXISTING CLIENT \'\n    +\'in depth, using everything tracked about them below. This is an internal profile for the advisor\\\'s own understanding — \'\n    +\'not a message to send. Write a genuine, specific profile covering: (1) who this person appears to be — profession, \'\n    +\'family situation, life stage — drawing on the remarks and activity history; infer where the notes support it, but do \'\n    +\'not invent anything unsupported; (2) protection and portfolio gaps worth addressing (missing insurance, no will, \'\n    +\'unused potential AUM/SIP); (3) the relationship\\\'s health — engagement frequency, any drift; (4) one concrete, \'\n    +\'specific next step for the advisor. Under 350 words, specific, no generic advice, no headers, no preamble.\'\n    +\'\\n\\nCLIENT DATA:\\n\'+context;\n\n  var resp=UrlFetchApp.fetch(\'https://api.anthropic.com/v1/messages\',{\n    method:\'post\', contentType:\'application/json\',\n    headers:{\'x-api-key\':apiKey,\'anthropic-version\':\'2023-06-01\'},\n    payload:JSON.stringify({model:\'claude-sonnet-5\', max_tokens:600, messages:[{role:\'user\', content:prompt}]}),\n    muteHttpExceptions:true\n  });\n  var json=JSON.parse(resp.getContentText());\n  if(json.error) throw new Error(json.error.message||\'Claude API error\');\n  var textBlock=(json.content||[]).find(function(b){return b.type===\'text\';});\n  return textBlock?textBlock.text.trim():\'(no text returned)\';\n}\n\n// ── Lists candidate CAS PDFs in a client\'s folder with their upload dates,\n// WITHOUT running any AI analysis — used to let the advisor pick which\n// file(s) to actually analyze when more than one is found. ──\nfunction listCasFilesInFolder(data){\n  var folder=null;\n  if(data.folderId){ try{ folder=DriveApp.getFolderById(data.folderId); }catch(fe){ folder=null; } }\n  if(!folder) throw new Error(\'No folder found for this client\');\n\n  var files=[];\n  var iter=folder.getFiles();\n  while(iter.hasNext()){\n    var f=iter.next();\n    if(f.getName().toUpperCase().indexOf(\'CAS\')>=0 && f.getMimeType()===\'application/pdf\'){\n      files.push({\n        id: f.getId(),\n        name: f.getName(),\n        uploadDate: Utilities.formatDate(f.getDateCreated(), Session.getScriptTimeZone(), \'dd MMM yyyy\')\n      });\n    }\n  }\n  files.sort(function(a,b){ return new Date(b.uploadDate)-new Date(a.uploadDate); }); // newest first\n  return files;\n}\n\n// ── AI Portfolio Email Draft — reads every CAS PDF in the client\'s folder\n// (there may be more than one: CAS is generated PER EMAIL, not per PAN, so a\n// client with holdings across multiple registered emails needs several files\n// combined). Explicitly instructs Claude to isolate only this client\'s PAN,\n// since a single CAS file can contain OTHER investors who share that email\n// (e.g. a spouse) — critical, or their holdings would wrongly get mixed in. ──\nfunction draftCasEmailInsight(data){\n  var apiKey=PropertiesService.getScriptProperties().getProperty(\'CLAUDE_API_KEY\');\n  if(!apiKey) throw new Error(\'CLAUDE_API_KEY not set in Script Properties\');\n\n  var casFiles=[];\n  if(data.fileIds && data.fileIds.length){\n    // Explicit selection from the user — use exactly these, no re-searching.\n    data.fileIds.forEach(function(id){\n      try{ casFiles.push(DriveApp.getFileById(id)); }catch(fe){ /* skip if it no longer exists */ }\n    });\n    if(casFiles.length===0) throw new Error(\'None of the selected files could be found — they may have been moved or deleted\');\n  } else {\n    var folder=null;\n    if(data.folderId){ try{ folder=DriveApp.getFolderById(data.folderId); }catch(fe){ folder=null; } }\n    if(!folder) throw new Error(\'No folder found for this client\');\n\n    var iter=folder.getFiles();\n    while(iter.hasNext()){\n      var f=iter.next();\n      if(f.getName().toUpperCase().indexOf(\'CAS\')>=0 && f.getMimeType()===\'application/pdf\'){\n        casFiles.push(f);\n      }\n    }\n    if(casFiles.length===0){\n      throw new Error(\'No CAS PDF found in this client\\\'s folder — make sure the filename contains "CAS" (e.g. "CAS Report.pdf")\');\n    }\n  }\n\n  var content=[];\n  casFiles.forEach(function(f){\n    var b64=Utilities.base64Encode(f.getBlob().getBytes());\n    content.push({type:\'document\', source:{type:\'base64\', media_type:\'application/pdf\', data:b64}});\n    content.push({type:\'text\', text:\'The above CAS document is named "\'+f.getName()+\'".\'});\n  });\n\n  var instructions=\'You are analyzing CAMS/KFintech Consolidated Account Statement (CAS) document(s) for \'\n    +(data.clientName||\'this investor\')+\' (PAN: \'+(data.pan||\'not provided\')+\') to give their wealth advisor a brief, \'\n    +\'insightful portfolio summary. IMPORTANT: CAS documents are generated per registered EMAIL, not per \'\n    +\'PAN — if multiple documents are provided above, they may represent the SAME investor\\\'s holdings split across \'\n    +\'different registered emails and should be COMBINED into one consolidated view. ALSO IMPORTANT: a single CAS document \'\n    +\'can contain MULTIPLE different investors (different PANs) if they share one registered email — you MUST identify and \'\n    +\'use ONLY the holdings belonging to PAN \'+(data.pan||\'[not provided — use the name to identify the correct investor]\')\n    +\'. Do not include any other investor\\\'s holdings in the analysis.\\n\\n\'\n    +\'From the correctly-isolated holdings, determine: total number of distinct funds/schemes, total invested/current value, \'\n    +\'and for each fund: SIP active (yes/no), balance/value, and demat or non-demat. \'\n    +\'If the number of distinct funds exceeds 10, explicitly recommend reducing the count — the ideal range is 4 to 7 funds, \'\n    +\'since over-diversification can reduce long-term returns without meaningfully reducing risk. If 10 or fewer, do not force this point.\\n\\n\'\n    +\'Output your response in EXACTLY this structure, with these exact markers on their own lines:\\n\'\n    +\'---SUMMARY---\\n\'\n    +\'(a brief, specific 3-5 sentence summary — total funds, total value, the fund-count observation if applicable, \'\n    +\'one genuine insight. Professional, direct tone. No investment return promises.)\\n\'\n    +\'---TABLE---\\n\'\n    +\'(an HTML table, using this exact inline-styled format: \'\n    +\'<table style="border-collapse:collapse;width:100%;font-family:Arial,sans-serif;font-size:13px">\'\n    +\'<tr style="background:#1a1a1a;color:#fff"><th style="border:1px solid #ccc;padding:6px;text-align:left">Sl No</th>\'\n    +\'<th style="border:1px solid #ccc;padding:6px;text-align:left">Investor Name</th>\'\n    +\'<th style="border:1px solid #ccc;padding:6px;text-align:left">Fund Name</th>\'\n    +\'<th style="border:1px solid #ccc;padding:6px;text-align:left">SIP Active</th>\'\n    +\'<th style="border:1px solid #ccc;padding:6px;text-align:left">Balance</th>\'\n    +\'<th style="border:1px solid #ccc;padding:6px;text-align:left">Demat/Non-Demat</th></tr>\'\n    +\'then one <tr> with plain <td style="border:1px solid #ccc;padding:6px"> cells per fund, alternating row background \'\n    +\'#ffffff and #f2f2f2 for readability.)\\n\'\n    +\'---END---\\n\'\n    +\'Output ONLY this structure, nothing before ---SUMMARY--- or after ---END---.\';\n\n  content.push({type:\'text\', text:instructions});\n\n  var resp=UrlFetchApp.fetch(\'https://api.anthropic.com/v1/messages\',{\n    method:\'post\', contentType:\'application/json\',\n    headers:{\'x-api-key\':apiKey,\'anthropic-version\':\'2023-06-01\'},\n    payload:JSON.stringify({model:\'claude-sonnet-5\', max_tokens:1500, messages:[{role:\'user\', content:content}]}),\n    muteHttpExceptions:true\n  });\n  var json=JSON.parse(resp.getContentText());\n  if(json.error) throw new Error(json.error.message||\'Claude API error\');\n  var textBlock=(json.content||[]).find(function(b){return b.type===\'text\';});\n  var raw=textBlock?textBlock.text.trim():\'\';\n\n  var subjectMatch=raw.match(/SUBJECT:\\s*(.+)/);\n  var bodyMatch=raw.match(/---BODY---([\\s\\S]*?)---TABLE---/);\n  var tableMatch=raw.match(/---TABLE---([\\s\\S]*?)---END---/);\n\n  return {\n    subject: subjectMatch?subjectMatch[1].trim():(\'Portfolio Summary — \'+(data.clientName||\'\')),\n    body: bodyMatch?bodyMatch[1].trim():\'\',\n    tableHtml: tableMatch?tableMatch[1].trim():\'\',\n    filesUsed: casFiles.map(function(f){return f.getName();})\n  };\n}\n\nfunction generateAndSendInsights(){\n  var ss=SpreadsheetApp.openById(SHEET_ID);\n  var iSh=ss.getSheetByName(INSIGHTS_TAB)||ss.insertSheet(INSIGHTS_TAB);\n  if(iSh.getLastRow()===0){\n    var iHdr=[[\'Date\',\'Insight\']];\n    var iHr=iSh.getRange(1,1,1,2);\n    iHr.setValues(iHdr);\n    iHr.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');\n    iSh.setFrozenRows(1);\n  }\n  var stamp=Utilities.formatDate(new Date(), Session.getScriptTimeZone(), \'yyyy-MM-dd HH:mm\');\n  try{\n    var summary=buildInsightsSummaryText();\n    var insight=callClaudeAPI(summary);\n    iSh.appendRow([stamp, insight]);\n    try{\n      MailApp.sendEmail(\'arjun.wealthmatrix@gmail.com\', \'Weekly CRM Insights — Wealth Matrix\', insight);\n    }catch(mailErr){\n      console.warn(\'Insights email failed to send:\', mailErr.message); // don\'t fail the whole run over email specifically\n    }\n    return {success:true, insight:insight};\n  }catch(e){\n    iSh.appendRow([stamp, \'ERROR: \'+e.message]);\n    return {success:false, error:e.message};\n  }\n}\n\n// ── Trigger management — enable/disable the weekly schedule from the app ──\nfunction setupInsightsTrigger(){\n  removeInsightsTrigger(); // avoid duplicates on re-enable\n  ScriptApp.newTrigger(\'generateAndSendInsights\')\n    .timeBased().onWeekDay(ScriptApp.WeekDay.MONDAY).atHour(8).create();\n  return {success:true};\n}\nfunction removeInsightsTrigger(){\n  var triggers=ScriptApp.getProjectTriggers();\n  var removed=0;\n  triggers.forEach(function(t){\n    if(t.getHandlerFunction()===\'generateAndSendInsights\'){ ScriptApp.deleteTrigger(t); removed++; }\n  });\n  return {success:true, removed:removed};\n}\nfunction getInsightsTriggerStatus(){\n  var triggers=ScriptApp.getProjectTriggers();\n  var active=triggers.some(function(t){return t.getHandlerFunction()===\'generateAndSendInsights\';});\n  return {enabled:active};\n}\n\nfunction doGet(e){try{var p=e.parameter||{};if(p.ping||p.action===\'version\')return out({version:VERSION,ok:true,deployed:true});if(p.action===\'resolveUploadToken\'&&p.token)return resolveUploadToken(p.token);if(p.action===\'pullLog\'&&p.mobile)return pullLog(p.mobile);if(p.payload)return writeData(JSON.parse(decodeURIComponent(p.payload)));return readTab(p.tab||LEADS_TAB);}catch(err){return out({error:err.message});}}\nfunction doPost(e){try{var d;if(e.postData&&e.postData.contents)d=JSON.parse(e.postData.contents);else if(e.parameter&&e.parameter.payload)d=JSON.parse(decodeURIComponent(e.parameter.payload));return writeData(d);}catch(err){return out({error:err.message});}}\nfunction readTab(t){var ss=SpreadsheetApp.openById(SHEET_ID);var sh=ss.getSheetByName(t);if(!sh)return out({rows:[],error:\'Tab not found:\'+t});var lr=sh.getLastRow(),lc=sh.getLastColumn();if(lr===0||lc===0)return out({rows:[]});var raw=sh.getRange(1,1,lr,lc).getValues();var cleaned=raw.map(function(row){return row.map(function(c){if(c===null||c===undefined||c===\'\')return\'\';if(c instanceof Date){var y=c.getFullYear();var m=String(c.getMonth()+1).padStart(2,\'0\');var d=String(c.getDate()).padStart(2,\'0\');return y+\'-\'+m+\'-\'+d;}if(typeof c===\'number\')return String(c);return String(c).trim();});});return out({rows:cleaned});}\n\n// ── Resolve a client upload-link token (read-only, no lock needed) ──\n// Returns only the minimal fields the upload page needs — never the whole client list.\nfunction resolveUploadToken(token){\n  try{\n    var ss=SpreadsheetApp.openById(SHEET_ID);\n    var tok=String(token||\'\').trim();\n    if(!tok) return out({found:false});\n    // Check Clients first (existing behavior)\n    var sh=ss.getSheetByName(CLIENTS_TAB);\n    if(sh && sh.getLastRow()>=2){\n      var lr=sh.getLastRow();\n      var lc=Math.max(sh.getLastColumn(),33);\n      var vals=sh.getRange(2,1,lr-1,lc).getValues();\n      for(var i=0;i<vals.length;i++){\n        var rowTok=String(vals[i][32]||\'\').trim(); // column AG (index 32) = Upload Token\n        if(rowTok && rowTok===tok){\n          return out({found:true, name:String(vals[i][0]||\'\'), mobile:String(vals[i][1]||\'\'), pan:String(vals[i][11]||\'\'), recordType:\'client\', folderId:String(vals[i][34]||\'\')});\n        }\n      }\n    }\n    // Not a client yet — check Leads (column R = Token)\n    var lsh=ss.getSheetByName(LEADS_TAB);\n    if(lsh && lsh.getLastRow()>=2){\n      var llr=lsh.getLastRow();\n      var llc=Math.max(lsh.getLastColumn(),18);\n      var lvals=lsh.getRange(2,1,llr-1,llc).getValues();\n      for(var j=0;j<lvals.length;j++){\n        var lRowTok=String(lvals[j][17]||\'\').trim(); // column R (index 17) = Token\n        if(lRowTok && lRowTok===tok){\n          return out({found:true, name:String(lvals[j][0]||\'\'), mobile:String(lvals[j][1]||\'\'), pan:\'\', recordType:\'lead\'});\n        }\n      }\n    }\n    return out({found:false});\n  }catch(e){\n    return out({found:false, error:e.message});\n  }\n}\nfunction pullLog(mobile){var ss=SpreadsheetApp.openById(SHEET_ID);var sh=ss.getSheetByName(LOG_TAB);if(!sh||sh.getLastRow()<=1)return out({rows:[]});var lr=sh.getLastRow(),lc=sh.getLastColumn();var raw=sh.getRange(2,1,lr-1,lc).getValues();var filtered=raw.filter(function(r){return String(r[2]||\'\').trim()===String(mobile).trim();});return out({rows:filtered});}\nfunction writeData(data){var _lock=LockService.getScriptLock();try{_lock.waitLock(25000);}catch(_lkErr){return out({error:\'Server busy, please retry\'});}try{return _writeDataInner(data);}finally{try{SpreadsheetApp.flush();}catch(_fErr){}try{_lock.releaseLock();}catch(_rlErr){}}}\nfunction _writeDataInner(data){var ss=SpreadsheetApp.openById(SHEET_ID);\nif(data.action===\'appendLog\'){var logSh=ss.getSheetByName(LOG_TAB)||ss.insertSheet(LOG_TAB);if(logSh.getLastRow()===0){var hdr=[[\'Timestamp\',\'Name\',\'Mobile\',\'Type\',\'Activity\',\'Notes\',\'Raw ID\']];var hr=logSh.getRange(1,1,1,7);hr.setValues(hdr);hr.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');logSh.setFrozenRows(1);}var logRow=data.row||[];var newRid=String(logRow[6]||\'\').trim();var logDup=false;if(newRid&&logSh.getLastRow()>1){var ridVals=logSh.getRange(2,7,logSh.getLastRow()-1,1).getValues();for(var _ri=0;_ri<ridVals.length;_ri++){if(String(ridVals[_ri][0]||\'\').trim()===newRid){logDup=true;break;}}}if(!logDup){logSh.appendRow(logRow);var lr3=logSh.getLastRow();logSh.getRange(lr3,1).setNumberFormat(\'@\');logSh.getRange(lr3,7).setNumberFormat(\'@\');}return out({success:true,skipped:logDup});}\nif(data.action===\'deleteLogById\'){var lsh=ss.getSheetByName(LOG_TAB);if(lsh&&lsh.getLastRow()>1){var rid=String(data.rowId||\'\').trim();var dmob=String(data.mobile||\'\').trim();var dts=String(data.ts||\'\').trim();var dact=String(data.activity||\'\').trim();var n=lsh.getLastRow();var rng=lsh.getRange(2,1,n-1,7).getValues();for(var rj=0;rj<rng.length;rj++){var row=rng[rj];var gId=String(row[6]||\'\').trim();var rTs=String(row[0]||\'\').trim();var rMob=String(row[2]||\'\').trim();var rAct=String(row[4]||\'\').trim();var matchById=(rid!==\'\'&&gId===rid);var matchByTs=(rid===\'\'||gId===\'\')&&dts!==\'\'&&rMob===dmob&&rTs===dts&&rAct===dact;if(matchById||matchByTs){lsh.deleteRow(rj+2);break;}}}return out({success:true,deleted:true});}if(data.action===\'deleteLog\'){var lsh2=ss.getSheetByName(LOG_TAB);if(lsh2&&lsh2.getLastRow()>1){var mob3=String(data.mobile||\'\').trim();var n2=lsh2.getLastRow();for(var rk=n2;rk>=2;rk--){if(String(lsh2.getRange(rk,3).getValue()||\'\').trim()===mob3){lsh2.deleteRow(rk);}}}return out({success:true});}\nif(data.action===\'updateAnalytics\'){var aS=ss.getSheetByName(\'ANALYTICS\')||ss.insertSheet(\'ANALYTICS\');if(aS.getLastRow()===0){aS.getRange(1,1,1,7).setValues([[\'Date\',\'Lead Entries\',\'Prospects\',\'Contacted\',\'In Progress\',\'Converted\',\'Dropped\']]).setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');aS.setFrozenRows(1);}var ad=data.date,ac=parseInt(data.col)||2,adel=parseInt(data.delta)||1,alr=aS.getLastRow(),af=false;if(alr>1){var adts=aS.getRange(2,1,alr-1,1).getValues();for(var i=0;i<adts.length;i++){if(String(adts[i][0]).trim()===ad){var acel=aS.getRange(i+2,ac);acel.setValue((parseInt(acel.getValue())||0)+adel); /* negative values allowed */ af=true; break; }}}if(!af&&adel>0){var anr=[ad,0,0,0,0,0,0];anr[ac-1]=adel;aS.appendRow(anr);}return out({success:true});}\nif(data.action===\'appendLeads\'||data.action===\'appendClients\'){var atab=data.action===\'appendLeads\'?LEADS_TAB:CLIENTS_TAB;var ash=ss.getSheetByName(atab);if(ash&&data.rows&&data.rows.length){data.rows.forEach(function(rw){ash.appendRow(rw);});var alr=ash.getLastRow();ash.getRange(2,1,alr-1,data.rows[0].length).setNumberFormat(\'@\');}return out({success:true});}if(data.action===\'appendLead\'){var aSh=ss.getSheetByName(LEADS_TAB)||ss.insertSheet(LEADS_TAB);if(aSh.getLastRow()===0){var lHdr=[[\'Name\',\'Mobile\',\'Email\',\'Age\',\'Country\',\'Status\',\'Source\',\'Referred By\',\'Potential SIP\',\'Next Follow-up\',\'Investment Products\',\'Mode of Contact\',\'Remarks\',\'Modified Date\',\'Created Date\',\'Geo Tag\',\'Potential AUM\',\'Record ID\',\'Family Name\']];var lHr=aSh.getRange(1,1,1,19);lHr.setValues(lHdr);lHr.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');aSh.setFrozenRows(1);}var aRow=data.row||[];var aMob=String(aRow[1]||\'\').trim();var aWrote=false;if(aMob&&aSh.getLastRow()>1){var aEx=aSh.getRange(2,2,aSh.getLastRow()-1,1).getValues();for(var _ai=0;_ai<aEx.length;_ai++){if(String(aEx[_ai][0]||\'\').trim()===aMob){var aRng=aSh.getRange(_ai+2,1,1,aRow.length);aRng.setValues([aRow]);aRng.setNumberFormat(\'@\');aWrote=true;break;}}}if(!aWrote){if(!String(aRow[17]||\'\').trim())aRow[17]=nextSequentialId(aSh,18,\'L\');aSh.appendRow(aRow);var aLr=aSh.getLastRow();aSh.getRange(aLr,1,1,aRow.length).setNumberFormat(\'@\');}return out({success:true,action:\'appendLead\',upserted:aWrote});}if(data.action===\'updateLead\'){var uSh=ss.getSheetByName(LEADS_TAB);if(uSh&&uSh.getLastRow()>1){var uMob=String(data.mobile||\'\').trim();var uRow=data.row||[];var uN=uSh.getLastRow();var uVals=uSh.getRange(2,2,uN-1,1).getValues();for(var ui=0;ui<uVals.length;ui++){if(String(uVals[ui][0]||\'\').trim()===uMob){var uRng=uSh.getRange(ui+2,1,1,uRow.length);uRng.setValues([uRow]);uRng.setNumberFormat(\'@\');break;}}}return out({success:true,action:\'updateLead\'});}if(data.action===\'deleteLead\'){var dSh=ss.getSheetByName(LEADS_TAB);if(dSh&&dSh.getLastRow()>1){var dMob=String(data.mobile||\'\').trim();var dVals=dSh.getRange(2,2,dSh.getLastRow()-1,1).getValues();for(var di=dVals.length-1;di>=0;di--){if(String(dVals[di][0]||\'\').trim()===dMob){dSh.deleteRow(di+2);}}}return out({success:true,action:\'deleteLead\'});}\n\n  // ── Append ONE client row (new client) ──\n  if(data.action===\'appendClient\'){\n    var aShC=ss.getSheetByName(CLIENTS_TAB)||ss.insertSheet(CLIENTS_TAB);\n    if(aShC.getLastRow()===0){\n      var cHdr=[[\'Name\',\'Mobile\',\'Email\',\'Country\',\'Source\',\'Referred By\',\'Next Follow up date\',\n        \'Age\',\'Gender\',\'Remarks\',\'Created date\',\'PAN\',\'DOB\',\'Spouse DOB\',\'Anniversary\',\n        \'Converted Date\',\'Review Date\',\'1st Anniversary\',\'App Installed\',\'Broadcast Added\',\n        \'SIP date\',\'Health insurance\',\'Life insurance\',\'WILL\',\'Due date Health\',\'Due date Life\',\n        \'AUM\',\'Potential AUM\',\'Welcome Message send\',\'Products\',\'Last Contacted\',\'Stage\',\'Upload Token\',\'Potential SIP\',\'Record ID\',\'Family Name\']];\n      var cHr=aShC.getRange(1,1,1,36);\n      cHr.setValues(cHdr);cHr.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');\n      aShC.setFrozenRows(1);\n    }\n    var cRow=data.row||[];\n    var cMob=String(cRow[1]||\'\').trim();\n    var cWrote=false;\n    if(cMob&&aShC.getLastRow()>1){\n      var cEx=aShC.getRange(2,2,aShC.getLastRow()-1,1).getValues();\n      for(var _ci=0;_ci<cEx.length;_ci++){\n        if(String(cEx[_ci][0]||\'\').trim()===cMob){\n          var cRng=aShC.getRange(_ci+2,1,1,cRow.length);\n          cRng.setValues([cRow]);cRng.setNumberFormat(\'@\');cWrote=true;break;\n        }\n      }\n    }\n    if(!cWrote){\n      if(!String(cRow[34]||\'\').trim())cRow[34]=nextSequentialId(aShC,35,\'C\');\n      aShC.appendRow(cRow);\n      var cLr=aShC.getLastRow();\n      aShC.getRange(cLr,1,1,cRow.length).setNumberFormat(\'@\');\n    }\n    return out({success:true,action:\'appendClient\',upserted:cWrote});\n  }\n\n  // ── Update ONE client row (find by mobile col B, replace in place) ──\n  if(data.action===\'updateClient\'){\n    var uShC=ss.getSheetByName(CLIENTS_TAB);\n    if(uShC&&uShC.getLastRow()>1){\n      var uMobC=String(data.mobile||\'\').trim();\n      var uRowC=data.row||[];\n      var uNC=uShC.getLastRow();\n      var uValsC=uShC.getRange(2,2,uNC-1,1).getValues();\n      for(var uic=0;uic<uValsC.length;uic++){\n        if(String(uValsC[uic][0]||\'\').trim()===uMobC){\n          var uRngC=uShC.getRange(uic+2,1,1,uRowC.length);\n          uRngC.setValues([uRowC]);\n          uRngC.setNumberFormat(\'@\');\n          break;\n        }\n      }\n    }\n    return out({success:true,action:\'updateClient\'});\n  }\n\n  // ── Delete ONE client row (find by mobile col B) ──\n  if(data.action===\'deleteClient\'){\n    var dShC=ss.getSheetByName(CLIENTS_TAB);\n    if(dShC&&dShC.getLastRow()>1){\n      var dMobC=String(data.mobile||\'\').trim();\n      var dNC=dShC.getLastRow();\n      var dValsC=dShC.getRange(2,2,dNC-1,1).getValues();\n      for(var dic=dValsC.length-1;dic>=0;dic--){\n        if(String(dValsC[dic][0]||\'\').trim()===dMobC){dShC.deleteRow(dic+2);}\n      }\n    }\n    return out({success:true,action:\'deleteClient\'});\n  }\n  if(data.action===\'backupNow\'){ return manualBackupNow(); }\n  // ── Get upcoming Google Calendar events (default calendar) ──\n  if(data.action===\'getCalendarEvents\'){\n    try{\n      var TZ=\'Asia/Kolkata\'; // force IST regardless of Apps Script project timezone setting\n      // Pad the fetch window by 1 day on each side so no boundary event is ever missed,\n      // then bucket every event to its correct IST calendar day using formatDate (not\n      // getFullYear/getMonth/getDate, which use the SERVER\'s default timezone and can\n      // silently shift events onto the wrong day if the project timezone isn\'t IST).\n      var baseStart=data.start?new Date(data.start+\'T00:00:00\'):new Date();\n      var baseEnd=data.end?new Date(data.end+\'T23:59:59\'):new Date(baseStart.getTime()+8*86400000);\n      var evStart=new Date(baseStart.getTime()-86400000); // -1 day padding\n      var evEnd=new Date(baseEnd.getTime()+86400000);     // +1 day padding\n      var wantStart=data.start||Utilities.formatDate(new Date(),TZ,\'yyyy-MM-dd\');\n      var wantEnd=data.end||Utilities.formatDate(new Date(baseStart.getTime()+8*86400000),TZ,\'yyyy-MM-dd\');\n\n      var cal=CalendarApp.getDefaultCalendar();\n      var events=cal.getEvents(evStart,evEnd);\n      var evRows=events.map(function(e){\n        var st=e.getStartTime();\n        var dateStr=Utilities.formatDate(st,TZ,\'yyyy-MM-dd\');\n        var timeStr=e.isAllDayEvent()?\'All day\':Utilities.formatDate(st,TZ,\'h:mm a\');\n        return {date:dateStr,title:e.getTitle(),time:timeStr,type:\'event\'};\n      }).filter(function(r){return r.date>=wantStart&&r.date<=wantEnd;}); // trim padding back to requested range\n\n      // ── Also pull Birthdays (Google\'s auto-generated Contacts birthday calendar) ──\n      var bdayRows=[];\n      try{\n        var allCals=CalendarApp.getAllCalendars();\n        var bdayCal=null;\n        for(var bi=0;bi<allCals.length;bi++){\n          var cName=allCals[bi].getName().toLowerCase();\n          var cId=allCals[bi].getId();\n          if(cName.indexOf(\'birthday\')>=0 || cId.indexOf(\'#contacts@group.v.calendar.google.com\')>=0){\n            bdayCal=allCals[bi]; break;\n          }\n        }\n        if(bdayCal){\n          var bdayEvents=bdayCal.getEvents(evStart,evEnd);\n          bdayRows=bdayEvents.map(function(e){\n            var st=e.getStartTime();\n            var dateStr=Utilities.formatDate(st,TZ,\'yyyy-MM-dd\');\n            return {date:dateStr,title:e.getTitle(),time:\'\',type:\'birthday\'};\n          }).filter(function(r){return r.date>=wantStart&&r.date<=wantEnd;});\n        }\n      }catch(be){ /* birthday calendar not accessible — skip silently */ }\n\n      return out({events:evRows.concat(bdayRows), calendarId:cal.getId(), calendarName:cal.getName(), birthdaysFound:bdayRows.length, scriptTimeZone:Session.getScriptTimeZone(), usedTimeZone:TZ});\n    }catch(e){\n      return out({events:[],error:e.message});\n    }\n  }\n\n  // ── Diagnose calendar access — lists ALL calendars this account can see ──\n  if(data.action===\'diagnoseCalendars\'){\n    try{\n      var allCals=CalendarApp.getAllCalendars();\n      var calList=allCals.map(function(c){\n        var isBday=c.getName().toLowerCase().indexOf(\'birthday\')>=0||c.getId().indexOf(\'#contacts@group.v.calendar.google.com\')>=0;\n        return {name:c.getName(), id:c.getId(), isSelected:c.isSelected(), isOwned:c.isOwnedByMe(), isBirthdayCalendar:isBday};\n      });\n      var defCal=CalendarApp.getDefaultCalendar();\n      return out({\n        defaultCalendarId: defCal.getId(),\n        defaultCalendarName: defCal.getName(),\n        allCalendars: calList\n      });\n    }catch(e){\n      return out({error:e.message});\n    }\n  }\n\n  // ── Client Documents: get-or-create a client\'s Drive folder ──\n  // Folder name includes mobile to avoid collisions between same-named clients.\n  // Folder naming: "ClientName - PAN" when PAN is available (PAN is unique,\n  // so this is also how duplicates are detected). Falls back to mobile only\n  // when no PAN is on file yet.\n  function clientFolderName(clientName, pan, mobile){\n    // Folder naming: "ClientName +Mobile" — e.g. "Arjun Ktm +9745676563". PAN is\n    // intentionally not part of the name or the search — name+mobile only.\n    return (clientName||\'Unknown\').trim()+\' +\'+(mobile||\'\').trim();\n  }\n\n  function getParentDocsFolder(){\n    var parentName=\'Wealth Matrix Client Documents\';\n    var parentIter=DriveApp.getFoldersByName(parentName);\n    return parentIter.hasNext()?parentIter.next():DriveApp.createFolder(parentName);\n  }\n\n  // Search for an existing client folder using name+mobile and name-only matching\n  // (no PAN). Exact "Name +Mobile" match is always safe to use directly. A name-only\n  // match is ambiguous — for this automated path (no human present, e.g. a client\n  // uploading via their own link) it\'s only auto-resolved when there\'s EXACTLY ONE\n  // candidate; two or more, or zero, means a fresh folder gets created instead.\n  // The INTERACTIVE version of this same search (searchClientFolderCandidates,\n  // below) is what powers the human "create new vs rename" decision popup.\n  function findClientFolder(clientName, pan, mobile){\n    var parent=getParentDocsFolder();\n    var nameUp=(clientName||\'\').trim().toUpperCase();\n    var newFormatUp=nameUp+\' +\'+(mobile||\'\').trim();\n    var starts=[];\n    var allFolders=parent.getFolders();\n    while(allFolders.hasNext()){\n      var f=allFolders.next();\n      var fUp=f.getName().trim().toUpperCase();\n      if(fUp===newFormatUp) return f;               // exact match — always safe\n      if(fUp.indexOf(nameUp)===0) starts.push(f);    // name-only candidate\n    }\n    return starts.length===1 ? starts[0] : null;\n  }\n\n  function getOrCreateClientFolder(clientName, pan, mobile){\n    var existing=findClientFolder(clientName, pan, mobile);\n    if(existing) return existing;\n    var parent=getParentDocsFolder();\n    return parent.createFolder(clientFolderName(clientName, pan, mobile));\n  }\n\n  // ── Check whether a client\'s folder already exists — used before deciding\n  // whether to prompt "create folder?" on Save, so duplicates are never created. ──\n  // ── QUICK REMINDERS — matches the user\'s own 3-column sheet exactly:\n  // A=Date, B=Client Name, C=Reminder. No Row ID column exists, so updates/\n  // deletes locate the target row by matching its current (pre-edit) values\n  // exactly — the app always sends what it last read, so this is reliable\n  // as long as nobody else edits the sheet in the same instant. ──\n  if(data.action===\'addReminder\'){\n    try{\n      var rSh=ss.getSheetByName(REMINDERS_TAB)||ss.insertSheet(REMINDERS_TAB);\n      if(rSh.getLastRow()===0){\n        var rHdr=[[\'Date\',\'Client Name\',\'Reminder\',\'Reminder Date\']];\n        var rHr=rSh.getRange(1,1,1,4);\n        rHr.setValues(rHdr);\n        rHr.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');\n        rSh.setFrozenRows(1);\n      }\n      var lock=LockService.getScriptLock(); lock.waitLock(10000);\n      try{\n        rSh.appendRow([data.date||\'\', data.clientName||\'\', data.reminderText||\'\', data.reminderDate||\'\']);\n      } finally { lock.releaseLock(); }\n      return out({success:true});\n    }catch(e){\n      return out({success:false, error:e.message});\n    }\n  }\n\n  // Sheets auto-converts a "YYYY-MM-DD" string into a real Date object on write.\n  // When read back, Apps Script returns that cell as a JS Date, not the original\n  // string — so a naive String(cell) comparison would never match. Normalize the\n  // same way readTab() already does everywhere else in this app. Applies to BOTH\n  // date columns (Date and Reminder Date) — both get auto-converted the same way.\n  function normDate(c){\n    if(c===null||c===undefined||c===\'\') return \'\';\n    if(c instanceof Date){\n      var y=c.getFullYear(), m=String(c.getMonth()+1).padStart(2,\'0\'), d=String(c.getDate()).padStart(2,\'0\');\n      return y+\'-\'+m+\'-\'+d;\n    }\n    return String(c).trim();\n  }\n\n  if(data.action===\'updateReminder\'){\n    try{\n      var rSh2=ss.getSheetByName(REMINDERS_TAB);\n      if(!rSh2) return out({success:false, error:\'No REMINDERS tab yet\'});\n      var rLr=rSh2.getLastRow();\n      if(rLr>=2){\n        var rVals=rSh2.getRange(2,1,rLr-1,4).getValues();\n        for(var ri=0;ri<rVals.length;ri++){\n          if(normDate(rVals[ri][0])===String(data.oldDate||\'\').trim()\n            && String(rVals[ri][1]||\'\').trim()===String(data.oldClientName||\'\').trim()\n            && String(rVals[ri][2]||\'\').trim()===String(data.oldReminderText||\'\').trim()\n            && normDate(rVals[ri][3])===String(data.oldReminderDate||\'\').trim()){\n            rSh2.getRange(ri+2,1,1,4).setValues([[data.newDate||\'\', data.newClientName||\'\', data.newReminderText||\'\', data.newReminderDate||\'\']]);\n            break;\n          }\n        }\n      }\n      return out({success:true});\n    }catch(e){\n      return out({success:false, error:e.message});\n    }\n  }\n\n  if(data.action===\'deleteReminder\'){\n    try{\n      var rSh3=ss.getSheetByName(REMINDERS_TAB);\n      if(!rSh3) return out({success:true}); // nothing to delete\n      var rLr3=rSh3.getLastRow();\n      if(rLr3>=2){\n        var rVals3=rSh3.getRange(2,1,rLr3-1,4).getValues();\n        for(var ri3=rVals3.length-1;ri3>=0;ri3--){\n          if(normDate(rVals3[ri3][0])===String(data.date||\'\').trim()\n            && String(rVals3[ri3][1]||\'\').trim()===String(data.clientName||\'\').trim()\n            && String(rVals3[ri3][2]||\'\').trim()===String(data.reminderText||\'\').trim()\n            && normDate(rVals3[ri3][3])===String(data.reminderDate||\'\').trim()){\n            rSh3.deleteRow(ri3+2);\n          }\n        }\n      }\n      return out({success:true});\n    }catch(e){\n      return out({success:false, error:e.message});\n    }\n  }\n\n  // ── Automated Insights control actions ──\n  if(data.action===\'draftLeadMessage\'){\n    try{\n      return out({success:true, message:draftLeadMessage(data)});\n    }catch(e){\n      return out({success:false, error:e.message});\n    }\n  }\n\n  if(data.action===\'draftClientMessage\'){\n    try{\n      return out({success:true, message:draftClientMessage(data)});\n    }catch(e){\n      return out({success:false, error:e.message});\n    }\n  }\n\n  if(data.action===\'generateLeadProfileInsight\'){\n    try{\n      return out({success:true, insight:generateLeadProfileInsight(data)});\n    }catch(e){\n      return out({success:false, error:e.message});\n    }\n  }\n\n  if(data.action===\'generateClientProfileInsight\'){\n    try{\n      return out({success:true, insight:generateClientProfileInsight(data)});\n    }catch(e){\n      return out({success:false, error:e.message});\n    }\n  }\n\n  if(data.action===\'listCasFilesInFolder\'){\n    try{\n      return out({success:true, files:listCasFilesInFolder(data)});\n    }catch(e){\n      return out({success:false, error:e.message});\n    }\n  }\n\n  if(data.action===\'draftCasEmailInsight\'){\n    try{\n      var casDraft=draftCasEmailInsight(data);\n      return out({success:true, subject:casDraft.subject, body:casDraft.body, tableHtml:casDraft.tableHtml, filesUsed:casDraft.filesUsed});\n    }catch(e){\n      return out({success:false, error:e.message});\n    }\n  }\n\n  if(data.action===\'runInsightsNow\'){\n    return out(generateAndSendInsights());\n  }\n  if(data.action===\'setupInsightsTrigger\'){\n    return out(setupInsightsTrigger());\n  }\n  if(data.action===\'removeInsightsTrigger\'){\n    return out(removeInsightsTrigger());\n  }\n  if(data.action===\'getInsightsTriggerStatus\'){\n    return out(getInsightsTriggerStatus());\n  }\n\n  if(data.action===\'checkClientFolder\'){\n    try{\n      var existingFolder=findClientFolder(data.clientName, data.pan, data.mobile);\n      if(existingFolder){\n        return out({exists:true, folderId:existingFolder.getId(), folderUrl:existingFolder.getUrl()});\n      }\n      return out({exists:false});\n    }catch(e){\n      return out({exists:false, error:e.message});\n    }\n  }\n\n  // ── Interactive search: returns an EXACT match if one exists, plus every\n  // name-only "ambiguous" candidate (folders whose name starts with the client\'s\n  // name but isn\'t the exact "Name +Mobile" standard). The frontend uses this to\n  // show a human "create new vs rename this one" decision — never auto-guesses. ──\n  if(data.action===\'searchClientFolderCandidates\'){\n    try{\n      var parentS=getParentDocsFolder();\n      var nameUpS=(data.clientName||\'\').trim().toUpperCase();\n      var newFormatUpS=nameUpS+\' +\'+(data.mobile||\'\').trim();\n      var exactS=null, ambigS=[];\n      var iterS=parentS.getFolders();\n      while(iterS.hasNext()){\n        var fS=iterS.next();\n        var fUpS=fS.getName().trim().toUpperCase();\n        if(fUpS===newFormatUpS){ exactS={id:fS.getId(), name:fS.getName(), url:fS.getUrl()}; }\n        else if(nameUpS && fUpS.indexOf(nameUpS)>=0){ ambigS.push({id:fS.getId(), name:fS.getName(), url:fS.getUrl()}); }\n      }\n      return out({success:true, exact:exactS, ambiguous:ambigS});\n    }catch(e){\n      return out({success:false, error:e.message});\n    }\n  }\n\n  // ── Permanently tag a folder to a client — writes the folder ID into the\n  // client\'s Record ID column (column AI), so future opens never need to\n  // search or ask again for this specific client. ──\n  if(data.action===\'tagClientFolder\'){\n    try{\n      var cSh=ss.getSheetByName(CLIENTS_TAB);\n      if(!cSh) return out({success:false, error:\'No CLIENTS tab\'});\n      var cLr=cSh.getLastRow();\n      if(cLr>=2){\n        var cMobiles=cSh.getRange(2,2,cLr-1,1).getValues(); // column B = mobile\n        for(var ci=0;ci<cMobiles.length;ci++){\n          if(String(cMobiles[ci][0]||\'\').trim()===String(data.mobile||\'\').trim()){\n            cSh.getRange(ci+2,35).setValue(data.folderId||\'\'); // column AI = 35th column\n            return out({success:true});\n          }\n        }\n      }\n      return out({success:false, error:\'Client not found in sheet\'});\n    }catch(e){\n      return out({success:false, error:e.message});\n    }\n  }\n\n  // ── Rename an existing folder to the current standard "Name +Mobile" format —\n  // used when the human picks "rename this one" from the ambiguous-candidates popup. ──\n  if(data.action===\'renameClientFolder\'){\n    try{\n      var folderR=DriveApp.getFolderById(data.folderId);\n      var newNameR=clientFolderName(data.clientName, \'\', data.mobile);\n      folderR.setName(newNameR);\n      return out({success:true, folderId:folderR.getId(), folderUrl:folderR.getUrl(), newName:newNameR});\n    }catch(e){\n      return out({success:false, error:e.message});\n    }\n  }\n\n  // ── Bulk-check folders for a whole list of clients in ONE call — fetches the folder\n  // list once, then checks each client in memory (much faster than N separate searches).\n  // Buckets results into: fine (exact match, not returned), missing (no match at all),\n  // and ambiguous (name-only candidates that need a human "create new vs rename" call). ──\n  if(data.action===\'checkAllClientFolders\'){\n    try{\n      var parentB=getParentDocsFolder();\n      var allF=[];\n      var fIter=parentB.getFolders();\n      while(fIter.hasNext()){\n        var ff=fIter.next();\n        allF.push({nameUp:ff.getName().trim().toUpperCase(), id:ff.getId(), name:ff.getName(), url:ff.getUrl()});\n      }\n\n      var missing=[], ambiguous=[];\n      (data.clients||[]).forEach(function(c){\n        var nameUp=(c.name||\'\').trim().toUpperCase();\n        var newFormatUp=nameUp+\' +\'+(c.mobile||\'\').trim();\n        var exactMatch=allF.some(function(f){return f.nameUp===newFormatUp;});\n        if(exactMatch) return; // fine — nothing to do for this client\n        var candidates=allF.filter(function(f){return f.nameUp.indexOf(nameUp)===0;})\n          .map(function(f){return {id:f.id, name:f.name, url:f.url};});\n        if(candidates.length>0){\n          ambiguous.push({name:c.name||\'\', mobile:c.mobile||\'\', candidates:candidates});\n        } else {\n          missing.push({name:c.name||\'\', mobile:c.mobile||\'\'});\n        }\n      });\n      return out({success:true, missing:missing, ambiguous:ambiguous, totalChecked:(data.clients||[]).length, totalFoldersFound:allF.length});\n    }catch(e){\n      return out({success:false, error:e.message});\n    }\n  }\n\n  // ── Bulk-create folders for a list of clients (used after the "N clients have no\n  // folder — create now?" prompt). Safe — reuses getOrCreateClientFolder per client,\n  // so it can never create a duplicate even if called more than once. ──\n  if(data.action===\'bulkCreateClientFolders\'){\n    try{\n      var createdList=[];\n      (data.clients||[]).forEach(function(c){\n        var cf=getOrCreateClientFolder(c.name||\'\', c.pan||\'\', c.mobile||\'\');\n        createdList.push({name:c.name||\'\', mobile:c.mobile||\'\', folderUrl:cf.getUrl()});\n      });\n      return out({success:true, created:createdList});\n    }catch(e){\n      return out({success:false, error:e.message});\n    }\n  }\n\n  // ── Create a client\'s Drive folder explicitly (called on new client add / lead conversion) ──\n  // Safe to call even if a folder already exists — never creates a duplicate.\n  if(data.action===\'createClientFolder\'){\n    try{\n      var cFolder;\n      if(data.force){\n        // Guaranteed fresh folder — used when the human explicitly rejects all\n        // existing candidates, so it can never silently reuse one of them.\n        var parentF=getParentDocsFolder();\n        cFolder=parentF.createFolder(clientFolderName(data.clientName, data.pan, data.mobile));\n      } else {\n        cFolder=getOrCreateClientFolder(data.clientName, data.pan, data.mobile);\n      }\n      return out({success:true, folderId:cFolder.getId(), folderUrl:cFolder.getUrl()});\n    }catch(e){\n      return out({success:false, error:e.message});\n    }\n  }\n\n  // ── Upload a document into a client\'s folder, named after the document type ──\n  // Replaces any existing file of the same type (keeps exactly one current version per slot).\n  if(data.action===\'uploadClientDocument\'){\n    try{\n      // Use the client\'s permanently-tagged folder ID directly when available —\n      // this is the ONLY way to guarantee every upload for the same client always\n      // lands in the same folder. Re-searching by name on every call is what\n      // caused documents to scatter across multiple folders when the name search\n      // was ever ambiguous (e.g. a folder existing from when they were a lead).\n      var uFolder=null;\n      if(data.folderId){\n        try{ uFolder=DriveApp.getFolderById(data.folderId); }catch(fe){ uFolder=null; }\n      }\n      if(!uFolder){\n        uFolder=getOrCreateClientFolder(data.clientName, data.pan, data.mobile);\n      }\n      // Remove any existing file with this doc type name (any extension)\n      var existingFiles=uFolder.getFiles();\n      while(existingFiles.hasNext()){\n        var ef=existingFiles.next();\n        if(ef.getName().indexOf(data.docType+\'.\')===0 || ef.getName()===data.docType){\n          ef.setTrashed(true);\n        }\n      }\n      var bytes=Utilities.base64Decode(data.fileData);\n      var blob=Utilities.newBlob(bytes, data.mimeType||\'application/octet-stream\', data.docType+(data.fileExt?\'.\'+data.fileExt:\'\'));\n      var newFile=uFolder.createFile(blob);\n      return out({success:true, fileId:newFile.getId(), fileUrl:newFile.getUrl(), fileName:newFile.getName(), folderId:uFolder.getId()});\n    }catch(e){\n      return out({success:false, error:e.message});\n    }\n  }\n\n  // ── Save nominee details as a plain text file in the client\'s folder ──\n  // Overwrites any existing "Nominee Details.txt" so re-submitting never creates duplicates.\n  if(data.action===\'saveNomineeDetails\'){\n    try{\n      var nFolder=null;\n      if(data.folderId){ try{ nFolder=DriveApp.getFolderById(data.folderId); }catch(fe){ nFolder=null; } }\n      if(!nFolder){ nFolder=getOrCreateClientFolder(data.clientName, data.pan, data.mobile); }\n      var nExisting=nFolder.getFilesByName(\'Nominee Details.txt\');\n      while(nExisting.hasNext()){ nExisting.next().setTrashed(true); }\n      var nContent=\'Nominee name: \'+(data.nomineeName||\'\')+\'\\n\'\n        +\'Nominee mobile: \'+(data.nomineeMobile||\'\')+\'\\n\'\n        +\'Nominee mail id: \'+(data.nomineeEmail||\'\');\n      var nFile=nFolder.createFile(\'Nominee Details.txt\', nContent, MimeType.PLAIN_TEXT);\n      return out({success:true, fileId:nFile.getId(), fileUrl:nFile.getUrl(), folderId:nFolder.getId()});\n    }catch(e){\n      return out({success:false, error:e.message});\n    }\n  }\n\n  // ── Save bank account details as a plain text file in the client\'s folder ──\n  // Overwrites any existing "Bank Details.txt" so re-submitting never creates duplicates.\n  if(data.action===\'saveBankDetails\'){\n    try{\n      var bFolder=null;\n      if(data.folderId){ try{ bFolder=DriveApp.getFolderById(data.folderId); }catch(fe){ bFolder=null; } }\n      if(!bFolder){ bFolder=getOrCreateClientFolder(data.clientName, data.pan, data.mobile); }\n      var bExisting=bFolder.getFilesByName(\'Bank Details.txt\');\n      while(bExisting.hasNext()){ bExisting.next().setTrashed(true); }\n      var bContent=\'Account Number: \'+(data.accountNumber||\'\')+\'\\n\'\n        +\'IFSC Code: \'+(data.ifscCode||\'\');\n      var bFile=bFolder.createFile(\'Bank Details.txt\', bContent, MimeType.PLAIN_TEXT);\n      return out({success:true, fileId:bFile.getId(), fileUrl:bFile.getUrl(), folderId:bFolder.getId()});\n    }catch(e){\n      return out({success:false, error:e.message});\n    }\n  }\n\n  // ── List all documents currently uploaded for a client ──\n  if(data.action===\'listClientDocuments\'){\n    try{\n      var lFolder=null;\n      if(data.folderId){ try{ lFolder=DriveApp.getFolderById(data.folderId); }catch(fe){ lFolder=null; } }\n      if(!lFolder){ lFolder=getOrCreateClientFolder(data.clientName, data.pan, data.mobile); }\n      var files=lFolder.getFiles();\n      var fileList=[];\n      while(files.hasNext()){\n        var f=files.next();\n        var fname=f.getName();\n        var docType=fname.indexOf(\'.\')>=0?fname.substring(0,fname.lastIndexOf(\'.\')):fname;\n        fileList.push({docType:docType, name:fname, url:f.getUrl(), id:f.getId()});\n      }\n      return out({success:true, files:fileList, folderUrl:lFolder.getUrl(), folderId:lFolder.getId()});\n    }catch(e){\n      return out({success:false, error:e.message, files:[]});\n    }\n  }\n\n  // ── Delete a single client document ──\n  if(data.action===\'deleteClientDocument\'){\n    try{\n      var dFile=DriveApp.getFileById(data.fileId);\n      dFile.setTrashed(true);\n      return out({success:true});\n    }catch(e){\n      return out({success:false, error:e.message});\n    }\n  }\n\n  if(data.action===\'readSpecialDays\'){var spSh=ss.getSheetByName(SPECIAL_TAB);if(!spSh)return out({rows:[]});var spLr=spSh.getLastRow();if(spLr<2)return out({rows:[]});var spVals=spSh.getRange(2,1,spLr-1,2).getValues();var spRows=spVals.map(function(r){return[String(r[0]||\'\').trim(),String(r[1]||\'\').trim()];}).filter(function(r){return r[0]&&r[1];});return out({rows:spRows});}\n  if(data.action===\'pushSpecialDays\'){\n    var spSh3=ss.getSheetByName(SPECIAL_TAB)||ss.insertSheet(SPECIAL_TAB);\n    var spDataRows=data.rows||[];\n    var spLastRow=spSh3.getLastRow();\n    if(spLastRow===0){\n      // Sheet is empty — write header then data\n      spSh3.appendRow([\'Date (MM-DD)\',\'Remarks\']);\n      var spHdr=spSh3.getRange(1,1,1,2);\n      spHdr.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');\n      spSh3.setFrozenRows(1);\n    }\n    // Get existing date values to avoid duplicates\n    var spExisting=spLastRow>1?spSh3.getRange(2,1,spLastRow-1,1).getValues().map(function(r){return String(r[0]||\'\').trim();}):[]; \n    // Append only new rows (skip header row from data)\n    spDataRows.forEach(function(row){\n      if(row[0]===\'Date (MM-DD)\'||row[0]===\'Day\') return; // skip header rows\n      if(spExisting.indexOf(String(row[0]||\'\').trim())>=0) return; // skip duplicates\n      spSh3.appendRow([row[0],row[1]]);\n      spSh3.getRange(spSh3.getLastRow(),1,1,2).setNumberFormat(\'@\');\n    });\n    return out({success:true,action:\'pushSpecialDays\'});\n  }\n  if(data.action===\'appendSpecialDay\'){var spSh2=ss.getSheetByName(SPECIAL_TAB)||ss.insertSheet(SPECIAL_TAB);if(spSh2.getLastRow()===0){var spH=spSh2.getRange(1,1,1,2);spH.setValues([[\'Date (MM-DD)\',\'Remarks\']]);spH.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');spSh2.setFrozenRows(1);}spSh2.appendRow([data.date||\'\',data.speciality||\'\']);return out({success:true,action:\'appendSpecialDay\'});}\nvar tab=data.action===\'pushLeads\'?LEADS_TAB:data.action===\'pushClients\'?CLIENTS_TAB:null;if(!tab)return out({error:\'Bad action:\'+data.action});var rows=data.rows;if(!rows||rows.length===0)return out({error:\'No rows\'});var sh=ss.getSheetByName(tab)||ss.insertSheet(tab);sh.clearContents();var r=sh.getRange(1,1,rows.length,rows[0].length);r.setNumberFormat(\'@\');r.setValues(rows);var h=sh.getRange(1,1,1,rows[0].length);h.setFontWeight(\'bold\').setBackground(\'#C0392B\').setFontColor(\'#FFFFFF\');sh.setFrozenRows(1);return out({success:true,written:rows.length-1});}\nfunction out(o){return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);}\nfunction testConnection(){Logger.log(\'OK: \'+SpreadsheetApp.openById(SHEET_ID).getName());}\n\n// ═══════════════════════════════════════════\n// AUTOMATED BACKUP SYSTEM\n// ═══════════════════════════════════════════\n// Run createBackupTrigger() ONCE manually from the Apps Script editor\n// (select it in the function dropdown, click Run). This sets up a weekly\n// trigger — after that, backups happen automatically with zero further action.\n\nconst BACKUP_FOLDER_NAME=\'Wealth Matrix CRM Backups\';\nconst MAX_BACKUPS_TO_KEEP=8; // ~2 months of weekly backups\n\nfunction createBackupTrigger(){\n  // Remove any existing backup triggers first (avoid duplicates)\n  var triggers=ScriptApp.getProjectTriggers();\n  triggers.forEach(function(t){\n    if(t.getHandlerFunction()===\'runWeeklyBackup\') ScriptApp.deleteTrigger(t);\n  });\n  // Create new weekly trigger — runs every Sunday at 2 AM\n  ScriptApp.newTrigger(\'runWeeklyBackup\')\n    .timeBased()\n    .onWeekDay(ScriptApp.WeekDay.SUNDAY)\n    .atHour(2)\n    .create();\n  Logger.log(\'✅ Weekly backup trigger created. Backups will run automatically every Sunday at 2 AM.\');\n}\n\nfunction runWeeklyBackup(){\n  try{\n    var srcFile=DriveApp.getFileById(SHEET_ID);\n    var folders=DriveApp.getFoldersByName(BACKUP_FOLDER_NAME);\n    var folder=folders.hasNext()?folders.next():DriveApp.createFolder(BACKUP_FOLDER_NAME);\n\n    var dateStr=Utilities.formatDate(new Date(),Session.getScriptTimeZone(),\'yyyy-MM-dd_HH-mm\');\n    var backupName=\'CRM Backup \'+dateStr;\n    srcFile.makeCopy(backupName, folder);\n    Logger.log(\'✅ Backup created: \'+backupName);\n\n    // Clean up old backups — keep only the most recent MAX_BACKUPS_TO_KEEP\n    var files=folder.getFiles();\n    var fileList=[];\n    while(files.hasNext()){\n      var f=files.next();\n      fileList.push({file:f, date:f.getDateCreated()});\n    }\n    fileList.sort(function(a,b){return b.date-a.date;}); // newest first\n    if(fileList.length>MAX_BACKUPS_TO_KEEP){\n      for(var i=MAX_BACKUPS_TO_KEEP;i<fileList.length;i++){\n        fileList[i].file.setTrashed(true);\n      }\n      Logger.log(\'🗑️ Cleaned up \'+(fileList.length-MAX_BACKUPS_TO_KEEP)+\' old backup(s)\');\n    }\n  }catch(e){\n    Logger.log(\'❌ Backup failed: \'+e.message);\n  }\n}\n\n// Manual backup — call this anytime from the app (Settings → Backup Now)\nfunction manualBackupNow(){\n  runWeeklyBackup();\n  return out({success:true,message:\'Backup created\'});\n}\n'
-  var ov=document.createElement('div');
-  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:flex-end;justify-content:center;padding:10px';
-  ov.innerHTML='<div style="background:var(--s1);border-radius:12px;width:100%;max-width:540px;max-height:90vh;overflow-y:auto;padding:16px">'
-    +'<div style="font-weight:800;font-size:14px;margin-bottom:6px;color:var(--accent)">Apps Script v2.9 — Copy & Deploy</div>'
-    +'<div style="font-size:11px;color:var(--t2);margin-bottom:8px;background:var(--s2);padding:8px;border-radius:6px">'
-    +'1. script.google.com → Your project → Delete all → Paste → Save<br>'
-    +'2. Deploy → Manage deployments → Edit → New version → Deploy<br>'
-    +'3. Copy new URL → Paste in Sync tab</div>'
-    +'<textarea id="as-code-ta" style="width:100%;height:200px;font-family:monospace;font-size:9px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:8px;resize:none;box-sizing:border-box"></textarea>'
-    +'<div style="display:flex;gap:8px;margin-top:10px">'
-    +'<button id="as-copy-btn" class="btn btn-gold" style="flex:1">📋 Copy Code</button>'
-    +'<button id="as-close-btn" class="btn btn-ghost" style="flex:1">Close</button>'
-    +'</div></div>';
-  document.body.appendChild(ov);
-  document.getElementById('as-code-ta').value=code;
-  document.getElementById('as-copy-btn').onclick=function(){document.getElementById('as-code-ta').select();document.execCommand('copy');toast('Code copied!');};
-  document.getElementById('as-close-btn').onclick=function(){ov.remove();};
-  ov.onclick=function(e){if(e.target===ov)ov.remove();};
 }
 
 
@@ -5685,7 +5752,7 @@ async function updateDocStatusBadge(mob, c){
   if(!c.folderId){ el.textContent='📁 Documents 0/'+required.length; setBadgeTier(el,0,required.length); return; }
   if(!hasScript()) return;
   try{
-    var res=await sheetWrite({action:'listClientDocuments', clientName:c.name, pan:c.pan||'', mobile:c.mobile, folderId:c.folderId});
+    var res=await sheetWrite({action:'listClientDocuments', expectsResponse:true, clientName:c.name, pan:c.pan||'', mobile:c.mobile, folderId:c.folderId});
     var uploadedTypes = (res && res.success && res.files) ? res.files.map(function(f){return f.docType;}) : [];
     var filled = required.filter(function(dt){ return uploadedTypes.indexOf(dt)>=0; }).length;
     el.textContent = '📁 Documents '+filled+'/'+required.length;
@@ -5697,7 +5764,7 @@ async function checkAndTagClientFolder(client){
   if(!hasScript() || !client || !client.mobile) return;
   if(client.folderId && client.folderId.trim()) return; // already tagged
   try{
-    var res=await sheetWrite({action:'searchClientFolderCandidates', clientName:client.name, mobile:client.mobile});
+    var res=await sheetWrite({action:'searchClientFolderCandidates', expectsResponse:true, clientName:client.name, mobile:client.mobile});
     if(!res || !res.success) return;
     if(res.exact){
       await tagFolderToClient(client, res.exact.id); // exact "Name +Mobile" match — unambiguous, safe to tag silently
@@ -5729,7 +5796,7 @@ async function checkLeadFolderStatus(mob, leadName){
     return;
   }
   try{
-    var res=await sheetWrite({action:'checkClientFolder', clientName:leadName||l.name||'', mobile:l.mobile});
+    var res=await sheetWrite({action:'checkClientFolder', expectsResponse:true, clientName:leadName||l.name||'', mobile:l.mobile});
     if(res && res.exists && res.folderUrl && res.folderId){
       showLeadFolderLink(el, res.folderUrl);
       await tagFolderToLead(l, res.folderId); // found it — tag it permanently so this never re-searches
@@ -5805,7 +5872,7 @@ function _ftpSelect(i){
 async function checkClientDocsComplete(client){
   if(!hasScript() || !client || !client.mobile) return;
   try{
-    var res=await sheetWrite({action:'listClientDocuments', clientName:client.name, pan:client.pan||'', mobile:client.mobile, folderId:client.folderId||''});
+    var res=await sheetWrite({action:'listClientDocuments', expectsResponse:true, clientName:client.name, pan:client.pan||'', mobile:client.mobile, folderId:client.folderId||''});
     if(!res || !res.success) return;
     var haveTypes=(res.files||[]).map(function(f){return f.docType;});
     var isNRI=(client.country||'').toUpperCase().trim()!=='INDIA';
@@ -5971,7 +6038,7 @@ async function runFolderCheckOnly(){
   log('Checking '+clients.length+' client'+(clients.length!==1?'s':'')+' against Drive…');
   try{
     var payload=clients.map(function(c){return {name:c.name, mobile:c.mobile};});
-    var res=await sheetWrite({action:'checkAllClientFolders', clients:payload});
+    var res=await sheetWrite({action:'checkAllClientFolders', expectsResponse:true, clients:payload});
     if(res && res.success){
       log('Checked '+res.totalChecked+' clients against '+res.totalFoldersFound+' existing Drive folders.');
       log('');
@@ -6061,7 +6128,7 @@ async function runClientsDiagnostic(){
   } else {
     try{
       var payload=clients.map(function(c){return {name:c.name, mobile:c.mobile};});
-      var res=await sheetWrite({action:'checkAllClientFolders', clients:payload});
+      var res=await sheetWrite({action:'checkAllClientFolders', expectsResponse:true, clients:payload});
       if(res && res.success){
         ok('Checked '+res.totalChecked+' clients against '+res.totalFoldersFound+' existing Drive folders');
         if(res.missing && res.missing.length){
@@ -6186,7 +6253,7 @@ async function checkInsightsStatus(){
   var btnEl=document.getElementById('insights-toggle-btn');
   if(!statusEl||!btnEl||!hasScript()) return;
   try{
-    var res=await sheetWrite({action:'getInsightsTriggerStatus'});
+    var res=await sheetWrite({action:'getInsightsTriggerStatus', expectsResponse:true});
     if(res && res.enabled){
       statusEl.textContent='✅ Active (runs Mondays 8am)';
       statusEl.style.color='var(--green)';
@@ -6588,15 +6655,18 @@ async function sendChatMessage(){
   appendTypingIndicator();
 
   try{
-    var res=await sheetWrite({action:'practiceChat', message:message, history:window._chatHistory}, 55000);
+    var res=await sheetWrite({action:'practiceChat', message:message, history:window._chatHistory, expectsResponse:true}, 55000);
     removeTypingIndicator();
     if(sendBtn) sendBtn.disabled=false;
-    if(res && res.success){
+    if(res && res.success && res.reply){
       appendChatBubble('assistant', res.reply);
       window._chatHistory.push({role:'user', content:message});
       window._chatHistory.push({role:'assistant', content:res.reply});
     } else {
-      appendChatBubble('assistant', '⚠️ '+(res&&res.error||'Something went wrong — please try again.'));
+      // Covers both an explicit error AND the case where success came back
+      // but no reply text did — previously that second case rendered an
+      // empty bubble with no explanation of what went wrong.
+      appendChatBubble('assistant', '⚠️ '+(res&&res.error||'No reply came back — please try again.'));
     }
   }catch(e){
     removeTypingIndicator();
@@ -6623,7 +6693,7 @@ async function askContemporaryInsight(){
   appendSearchingIndicator();
 
   try{
-    var res=await sheetWrite({action:'generateContemporaryInsight'}, 90000);
+    var res=await sheetWrite({action:'generateContemporaryInsight', expectsResponse:true}, 90000);
     removeSearchingIndicator();
     if(sendBtn) sendBtn.disabled=false;
     if(res && res.success){
@@ -6653,7 +6723,7 @@ async function loadAllBusinessInsights(){
   }
   listEl.innerHTML='<div style="font-size:12px;color:var(--t3);text-align:center;padding:20px">Analyzing…</div>';
   try{
-    var res=await sheetWrite({action:'generateTopBusinessInsights'}, 55000);
+    var res=await sheetWrite({action:'generateTopBusinessInsights', expectsResponse:true}, 55000);
     if(!res || !res.success){
       listEl.innerHTML='<div style="font-size:12px;color:var(--red);text-align:center;padding:20px">Could not load insights: '+(res&&res.error||'unknown error')+'</div>';
       return;
@@ -6964,7 +7034,7 @@ async function runHealthCheck(){
     var fRes=await sheetWrite({action:'createClientFolder',clientName:'HEALTHCHECK CLIENT',pan:'',mobile:TMOB2});
     if(fRes&&fRes.success&&fRes.folderUrl) ok('Client folder create/verify works');
     else wn('Folder create returned no URL (check Drive permission on the Apps Script deployment)');
-    var lRes=await sheetWrite({action:'listClientDocuments',clientName:'HEALTHCHECK CLIENT',pan:'',mobile:TMOB2});
+    var lRes=await sheetWrite({action:'listClientDocuments', expectsResponse:true,clientName:'HEALTHCHECK CLIENT',pan:'',mobile:TMOB2});
     if(lRes&&lRes.success) ok('Document listing works ('+((lRes.files||[]).length)+' files)');
     else wn('Document listing failed');
 
@@ -7028,7 +7098,7 @@ async function runHealthCheck(){
       nomineeName:'TEST NOMINEE',nomineeMobile:'9000000007',nomineeEmail:'nominee@test.com'});
     if(_nomRes&&_nomRes.success) ok('Nominee details saved (backend v2.9.2 live)');
     else no('saveNomineeDetails failed \u2014 confirm Code.gs v2.9.2 is deployed: '+JSON.stringify(_nomRes));
-    var _docList=await sheetWrite({action:'listClientDocuments',clientName:'HEALTHCHECK CLIENT',pan:'',mobile:TMOB2});
+    var _docList=await sheetWrite({action:'listClientDocuments', expectsResponse:true,clientName:'HEALTHCHECK CLIENT',pan:'',mobile:TMOB2});
     var _hasNomFile=_docList&&_docList.files&&_docList.files.some(function(f){return f.docType==='Nominee Details';});
     if(_hasNomFile) ok('Nominee Details.txt confirmed in client folder');
     else wn('Nominee Details.txt not found in folder listing (non-fatal \u2014 check Drive permission)');
@@ -7597,8 +7667,8 @@ async function draftLeadWAMessage(mob){
   if(!l){ toast('Lead not found'); return; }
   if(!hasScript()){ toast('Add Apps Script URL first'); return; }
   toast('🤖 Drafting message…');
-  var res=await sheetWrite({action:'draftLeadMessage',
-    name:l.name, mobile:l.mobile, status:l.status, source:l.source, referral:l.referral,
+  var res=await sheetWrite({action:'draftLeadMessage', expectsResponse:true,
+    name:l.name, mobile:l.mobile, status:l.status, source:l.source, referral:l.referral, country:l.country,
     products:l.products, potentialAum:l.potentialAum, potentialSip:l.potentialSip, remarks:l.remarks,
     familyName:l.familyName, modifiedDate:l.modifiedDate, createdDate:l.createdDate}, 55000);
   if(!res || !res.success){
@@ -7625,7 +7695,7 @@ async function draftLeadWAMessage(mob){
 var _ourArnCodeCache = null;
 async function ensureOurArnCode(){
   if(_ourArnCodeCache !== null) return _ourArnCodeCache;
-  var res = await sheetWrite({action:'getOurArnCode'});
+  var res = await sheetWrite({action:'getOurArnCode', expectsResponse:true});
   var existing = (res && res.success) ? (res.arnCode||'') : '';
   if(existing){ _ourArnCodeCache = existing; return existing; }
   return new Promise(function(resolve){
@@ -7663,7 +7733,7 @@ function startClientReviewReport(mob){
     var casFiles=[];
     if(folderId){
       toast('Checking for a statement…');
-      var casRes=await sheetWrite({action:'listCasFilesInFolder', folderId:folderId});
+      var casRes=await sheetWrite({action:'listCasFilesInFolder', expectsResponse:true, folderId:folderId});
       casFiles=(casRes && casRes.success)?casRes.files:[];
     }
     if(casFiles.length===0){
@@ -7704,7 +7774,7 @@ async function runClientReviewReport(c, mob, casFiles, arnCode){
   if(sorted.length>=2){ fileIds=[sorted[0].id, sorted[sorted.length-1].id]; }
   else if(sorted.length===1){ fileIds=[sorted[0].id]; }
 
-  var res=await sheetWrite({action:'generateAndSaveReviewReport',
+  var res=await sheetWrite({action:'generateAndSaveReviewReport', expectsResponse:true,
     recordId:c.recordId||'', name:c.name, mobile:c.mobile,
     products:c.products, healthInsurance:c.healthInsurance, lifeInsurance:c.lifeInsurance, willDone:c.willDone,
     createdDate:c.createdDate, convertedDate:c.convertedDate, fileIds:fileIds, ourArnCode:arnCode||''}, 55000);
@@ -7766,7 +7836,7 @@ function startMeetingInsight(mob){
       return;
     }
     toast('Checking CAS availability…');
-    var casRes=await sheetWrite({action:'listCasFilesInFolder', folderId:folderId});
+    var casRes=await sheetWrite({action:'listCasFilesInFolder', expectsResponse:true, folderId:folderId});
     var casFiles=(casRes && casRes.success)?casRes.files:[];
     if(casFiles.length===0){
       showMeetingInsightNoCasPrompt(c, mob);
@@ -7845,7 +7915,7 @@ async function runMeetingInsight(c, mob, casFiles){
   if(sorted.length>=2){ fileIds=[sorted[0].id, sorted[sorted.length-1].id]; }
   else if(sorted.length===1){ fileIds=[sorted[0].id]; }
 
-  var res=await sheetWrite({action:'generateMeetingInsight',
+  var res=await sheetWrite({action:'generateMeetingInsight', expectsResponse:true,
     name:c.name, mobile:c.mobile, age:c.age, familyName:c.familyName,
     aum:c.aum, potentialAum:c.potentialAum, potentialSip:c.potentialSip,
     products:c.products, healthInsurance:c.healthInsurance, lifeInsurance:c.lifeInsurance, willDone:c.willDone,
@@ -7883,8 +7953,8 @@ async function draftClientWAMessage(mob){
   if(!c){ toast('Client not found'); return; }
   if(!hasScript()){ toast('Add Apps Script URL first'); return; }
   toast('🤖 Drafting message…');
-  var res=await sheetWrite({action:'draftClientMessage',
-    name:c.name, mobile:c.mobile, stage:c.stage, products:c.products, age:c.age, gender:c.gender,
+  var res=await sheetWrite({action:'draftClientMessage', expectsResponse:true,
+    name:c.name, mobile:c.mobile, stage:c.stage, products:c.products, age:c.age, gender:c.gender, country:c.country,
     aum:c.aum, potentialAum:c.potentialAum, potentialSip:c.potentialSip,
     lastContacted:c.lastContacted, convertedDate:c.convertedDate,
     sipDate:c.sipDate, reviewDate:c.reviewDate, dob:c.dob, anniversary:c.anniversary,
@@ -7932,7 +8002,7 @@ async function generateLeadInsight(mob){
   if(!l||!body) return;
   if(!hasScript()){ toast('Add Apps Script URL first'); return; }
   body.innerHTML='<div style="text-align:center;padding:14px;font-size:11px;color:var(--t3)">🤖 Analyzing full profile — this may take 15-20 seconds…</div>';
-  var res=await sheetWrite({action:'generateLeadProfileInsight',
+  var res=await sheetWrite({action:'generateLeadProfileInsight', expectsResponse:true,
     name:l.name, mobile:l.mobile, status:l.status, source:l.source, referral:l.referral,
     age:l.age, country:l.country, products:l.products, contactMode:l.contactMode,
     potentialAum:l.potentialAum, potentialSip:l.potentialSip, geoTag:l.geoTag, familyName:l.familyName, remarks:l.remarks}, 55000);
@@ -7966,7 +8036,7 @@ async function generateClientInsight(mob){
   if(!c||!body) return;
   if(!hasScript()){ toast('Add Apps Script URL first'); return; }
   body.innerHTML='<div style="text-align:center;padding:14px;font-size:11px;color:var(--t3)">🤖 Analyzing full profile — this may take 15-20 seconds…</div>';
-  var res=await sheetWrite({action:'generateClientProfileInsight',
+  var res=await sheetWrite({action:'generateClientProfileInsight', expectsResponse:true,
     name:c.name, mobile:c.mobile, stage:c.stage, age:c.age, gender:c.gender, country:c.country,
     products:c.products, aum:c.aum, potentialAum:c.potentialAum, potentialSip:c.potentialSip,
     convertedDate:c.convertedDate, sipDate:c.sipDate, reviewDate:c.reviewDate,
@@ -7993,7 +8063,7 @@ async function draftCasEmail(mob){
   if(!hasScript()){ toast('Add Apps Script URL first'); return; }
   if(!c.recordId || !c.recordId.trim()){ toast('⚠️ No Drive folder linked to this client yet — open their detail view once to link one first'); return; }
   toast('🔍 Checking folder for CAS document(s)…');
-  var listRes=await sheetWrite({action:'listCasFilesInFolder', folderId:c.folderId});
+  var listRes=await sheetWrite({action:'listCasFilesInFolder', expectsResponse:true, folderId:c.folderId});
   if(!listRes || !listRes.success){
     toast('❌ Could not check folder: '+(listRes&&listRes.error||'unknown error'));
     return;
@@ -8053,7 +8123,7 @@ function confirmCasFileSelection(){
 
 async function runCasAnalysis(c, fileIds){
   toast('📧 Reading CAS document(s) and drafting…');
-  var res2=await sheetWrite({action:'draftCasEmailInsight', clientName:c.name, mobile:c.mobile||'', pan:c.pan||'', fileIds:fileIds}, 55000);
+  var res2=await sheetWrite({action:'draftCasEmailInsight', expectsResponse:true, clientName:c.name, mobile:c.mobile||'', pan:c.pan||'', fileIds:fileIds}, 55000);
   if(!res2 || !res2.success){
     toast('❌ Could not draft email: '+(res2&&res2.error||'unknown error — check backend is deployed and CLAUDE_API_KEY is set'));
     return;
@@ -9777,6 +9847,93 @@ function buildGatherInfoLink(token){
   var base=location.href.replace(/[^\/]*$/, '');
   return base+'gatherinfo.html?id='+encodeURIComponent(token);
 }
+function buildFinDocLink(token){
+  // findoc.html must sit in the SAME folder as this file (crm.html) — same
+  // pattern as gatherinfo.html/upload.html. Reuses the SAME token again.
+  var base=location.href.replace(/[^\/]*$/, '');
+  return base+'findoc.html?id='+encodeURIComponent(token);
+}
+async function sendFinDocLinkWA(mob){
+  var c=clients.find(function(x){return x.recordId===mob||x.mobile===mob;});
+  if(!c){ toast('Client not found'); return; }
+  toast('Preparing link...');
+  var token=await getOrCreateUploadToken(mob);
+  if(!token){ toast('Could not generate link'); return; }
+  var link=buildFinDocLink(token);
+  var digits=(c.mobile||'').replace(/\D/g,'');
+  var waNum=digits.length===10?'91'+digits:digits;
+  var msg='Hi '+toTitle(c.name)+','
+    +'\n\nWe\'d like to help you keep a single, organized record of your family\'s important financial information and documents. Please fill in what you can using the secure link below \u2014 you can save your progress anytime and come back to finish later:'
+    +'\n\n'+link
+    +'\n\nNo login needed, works right from your phone.'
+    +'\n\nRegards'
+    +'\nArjun K T M'
+    +'\nWealth Matrix Finserv LLP';
+  window.open('https://wa.me/'+waNum+'?text='+encodeURIComponent(msg),'_blank');
+  logActivity(mob,'client','Fin Doc link sent via WhatsApp','');
+}
+function buildFeedbackLink(token){
+  // feedback.html must sit in the SAME folder as this file (crm.html) — same
+  // pattern as findoc.html/gatherinfo.html/upload.html. Reuses the SAME token.
+  var base=location.href.replace(/[^\/]*$/, '');
+  return base+'feedback.html?id='+encodeURIComponent(token);
+}
+async function sendFeedbackLinkWA(mob){
+  var c=clients.find(function(x){return x.recordId===mob||x.mobile===mob;});
+  if(!c){ toast('Client not found'); return; }
+  toast('Preparing link...');
+  var token=await getOrCreateUploadToken(mob);
+  if(!token){ toast('Could not generate link'); return; }
+  var link=buildFeedbackLink(token);
+  var digits=(c.mobile||'').replace(/\D/g,'');
+  var waNum=digits.length===10?'91'+digits:digits;
+  var msg='Hi '+toTitle(c.name)+','
+    +'\n\nWe\'d really value your honest feedback on our service. It takes just a couple of minutes, and you\'re welcome to submit it anonymously if you\'d prefer:'
+    +'\n\n'+link
+    +'\n\nThank you for helping us improve.'
+    +'\n\nRegards'
+    +'\nArjun K T M'
+    +'\nWealth Matrix Finserv LLP';
+  window.open('https://wa.me/'+waNum+'?text='+encodeURIComponent(msg),'_blank');
+  logActivity(mob,'client','Feedback link sent via WhatsApp','');
+}
+
+// ── Channel choice — WhatsApp or Email, shown before the request goes out.
+// Matches the existing showUploadChoicePopup pattern used elsewhere in the app. ──
+function showFeedbackChoicePopup(mob){
+  var c=clients.find(function(x){return x.recordId===mob||x.mobile===mob;});
+  var name=c?toTitle(c.name):'this client';
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.innerHTML='<div style="background:var(--s1);border-radius:12px;width:100%;max-width:340px;overflow:hidden">'
+    +'<div style="padding:16px;font-size:14px;font-weight:800;border-bottom:1px solid var(--border)">💬 Request feedback from '+name+'</div>'
+    +'<div style="padding:12px 16px;font-size:12px;color:var(--t2);line-height:1.5">How would you like to send this?</div>'
+    +'<div style="display:flex;flex-direction:column;border-top:1px solid var(--border)">'
+    +'<button id="_fb_wa" style="padding:12px;border:none;background:none;color:var(--green);font-weight:700;cursor:pointer;border-bottom:1px solid var(--border)">💬 WhatsApp</button>'
+    +'<button id="_fb_email" style="padding:12px;border:none;background:none;color:var(--blue);font-weight:700;cursor:pointer">📧 Email</button>'
+    +'</div></div>';
+  document.body.appendChild(ov);
+  document.getElementById('_fb_wa').onclick=function(){ ov.remove(); sendFeedbackLinkWA(mob); };
+  document.getElementById('_fb_email').onclick=function(){ ov.remove(); sendFeedbackLinkEmail(mob); };
+}
+
+async function sendFeedbackLinkEmail(mob){
+  var c=clients.find(function(x){return x.recordId===mob||x.mobile===mob;});
+  if(!c){ toast('Client not found'); return; }
+  if(!c.email){ toast('No email on file for this client'); return; }
+  toast('Preparing link...');
+  var token=await getOrCreateUploadToken(mob);
+  if(!token){ toast('Could not generate link'); return; }
+  var link=buildFeedbackLink(token);
+  var subject='Your feedback would mean a lot to us';
+  var body='Hi '+toTitle(c.name)+',\n\n'
+    +'We\'d really value your honest feedback on our service. It takes just a couple of minutes, and you\'re welcome to submit it anonymously if you\'d prefer.\n\n'
+    +'Please use this link: '+link+'\n\n'
+    +'Thank you for helping us improve.\n\n'
+    +'Regards\nArjun K T M\nWealth Matrix Finserv LLP';
+  window.open('mailto:'+encodeURIComponent(c.email)+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body),'_blank');
+  logActivity(mob,'client','Feedback link sent via Email','');
+}
 async function sendUploadLinkWA(mob){
   var c=clients.find(function(x){return x.recordId===mob||x.mobile===mob;});
   if(!c){ toast('Client not found'); return; }
@@ -10030,7 +10187,7 @@ async function openUploadDocsScreen(client){
   var statusEl=document.getElementById('upload-docs-status');
   var folderReady=false;
   try{
-    var searchRes=await sheetWrite({action:'searchClientFolderCandidates', clientName:client.name, mobile:client.mobile});
+    var searchRes=await sheetWrite({action:'searchClientFolderCandidates', expectsResponse:true, clientName:client.name, mobile:client.mobile});
     if(searchRes && searchRes.success && searchRes.exact){
       folderReady=true; // exact match already exists — nothing to ask
     } else if(searchRes && searchRes.success && searchRes.ambiguous && searchRes.ambiguous.length){
@@ -10471,7 +10628,18 @@ async function sha256Hex(text){
 }
 
 function getSession(){
-  try{ return JSON.parse(localStorage.getItem('wm_session')||'null'); }catch(e){ return null; }
+  try{
+    var s=JSON.parse(localStorage.getItem('wm_session')||'null');
+    // A session without both a userId and userType is corrupt, not valid —
+    // it can't be used for role checks or record filtering, and trusting it
+    // means someone sits in a broken half-logged-in state indefinitely.
+    // Treat it as no session at all so they get a clean login screen instead.
+    if(s && (!s.userId || !s.userType)){
+      localStorage.removeItem('wm_session');
+      return null;
+    }
+    return s;
+  }catch(e){ return null; }
 }
 function setSession(s){ localStorage.setItem('wm_session', JSON.stringify(s)); }
 function clearSession(){ localStorage.removeItem('wm_session'); }
@@ -10540,9 +10708,15 @@ async function attemptLogin(){
   if(errEl) errEl.style.display='none';
   try{
     var passwordHash=await sha256Hex(password);
-    var res=await sheetWrite({action:'loginUser', username:username, passwordHash:passwordHash}, 20000);
+    var res=await sheetWrite({action:'loginUser', username:username, passwordHash:passwordHash, expectsResponse:true}, 20000);
     btn.disabled=false; btn.textContent='Sign In';
-    if(res && res.success){
+    // Require the actual identity fields, not just a success flag. A response
+    // can come back "successful" without real user data (e.g. an Apps Script
+    // timeout page that still returns HTTP 200) — creating a session from
+    // that would let someone past the login screen with no password ever
+    // actually verified, in a broken state with no role. Checking for the
+    // fields themselves closes that off regardless of how it arises.
+    if(res && res.success && res.userId && res.userType){
       setSession({name:res.name, username:res.username, userType:res.userType, userId:res.userId});
       if(passEl) passEl.value='';
       hideLoginScreen();
@@ -10633,6 +10807,46 @@ function toggleSettingsSection(id){
 }
 
 // ── Change own password — available to every role ──
+async function sendProductFeedback(){
+  var msgEl=document.getElementById('dp-fb-message');
+  var catEl=document.getElementById('dp-fb-category');
+  var message=(msgEl?msgEl.value:'').trim();
+  if(!message){ toast('Please write a message first'); return; }
+  if(PRODUCT_FEEDBACK_URL.indexOf('PASTE_')===0){
+    toast('⚠️ This isn\'t set up yet — the Deep Pocket feedback link hasn\'t been configured for this deployment.');
+    return;
+  }
+  var session=getSession();
+  var btn=document.getElementById('dp-fb-send-btn');
+  if(btn){ btn.disabled=true; btn.textContent='Sending…'; }
+  try{
+    var res=await fetch(PRODUCT_FEEDBACK_URL, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain'},
+      body:JSON.stringify({
+        action:'submitProductFeedback',
+        firmName:document.title.replace(/\s*v[\d.]+\s*$/,'').trim(), // e.g. "Wealth Matrix CRM" — reads from whatever this deployment is actually titled, so it's automatically correct per firm without a separate field to keep in sync
+        submittedBy:session?session.name:'',
+        role:session?session.userType:'',
+        category:catEl?catEl.value:'Other',
+        message:message,
+        appVersion:(document.title.match(/v[\d.]+/)||[''])[0]
+      })
+    });
+    var data=await res.json().catch(function(){ return {success:true}; }); // a non-JSON 200 still likely means it went through
+    if(data && data.success!==false){
+      toast('✅ Thank you — sent to Deep Pocket');
+      if(msgEl) msgEl.value='';
+    } else {
+      toast('❌ Could not send: '+(data&&data.error||'please try again'));
+    }
+  }catch(e){
+    toast('❌ Could not reach Deep Pocket: '+e.message);
+  }finally{
+    if(btn){ btn.disabled=false; btn.textContent='Send Feedback'; }
+  }
+}
+
 function openChangePasswordForm(){
   var ov=document.createElement('div');
   ov.id='cpw-ov';
@@ -10683,7 +10897,7 @@ async function loadAdminUserList(){
   if(!listEl) return;
   var session=getSession(); if(!session) return;
   try{
-    var res=await sheetWrite({action:'listUsers', requestingUserId:session.userId}, 20000);
+    var res=await sheetWrite({action:'listUsers', requestingUserId:session.userId, expectsResponse:true}, 20000);
     if(!res || !res.success){ listEl.innerHTML='<div style="font-size:11px;color:var(--red);text-align:center;padding:8px">'+(res&&res.error||'Could not load users')+'</div>'; return; }
     if(!res.users.length){ listEl.innerHTML='<div style="font-size:11px;color:var(--t3);text-align:center;padding:8px">No users yet.</div>'; return; }
     listEl.innerHTML=res.users.map(function(u){

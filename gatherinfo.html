@@ -6,10 +6,10 @@
 <title>Update Your Details — Wealth Matrix Finserv</title>
 <style>
 :root{
-  --bg:#000000; --s1:#111111; --s2:#1A1A1A; --border:#2A2A2A;
-  --accent:#C0392B; --accent2:rgba(192,57,43,.12);
-  --text:#FFFFFF; --t2:#AAAAAA; --t3:#666666;
-  --green:#2ecc71; --r:12px; --r2:8px;
+  --bg:#0A1830; --s1:#0F2140; --s2:#132848; --border:#2E5C8A;
+  --accent:#FFFFFF; --accent2:rgba(255,255,255,.12);
+  --text:#FFFFFF; --t2:#8FB4DC; --t3:#5D7A9E;
+  --green:#4C9A6A; --red:#C1553D; --r:12px; --r2:8px;
   --page-w:460px;
 }
 *{box-sizing:border-box}
@@ -55,7 +55,7 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,B
 .savebtn:disabled{opacity:.5}
 .savemsg{font-size:11px;margin:10px 14px 0;text-align:center}
 .savemsg.ok{color:var(--green)}
-.savemsg.err{color:#e74c3c}
+.savemsg.err{color:var(--red)}
 .uploadlink{display:block;margin:0 14px 14px;background:var(--s1);border:1px solid var(--accent);border-radius:var(--r);padding:14px 16px;text-decoration:none}
 .uploadlink .t{font-size:12px;font-weight:800;color:var(--accent);margin-bottom:5px}
 .uploadlink p{font-size:11px;color:var(--t2);line-height:1.6;margin:0}
@@ -64,12 +64,13 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,B
 .spin{display:inline-block;width:14px;height:14px;border:2px solid var(--t3);border-top-color:var(--accent);border-radius:50%;animation:sp .7s linear infinite;vertical-align:middle;margin-right:4px}
 @keyframes sp{to{transform:rotate(360deg)}}
 @media (min-width:700px){
-  :root{ --page-w:640px; }
+  :root{ --page-w:760px; }
   .prod-grid{grid-template-columns:repeat(3,1fr)}
   .hdr{padding:30px 18px 20px}
   .hdr .logo{font-size:42px}
   .hdr h1{font-size:19px}
   .state{padding:90px 24px}
+  .yn3-block{display:grid;grid-template-columns:1fr 1fr;gap:0 18px;align-items:start}
 }
 </style>
 </head>
@@ -117,7 +118,7 @@ async function apiPost(data){
 
 function renderError(title, msg){
   document.getElementById('app').innerHTML =
-    '<div class="state"><div class="ico">⚠️</div><h2>'+title+'</h2><p>'+msg+'</p></div>';
+    '<div class="state"><div class="ico">⚠️</div><h2>'+esc(title)+'</h2><p>'+esc(msg)+'</p></div>';
 }
 
 // Builds a 3-way Yes/No/Unsure question block with an optional coverage-amount
@@ -176,7 +177,7 @@ function renderForm(){
     + '</div>'
 
     + '<div id="gatheredFields" style="opacity:.4;pointer-events:none">'
-    + '<div class="form-block">'
+    + '<div class="form-block yn3-block">'
     +   yn3Block('healthInsurance', 'Do you have Health Insurance for your Family?', '(Other than employer coverage)', 'Not Sure', true)
     +   yn3Block('lifeInsurance', 'Do you have a Term Life Insurance policy?', '(Not insurance investment schemes)', 'Don\u2019t Know', true)
     +   yn3Block('dependentsInsurance', 'Do your dependents (Parents/Siblings etc.) have health insurance?', '', 'Don\u2019t Know', false)

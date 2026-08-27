@@ -8,9 +8,9 @@
 <title>Your Portfolio Review — Wealth Matrix Finserv</title>
 <style>
 :root{
-  --bg:#000000; --s1:#111111; --s2:#1A1A1A; --border:#2A2A2A;
-  --accent:#1D6FE0; --accent2:rgba(29,111,224,.12);
-  --text:#FFFFFF; --t2:#AAAAAA; --t3:#666666;
+  --bg:#0A1830; --s1:#0F2140; --s2:#132848; --border:#2E5C8A;
+  --accent:#FFFFFF; --accent2:rgba(255,255,255,.12);
+  --text:#FFFFFF; --t2:#8FB4DC; --t3:#5D7A9E;
   --page-w:480px;
 }
 *{box-sizing:border-box}
@@ -85,7 +85,7 @@ async function apiPost(data, timeoutMs){
 
 function renderError(title, msg){
   document.getElementById('app').innerHTML =
-    '<div class="state"><div class="ico">⚠️</div><h2>'+title+'</h2><p>'+msg+'</p></div>';
+    '<div class="state"><div class="ico">⚠️</div><h2>'+esc(title)+'</h2><p>'+esc(msg)+'</p></div>';
 }
 
 function renderLetter(name, reportText, generatedDate){
